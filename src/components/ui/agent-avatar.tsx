@@ -55,7 +55,7 @@ export function AgentAvatar({ name, size = 48, glow = false }: AgentAvatarProps)
       <img
         src={agent.src}
         alt={name}
-        className="w-full h-full object-cover"
+        className="w-full h-full object-cover object-top"
         style={{ filter: "saturate(0.7) brightness(0.9)" }}
       />
       {/* Color tint overlay */}

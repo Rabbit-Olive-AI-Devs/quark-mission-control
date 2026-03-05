@@ -87,22 +87,54 @@ export function parseBroadcast(): BroadcastStatus {
   };
 }
 
-export function parseComms(agentName: string): CommsMessage[] {
+function parseCommsContent(content: string, direction: "inbound" | "outbound"): CommsMessage[] {
   const messages: CommsMessage[] = [];
+  const skipPatterns = ["No reports", "awaiting", "No directives", "No pending"];
 
-  const inbound = readCommsFile(`${agentName}-to-quark.md`);
-  for (const line of inbound.split("\n")) {
-    if (line.trim().startsWith("- ") && !line.includes("No reports") && !line.includes("awaiting")) {
-      messages.push({ content: line.trim().slice(2), direction: "inbound" });
+  // Split by sections (## or ###)
+  const sections = content.split(/^(?=#{1,3}\s)/m).filter(Boolean);
+
+  for (const section of sections) {
+    const trimmed = section.trim();
+    if (!trimmed || trimmed.startsWith("# ") && !trimmed.startsWith("## ")) continue; // skip title
+    if (skipPatterns.some((p) => trimmed.includes(p))) continue;
+
+    // Collapse section into a single message
+    const lines = trimmed.split("\n").filter((l) => l.trim());
+    const heading = lines[0]?.replace(/^#{1,3}\s*/, "").trim();
+    const body = lines.slice(1)
+      .map((l) => l.trim())
+      .filter((l) => l && !l.startsWith("---"))
+      .map((l) => l.startsWith("- ") ? l.slice(2) : l)
+      .join(" | ");
+
+    if (heading || body) {
+      messages.push({
+        content: body ? `**${heading}** — ${body}` : heading || "",
+        direction,
+      });
     }
   }
 
-  const outbound = readCommsFile(`quark-to-${agentName}.md`);
-  for (const line of outbound.split("\n")) {
-    if (line.trim().startsWith("- ") && !line.includes("No directives")) {
-      messages.push({ content: line.trim().slice(2), direction: "outbound" });
+  // If no sections found, try line-by-line bullets
+  if (messages.length === 0) {
+    for (const line of content.split("\n")) {
+      const t = line.trim();
+      if (t.startsWith("- ") && !skipPatterns.some((p) => t.includes(p))) {
+        messages.push({ content: t.slice(2), direction });
+      }
     }
   }
 
   return messages;
+}
+
+export function parseComms(agentName: string): CommsMessage[] {
+  const inbound = readCommsFile(`${agentName}-to-quark.md`);
+  const outbound = readCommsFile(`quark-to-${agentName}.md`);
+
+  return [
+    ...parseCommsContent(inbound, "inbound"),
+    ...parseCommsContent(outbound, "outbound"),
+  ];
 }

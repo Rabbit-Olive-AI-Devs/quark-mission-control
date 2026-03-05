@@ -55,8 +55,9 @@ function ExecutionTimeline({ jobs }: { jobs: CronJob[] }) {
           />
           <YAxis hide />
           <Tooltip
-            contentStyle={{ background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 11 }}
+            contentStyle={{ background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 11, color: "#F1F5F9" }}
             labelStyle={{ color: "#F1F5F9" }}
+            itemStyle={{ color: "#00D4AA" }}
             formatter={(value) => [`${Math.ceil(value as number)} job(s)`, "Scheduled"]}
           />
           <Bar dataKey="jobs" radius={[3, 3, 0, 0]}>

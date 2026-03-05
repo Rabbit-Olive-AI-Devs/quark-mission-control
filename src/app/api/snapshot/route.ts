@@ -10,6 +10,7 @@ import { parseSessionLog } from "@/lib/parsers/session-log";
 import { parseContentLog, parseHookTracker, parseContentCalendar, parseHookLibrary } from "@/lib/parsers/content";
 import { getSystemInfo } from "@/lib/parsers/system";
 import { listMemoryFilesWithContent } from "@/lib/parsers/memory";
+import { listKnowledgeFilesWithContent } from "@/lib/parsers/knowledge";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +55,7 @@ export async function GET(request: Request) {
     },
     system: getSystemInfo(),
     memory: { files: listMemoryFilesWithContent() },
+    knowledge: { files: listKnowledgeFilesWithContent() },
   };
 
   return NextResponse.json(snapshot, {

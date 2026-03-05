@@ -27,14 +27,12 @@ export function CodexQuota() {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        {/* Daily window */}
         <div className="flex flex-col items-center">
           <Gauge
             value={daily}
             max={100}
             size={72}
             color={getColor(daily)}
-            label={`${daily}%`}
           />
           <span className="text-[10px] text-[#94A3B8] mt-1.5 text-center">Daily Window</span>
           {quota?.dailyLabel && (
@@ -42,14 +40,12 @@ export function CodexQuota() {
           )}
         </div>
 
-        {/* Weekly quota */}
         <div className="flex flex-col items-center">
           <Gauge
             value={weekly}
             max={100}
             size={72}
             color={getColor(weekly)}
-            label={`${weekly}%`}
           />
           <span className="text-[10px] text-[#94A3B8] mt-1.5 text-center">Weekly Quota</span>
           {quota?.weeklyLabel && (
@@ -57,6 +53,12 @@ export function CodexQuota() {
           )}
         </div>
       </div>
+
+      {data?.lastUpdated && (
+        <div className="mt-3 text-center">
+          <span className="text-[9px] text-[#94A3B8]/50">Updated: {data.lastUpdated}</span>
+        </div>
+      )}
     </GlassCard>
   );
 }

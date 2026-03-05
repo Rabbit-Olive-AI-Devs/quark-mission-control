@@ -3,7 +3,7 @@
 interface GaugeProps {
   value: number;
   max: number;
-  label: string;
+  label?: string;
   color?: string;
   size?: number;
 }
@@ -15,7 +15,7 @@ export function Gauge({ value, max, label, color = "#00D4AA", size = 80 }: Gauge
   const strokeDashoffset = circumference - (percent / 100) * circumference;
 
   return (
-    <div className="flex flex-col items-center gap-1">
+    <div className="flex flex-col items-center">
       <div className="relative" style={{ width: size, height: size }}>
         <svg width={size} height={size} className="-rotate-90">
           <circle
@@ -43,7 +43,7 @@ export function Gauge({ value, max, label, color = "#00D4AA", size = 80 }: Gauge
           <span className="text-sm font-semibold text-[#F1F5F9]">{Math.round(percent)}%</span>
         </div>
       </div>
-      <span className="text-xs text-[#94A3B8]">{label}</span>
+      {label && <span className="text-xs text-[#94A3B8] mt-1">{label}</span>}
     </div>
   );
 }

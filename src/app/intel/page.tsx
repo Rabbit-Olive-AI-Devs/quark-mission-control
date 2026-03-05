@@ -106,25 +106,25 @@ function ViralityDistribution({ data }: { data: IntelReport }) {
   return (
     <GlassCard delay={0.2}>
       <h3 className="text-sm font-medium mb-2">Virality Distribution</h3>
-      <div className="flex items-center gap-4">
-        <ResponsiveContainer width={120} height={120}>
+      <div className="flex flex-col items-center gap-3">
+        <ResponsiveContainer width="100%" height={180}>
           <PieChart>
-            <Pie data={distribution} dataKey="value" cx="50%" cy="50%" innerRadius={30} outerRadius={50} paddingAngle={3}>
+            <Pie data={distribution} dataKey="value" cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={3}>
               {distribution.map((d, i) => (
                 <Cell key={i} fill={d.color} />
               ))}
             </Pie>
             <Tooltip
-              contentStyle={{ background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 11 }}
+              contentStyle={{ background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 11, color: "#F1F5F9" }}
             />
           </PieChart>
         </ResponsiveContainer>
-        <div className="space-y-2">
+        <div className="flex gap-4 justify-center">
           {distribution.map((d) => (
             <div key={d.name} className="flex items-center gap-2 text-xs">
               <div className="w-2.5 h-2.5 rounded-full" style={{ background: d.color }} />
               <span className="text-[#F1F5F9]">{d.name}</span>
-              <span className="text-[#94A3B8] ml-auto">{d.value}</span>
+              <span className="text-[#94A3B8] ml-1">{d.value}</span>
             </div>
           ))}
         </div>
@@ -194,6 +194,24 @@ export default function IntelPage() {
               <ViralityDistribution data={data} />
             </div>
 
+            {/* Content Suggestions — prominent position */}
+            {data.suggestions.length > 0 && (
+              <GlassCard delay={0.1} className="mb-6 !border-[#00D4AA]/20 !bg-[#00D4AA]/[0.03]">
+                <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+                  <TrendingUp size={14} className="text-[#00D4AA]" />
+                  Content Suggestions for Cassian
+                </h3>
+                <div className="space-y-2">
+                  {data.suggestions.map((s, i) => (
+                    <div key={i} className="flex gap-2 text-xs">
+                      <span className="text-[#00D4AA] font-semibold shrink-0">{i + 1}.</span>
+                      <span className="text-[#F1F5F9]">{s}</span>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+            )}
+
             {/* High Signal */}
             {data.highSignal.length > 0 && (
               <div className="mb-6">
@@ -239,20 +257,6 @@ export default function IntelPage() {
               </div>
             )}
 
-            {/* Suggestions */}
-            {data.suggestions.length > 0 && (
-              <GlassCard delay={0.2}>
-                <h3 className="text-sm font-medium mb-3">Content Suggestions for Cassian</h3>
-                <div className="space-y-2">
-                  {data.suggestions.map((s, i) => (
-                    <div key={i} className="flex gap-2 text-xs">
-                      <span className="text-[#00D4AA] font-semibold shrink-0">{i + 1}.</span>
-                      <span className="text-[#F1F5F9]">{s}</span>
-                    </div>
-                  ))}
-                </div>
-              </GlassCard>
-            )}
           </>
         ) : (
           <GlassCard>
