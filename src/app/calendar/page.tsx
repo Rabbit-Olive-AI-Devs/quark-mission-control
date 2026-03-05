@@ -7,23 +7,51 @@ import { Calendar, Clock } from "lucide-react";
 import { useApi } from "@/hooks/use-api";
 import type { CronJob } from "@/lib/parsers/types";
 
-const HOURS = Array.from({ length: 24 }, (_, i) => i);
+// 48 slots = 24 hours x 2 (every 30 minutes)
+const SLOTS = Array.from({ length: 48 }, (_, i) => ({
+  hour: Math.floor(i / 2),
+  minute: (i % 2) * 30,
+}));
 
-// Parse "in Xh" or "in Xm" to get approximate target hour
-function resolveHour(timeStr: string | null, isNext: boolean): number | null {
-  if (!timeStr) return null;
-  const hMatch = timeStr.match(/(\d+)h/);
-  const mMatch = timeStr.match(/(\d+)m/);
-  const dMatch = timeStr.match(/(\d+)d/);
+// Parse cron schedule string to extract exact time slots
+// Format: "cron M H * * *" or "cron M H1,H2,H3 * * *"
+function parseCronSchedule(schedule: string): { hour: number; minute: number }[] {
+  const slots: { hour: number; minute: number }[] = [];
 
-  let offsetHours = 0;
-  if (hMatch) offsetHours = parseInt(hMatch[1]);
-  if (mMatch) offsetHours = Math.round(parseInt(mMatch[1]) / 60 * 10) / 10;
-  if (dMatch) return null; // too far out
+  // Match "cron <minute> <hour> ..."
+  const match = schedule.match(/cron\s+(\d+)\s+([\d,*\/]+)/);
+  if (!match) return slots;
 
-  const now = new Date().getHours();
-  if (isNext) return Math.round((now + offsetHours) % 24);
-  return Math.round((now - offsetHours + 24) % 24);
+  const minute = parseInt(match[1]);
+  const hourPart = match[2];
+
+  if (hourPart === "*") {
+    // Every hour at this minute
+    for (let h = 0; h < 24; h++) {
+      slots.push({ hour: h, minute });
+    }
+  } else if (hourPart.includes("/")) {
+    // Every N hours (e.g., */6)
+    const interval = parseInt(hourPart.split("/")[1]);
+    for (let h = 0; h < 24; h += interval) {
+      slots.push({ hour: h, minute });
+    }
+  } else if (hourPart.includes(",")) {
+    // Specific hours (e.g., 0,6,12,18)
+    hourPart.split(",").forEach((h) => {
+      slots.push({ hour: parseInt(h), minute });
+    });
+  } else {
+    // Single hour
+    slots.push({ hour: parseInt(hourPart), minute });
+  }
+
+  return slots;
+}
+
+// Which 30-min slot does a given time fall into?
+function timeToSlotIndex(hour: number, minute: number): number {
+  return hour * 2 + (minute >= 30 ? 1 : 0);
 }
 
 // Color per job (cycle through palette)
@@ -34,27 +62,24 @@ export default function CalendarPage() {
 
   const jobs = data?.jobs || [];
 
-  // Build schedule: which jobs fire at which hours
-  const schedule: { hour: number; jobs: { name: string; color: string; type: "next" | "last" }[] }[] = HOURS.map((h) => ({
-    hour: h,
-    jobs: [],
-  }));
+  // Build schedule grid from actual cron expressions
+  const schedule: { hour: number; minute: number; jobs: { name: string; color: string; exactMinute: number }[] }[] =
+    SLOTS.map((s) => ({ ...s, jobs: [] }));
 
   jobs.forEach((job, idx) => {
     const color = JOB_COLORS[idx % JOB_COLORS.length];
+    const times = parseCronSchedule(job.schedule);
 
-    const nextHour = resolveHour(job.nextRun, true);
-    if (nextHour !== null) {
-      schedule[nextHour].jobs.push({ name: job.name, color, type: "next" });
-    }
-
-    const lastHour = resolveHour(job.lastRun, false);
-    if (lastHour !== null && !schedule[lastHour].jobs.find((j) => j.name === job.name)) {
-      schedule[lastHour].jobs.push({ name: job.name, color, type: "last" });
-    }
+    times.forEach((t) => {
+      const slotIdx = timeToSlotIndex(t.hour, t.minute);
+      if (slotIdx < schedule.length) {
+        schedule[slotIdx].jobs.push({ name: job.name, color, exactMinute: t.minute });
+      }
+    });
   });
 
-  const nowHour = new Date().getHours();
+  const now = new Date();
+  const nowSlot = timeToSlotIndex(now.getHours(), now.getMinutes());
 
   return (
     <AppShell>
@@ -65,7 +90,7 @@ export default function CalendarPage() {
             Calendar
           </h1>
           <p className="text-sm text-[#94A3B8] mt-1">
-            24-hour cron schedule overlay — {jobs.length} jobs mapped
+            Cron schedule — 30-min intervals — {jobs.length} jobs mapped
           </p>
         </div>
 
@@ -74,15 +99,11 @@ export default function CalendarPage() {
           <div className="flex items-center gap-6 text-xs flex-wrap">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-sm bg-[#00D4AA]/30 border border-[#00D4AA]/50" />
-              <span className="text-[#94A3B8]">Scheduled (next run)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-sm bg-white/10 border border-white/20" />
-              <span className="text-[#94A3B8]">Completed (last run)</span>
+              <span className="text-[#94A3B8]">Scheduled job</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-sm bg-[#F59E0B]/20 border border-[#F59E0B]/40" />
-              <span className="text-[#94A3B8]">Current hour</span>
+              <span className="text-[#94A3B8]">Current slot</span>
             </div>
           </div>
         </GlassCard>
@@ -90,46 +111,52 @@ export default function CalendarPage() {
         {loading ? (
           <GlassCard>
             <div className="animate-pulse space-y-2">
-              {[1, 2, 3, 4, 5, 6].map((i) => <div key={i} className="h-12 bg-white/5 rounded" />)}
+              {[1, 2, 3, 4, 5, 6].map((i) => <div key={i} className="h-10 bg-white/5 rounded" />)}
             </div>
           </GlassCard>
         ) : (
           <GlassCard delay={0.1}>
             <div className="space-y-0">
-              {schedule.map((slot) => {
-                const isNow = slot.hour === nowHour;
+              {schedule.map((slot, slotIdx) => {
+                const isNow = slotIdx === nowSlot;
+                const timeLabel = `${slot.hour.toString().padStart(2, "0")}:${slot.minute.toString().padStart(2, "0")}`;
+                const isHourBoundary = slot.minute === 0;
+
                 return (
                   <div
-                    key={slot.hour}
-                    className={`flex items-start gap-4 py-2.5 px-3 border-b border-white/5 last:border-0 rounded-lg transition-colors ${
+                    key={slotIdx}
+                    className={`flex items-start gap-4 py-2 px-3 border-b transition-colors ${
+                      isHourBoundary ? "border-white/8" : "border-white/[0.03]"
+                    } last:border-0 rounded-lg ${
                       isNow ? "bg-[#F59E0B]/5" : "hover:bg-white/[0.02]"
                     }`}
                   >
-                    {/* Hour label */}
-                    <div className="w-14 shrink-0 flex items-center gap-2">
+                    {/* Time label */}
+                    <div className="w-16 shrink-0 flex items-center gap-2">
                       {isNow && <StatusDot status="active" size="sm" pulse />}
-                      <span className={`text-xs font-mono ${isNow ? "text-[#F59E0B] font-semibold" : "text-[#94A3B8]"}`}>
-                        {slot.hour.toString().padStart(2, "0")}:00
+                      <span className={`text-xs font-mono ${
+                        isNow ? "text-[#F59E0B] font-semibold" :
+                        isHourBoundary ? "text-[#94A3B8]" : "text-[#94A3B8]/50"
+                      }`}>
+                        {timeLabel}
                       </span>
                     </div>
 
-                    {/* Jobs at this hour */}
-                    <div className="flex-1 flex flex-wrap gap-1.5 min-h-[24px]">
+                    {/* Jobs at this slot */}
+                    <div className="flex-1 flex flex-wrap gap-1.5 min-h-[22px]">
                       {slot.jobs.map((j, i) => (
                         <div
                           key={i}
                           className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] transition-all"
                           style={{
-                            background: j.type === "next" ? `${j.color}15` : "rgba(255,255,255,0.04)",
-                            border: `1px solid ${j.type === "next" ? `${j.color}40` : "rgba(255,255,255,0.08)"}`,
-                            color: j.type === "next" ? j.color : "#94A3B8",
+                            background: `${j.color}15`,
+                            border: `1px solid ${j.color}40`,
+                            color: j.color,
                           }}
                         >
                           <Clock size={10} />
                           <span className="truncate max-w-40">{j.name}</span>
-                          {j.type === "last" && (
-                            <span className="text-[8px] opacity-60">done</span>
-                          )}
+                          <span className="text-[8px] opacity-60">:{j.exactMinute.toString().padStart(2, "0")}</span>
                         </div>
                       ))}
                     </div>
@@ -148,6 +175,7 @@ export default function CalendarPage() {
               <div key={job.id} className="flex items-center gap-1.5 text-[10px]">
                 <div className="w-2.5 h-2.5 rounded-full" style={{ background: JOB_COLORS[i % JOB_COLORS.length] }} />
                 <span className="text-[#F1F5F9]">{job.name}</span>
+                <span className="text-[#94A3B8]/50 font-mono">{job.schedule.replace("cron ", "")}</span>
               </div>
             ))}
           </div>

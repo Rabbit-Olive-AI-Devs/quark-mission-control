@@ -48,10 +48,18 @@ export interface MetricRow {
   status: string;
 }
 
+export interface CodexQuota {
+  dailyRemaining: number; // percentage remaining
+  dailyLabel: string;
+  weeklyRemaining: number;
+  weeklyLabel: string;
+}
+
 export interface MetricsData {
   lastUpdated: string;
   cronReliability: string;
   codexUsage: string;
+  codexQuota: CodexQuota;
   degradationStatus: string;
   opsHealth: MetricRow[];
   contentPerf: { metric: string; today: string; sevenDayTotal: string; sevenDayAvg: string }[];

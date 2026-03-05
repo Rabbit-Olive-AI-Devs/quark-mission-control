@@ -9,6 +9,7 @@ import { PendingBadge } from "@/components/dashboard/pending-badge";
 import { DegradationBanner } from "@/components/dashboard/degradation-banner";
 import { HeartbeatCard } from "@/components/dashboard/heartbeat-card";
 import { ModelFallbackChain } from "@/components/dashboard/model-fallback";
+import { CodexQuota } from "@/components/dashboard/codex-quota";
 
 export default function DashboardPage() {
   return (
@@ -40,8 +41,13 @@ export default function DashboardPage() {
           <AgentBar />
         </div>
 
-        {/* Model Fallback Chain */}
-        <ModelFallbackChain />
+        {/* Codex Quota + Model Fallback Chain */}
+        <div className="grid grid-cols-3 gap-4 mb-4">
+          <CodexQuota />
+          <div className="col-span-2">
+            <ModelFallbackChain />
+          </div>
+        </div>
       </div>
     </AppShell>
   );

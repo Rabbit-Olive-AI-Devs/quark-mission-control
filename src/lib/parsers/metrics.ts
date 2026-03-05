@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { WORKSPACE_PATH } from "../config";
-import type { MetricsData, MetricRow } from "./types";
+import type { MetricsData, MetricRow, CodexQuota } from "./types";
 
 function parseTable(text: string, headers: string[]): Record<string, string>[] {
   const rows: Record<string, string>[] = [];
@@ -27,6 +27,7 @@ export function parseMetrics(): MetricsData {
     lastUpdated: "",
     cronReliability: "",
     codexUsage: "",
+    codexQuota: { dailyRemaining: 100, dailyLabel: "Unknown", weeklyRemaining: 100, weeklyLabel: "Unknown" },
     degradationStatus: "NORMAL",
     opsHealth: [],
     contentPerf: [],
@@ -68,6 +69,20 @@ export function parseMetrics(): MetricsData {
 
     const codexMatch = opsRows.find((r) => r.Metric?.includes("Codex"));
     if (codexMatch) result.codexUsage = codexMatch.Value || "";
+
+    // Parse Codex daily and weekly quotas from bullet points
+    const dailyMatch = content.match(/Codex usage window:\s*\*\*(\d+)%\s*remaining\*\*/);
+    const weeklyMatch = content.match(/Codex weekly quota:\s*\*\*(\d+)%\s*remaining\*\*/);
+    const dailyWindowMatch = content.match(/Codex usage window:\s*\*\*[^*]+\*\*\s*\(([^)]+)\)/);
+
+    if (dailyMatch) {
+      result.codexQuota.dailyRemaining = parseInt(dailyMatch[1]);
+      result.codexQuota.dailyLabel = dailyWindowMatch ? dailyWindowMatch[1] : `${dailyMatch[1]}% remaining`;
+    }
+    if (weeklyMatch) {
+      result.codexQuota.weeklyRemaining = parseInt(weeklyMatch[1]);
+      result.codexQuota.weeklyLabel = `${weeklyMatch[1]}% remaining`;
+    }
   } catch {
     // Return defaults
   }
