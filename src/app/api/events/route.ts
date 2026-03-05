@@ -1,0 +1,83 @@
+import { NextResponse } from "next/server";
+import { WORKSPACE_PATH } from "@/lib/config";
+
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+export async function GET() {
+  const encoder = new TextEncoder();
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      // Dynamic import chokidar to avoid bundling issues
+      const chokidar = await import("chokidar");
+
+      const watchPaths = [
+        `${WORKSPACE_PATH}/memory/heartbeat-state.md`,
+        `${WORKSPACE_PATH}/memory/today-digest.md`,
+        `${WORKSPACE_PATH}/memory/pending-actions.md`,
+        `${WORKSPACE_PATH}/intel/DAILY-INTEL.md`,
+        `${WORKSPACE_PATH}/metrics/dashboard.md`,
+        `${WORKSPACE_PATH}/comms`,
+      ];
+
+      const watcher = chokidar.watch(watchPaths, {
+        persistent: true,
+        ignoreInitial: true,
+        awaitWriteFinish: { stabilityThreshold: 500, pollInterval: 100 },
+      });
+
+      // Send heartbeat every 30s to keep connection alive
+      const heartbeatInterval = setInterval(() => {
+        try {
+          controller.enqueue(encoder.encode(": heartbeat\n\n"));
+        } catch {
+          clearInterval(heartbeatInterval);
+        }
+      }, 30000);
+
+      watcher.on("change", (filePath: string) => {
+        const relative = filePath.replace(WORKSPACE_PATH + "/", "");
+        let eventType = "update";
+
+        if (relative.includes("heartbeat")) eventType = "heartbeat";
+        else if (relative.includes("digest")) eventType = "digest";
+        else if (relative.includes("pending")) eventType = "pending";
+        else if (relative.includes("intel")) eventType = "intel";
+        else if (relative.includes("metrics")) eventType = "metrics";
+        else if (relative.includes("comms")) eventType = "comms";
+
+        try {
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ type: eventType, file: relative, timestamp: Date.now() })}\n\n`)
+          );
+        } catch {
+          // Stream closed
+        }
+      });
+
+      // Cleanup on abort
+      const cleanup = () => {
+        clearInterval(heartbeatInterval);
+        watcher.close();
+      };
+
+      // Send initial connection event
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "connected", timestamp: Date.now() })}\n\n`));
+
+      // Store cleanup for when stream is cancelled
+      (controller as unknown as Record<string, () => void>)._cleanup = cleanup;
+    },
+    cancel() {
+      // Cleanup handled by watcher close
+    },
+  });
+
+  return new NextResponse(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
+}
