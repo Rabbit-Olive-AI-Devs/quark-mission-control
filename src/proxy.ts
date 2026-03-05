@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const AUTH_COOKIE_NAME = "qmc_auth";
-const PUBLIC_PATHS = ["/login", "/api/auth"];
+const PUBLIC_PATHS = ["/login", "/api/auth", "/api/snapshot"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
