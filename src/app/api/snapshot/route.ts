@@ -4,7 +4,7 @@ import { parseDigest } from "@/lib/parsers/digest";
 import { parsePending } from "@/lib/parsers/pending";
 import { parseIntel } from "@/lib/parsers/intel";
 import { parseMetrics } from "@/lib/parsers/metrics";
-import { parseAgents, parseBroadcast } from "@/lib/parsers/agents";
+import { parseAgents, parseBroadcast, parseComms } from "@/lib/parsers/agents";
 import { parseCronList } from "@/lib/parsers/cron";
 import { parseSessionLog } from "@/lib/parsers/session-log";
 import { parseContentLog, parseHookTracker, parseContentCalendar, parseHookLibrary } from "@/lib/parsers/content";
@@ -45,6 +45,12 @@ export async function GET(request: Request) {
     agents: {
       agents: parseAgents(),
       broadcast: parseBroadcast(),
+      comms: {
+        neo: parseComms("neo"),
+        fulcrum: parseComms("fulcrum"),
+        cassian: parseComms("cassian"),
+        chandler: parseComms("chandler"),
+      },
     },
     sessionLog: { entries: parseSessionLog() },
     content: {
