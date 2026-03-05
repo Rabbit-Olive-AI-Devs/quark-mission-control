@@ -12,6 +12,7 @@ import {
   Radio,
   BookOpen,
   BarChart3,
+  Calendar,
   Settings,
 } from "lucide-react";
 import { StatusDot } from "./status-dot";
@@ -26,6 +27,8 @@ const navItems = [
   { href: "/intel", label: "Intel Feed", icon: Radio },
   { href: "/memory-browser", label: "Memory Browser", icon: BookOpen },
   { href: "/metrics-page", label: "Metrics", icon: BarChart3 },
+  { href: "/calendar", label: "Calendar", icon: Calendar },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function Sidebar() {
@@ -37,12 +40,12 @@ export function Sidebar() {
       {/* Logo */}
       <div className="p-5 border-b border-white/5">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-[#00D4AA]/20 flex items-center justify-center">
-            <div className="w-4 h-4 rounded-full bg-[#00D4AA]" />
+          <div className="w-9 h-9 rounded-lg bg-[#00D4AA]/20 flex items-center justify-center">
+            <div className="w-4 h-4 rounded-full bg-[#00D4AA] pulse-live" />
           </div>
           <div>
-            <h1 className="text-sm font-semibold text-[#F1F5F9]">Quark</h1>
-            <p className="text-[10px] text-[#94A3B8]">Mission Control</p>
+            <h1 className="text-sm font-bold text-[#F1F5F9] tracking-wide">Q.U.A.R.K.</h1>
+            <p className="text-[9px] text-[#94A3B8] leading-tight">Quick Utility for Automation,<br/>Research & Knowledge</p>
           </div>
         </div>
       </div>
@@ -72,14 +75,9 @@ export function Sidebar() {
 
       {/* Footer */}
       <div className="p-4 border-t border-white/5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs text-[#94A3B8]">
-            <StatusDot status={connected ? "active" : "idle"} size="sm" pulse={connected} />
-            <span>{connected ? "Live" : "Disconnected"}</span>
-          </div>
-          <Link href="/settings" className="text-[#94A3B8] hover:text-[#F1F5F9] transition-colors">
-            <Settings size={16} />
-          </Link>
+        <div className="flex items-center gap-2 text-xs text-[#94A3B8]">
+          <StatusDot status={connected ? "active" : "idle"} size="sm" pulse={connected} />
+          <span>{connected ? "Live" : "Disconnected"}</span>
         </div>
       </div>
     </aside>

@@ -1,0 +1,64 @@
+import { NextResponse } from "next/server";
+import { parseHeartbeat } from "@/lib/parsers/heartbeat";
+import { parseDigest } from "@/lib/parsers/digest";
+import { parsePending } from "@/lib/parsers/pending";
+import { parseIntel } from "@/lib/parsers/intel";
+import { parseMetrics } from "@/lib/parsers/metrics";
+import { parseAgents, parseBroadcast } from "@/lib/parsers/agents";
+import { parseCronList } from "@/lib/parsers/cron";
+import { parseSessionLog } from "@/lib/parsers/session-log";
+import { parseContentLog, parseHookTracker, parseContentCalendar, parseHookLibrary } from "@/lib/parsers/content";
+import { getSystemInfo } from "@/lib/parsers/system";
+import { listMemoryFiles } from "@/lib/parsers/memory";
+
+export const dynamic = "force-dynamic";
+
+// Single endpoint that bundles ALL dashboard data.
+// Used by Vercel deployment to fetch data from the local MacBook
+// via Tailscale Funnel.
+export async function GET(request: Request) {
+  // Simple bearer token auth for the snapshot endpoint
+  const authHeader = request.headers.get("authorization");
+  const snapshotKey = process.env.SNAPSHOT_API_KEY;
+  if (snapshotKey && authHeader !== `Bearer ${snapshotKey}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const jobs = parseCronList();
+
+  const snapshot = {
+    timestamp: new Date().toISOString(),
+    cron: {
+      jobs,
+      summary: {
+        total: jobs.length,
+        ok: jobs.filter((j) => j.status === "ok").length,
+        failed: jobs.filter((j) => j.status !== "ok" && j.status !== "idle" && j.status !== "unknown").length,
+      },
+    },
+    heartbeat: parseHeartbeat(),
+    digest: { sections: parseDigest() },
+    pending: parsePending(),
+    intel: parseIntel(),
+    metrics: parseMetrics(),
+    agents: {
+      agents: parseAgents(),
+      broadcast: parseBroadcast(),
+    },
+    sessionLog: { entries: parseSessionLog() },
+    content: {
+      posts: parseContentLog(),
+      hookCategories: parseHookTracker(),
+      calendar: parseContentCalendar(),
+      hookLibrary: parseHookLibrary(),
+    },
+    system: getSystemInfo(),
+    memory: { files: listMemoryFiles() },
+  };
+
+  return NextResponse.json(snapshot, {
+    headers: {
+      "Cache-Control": "public, max-age=60, stale-while-revalidate=300",
+    },
+  });
+}

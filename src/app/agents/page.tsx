@@ -5,14 +5,15 @@ import { AppShell } from "@/components/layout/app-shell";
 import { GlassCard } from "@/components/ui/glass-card";
 import { StatusDot } from "@/components/ui/status-dot";
 import { Users, MessageSquare, Radio } from "lucide-react";
+import { AgentAvatar } from "@/components/ui/agent-avatar";
 import { useApi } from "@/hooks/use-api";
 import type { AgentStatus, BroadcastStatus, CommsMessage } from "@/lib/parsers/types";
 
-const agentColors: Record<string, string> = {
-  Neo: "#00D4AA",
-  Fulcrum: "#7C3AED",
-  Cassian: "#F59E0B",
-  Chandler: "#3B82F6",
+const agentFiction: Record<string, string> = {
+  Neo: "The Matrix",
+  Fulcrum: "Star Wars: Ahsoka",
+  Cassian: "Star Wars: Andor",
+  Chandler: "Friends",
 };
 
 function AgentDetail({ agentName }: { agentName: string }) {
@@ -93,7 +94,6 @@ export default function AgentsPage() {
         ) : (
           <div className="grid grid-cols-2 gap-4 mb-4">
             {agents.map((agent, i) => {
-              const color = agentColors[agent.config.name] || "#00D4AA";
               const isSelected = selectedAgent === agent.config.name;
 
               return (
@@ -106,15 +106,11 @@ export default function AgentsPage() {
                   <div onClick={() => setSelectedAgent(isSelected ? null : agent.config.name)}>
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3">
-                        <div
-                          className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold"
-                          style={{ background: `${color}20`, color }}
-                        >
-                          {agent.config.name[0]}
-                        </div>
+                        <AgentAvatar name={agent.config.name} size={52} glow={agent.hasInbound} />
                         <div>
                           <h3 className="font-semibold text-[#F1F5F9]">{agent.config.name}</h3>
-                          <p className="text-xs text-[#94A3B8]">{agent.config.description.split("—")[0]?.trim()}</p>
+                          <p className="text-[10px] text-[#94A3B8] italic">{agentFiction[agent.config.name]}</p>
+                          <p className="text-xs text-[#94A3B8] mt-0.5">{agent.config.description.split("—")[0]?.trim()}</p>
                         </div>
                       </div>
                       <StatusDot
