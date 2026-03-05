@@ -1,60 +1,54 @@
 import { execSync } from "child_process";
 import type { CronJob } from "./types";
 
+interface CronJobJSON {
+  id: string;
+  name: string;
+  enabled: boolean;
+  schedule: { kind: string; expr: string; tz?: string };
+  sessionTarget: string;
+  payload?: { model?: string; timeoutSeconds?: number };
+  state?: { nextRunAtMs?: number; lastRunAtMs?: number; lastRunStatus?: string };
+}
+
+function formatRelative(ms: number | undefined): string | null {
+  if (!ms) return null;
+  const diff = ms - Date.now();
+  const absDiff = Math.abs(diff);
+  const hours = Math.floor(absDiff / 3600000);
+  const mins = Math.floor((absDiff % 3600000) / 60000);
+
+  if (diff > 0) {
+    if (hours > 24) return `in ${Math.floor(hours / 24)}d`;
+    if (hours > 0) return `in ${hours}h`;
+    return `in ${mins}m`;
+  } else {
+    if (hours > 24) return `${Math.floor(hours / 24)}d ago`;
+    if (hours > 0) return `${hours}h ago`;
+    return `${mins}m ago`;
+  }
+}
+
 export function parseCronList(): CronJob[] {
   try {
-    const output = execSync("/opt/homebrew/bin/openclaw cron list 2>/dev/null", {
+    const output = execSync("/opt/homebrew/bin/openclaw cron list --json 2>/dev/null", {
       timeout: 10000,
       encoding: "utf-8",
     });
 
-    const jobs: CronJob[] = [];
-    const lines = output.split("\n").filter((l) => l.trim());
+    const data = JSON.parse(output);
+    const jobs: CronJobJSON[] = data.jobs || [];
 
-    // First line is the header — use it to find column positions
-    const header = lines[0];
-    if (!header) return [];
-
-    // Find column start positions from header
-    const cols = {
-      id: header.indexOf("ID"),
-      name: header.indexOf("Name"),
-      schedule: header.indexOf("Schedule"),
-      next: header.indexOf("Next"),
-      last: header.indexOf("Last"),
-      status: header.indexOf("Status"),
-      target: header.indexOf("Target"),
-      agentId: header.indexOf("Agent ID"),
-      model: header.indexOf("Model"),
-    };
-
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i];
-      if (!line.trim()) continue;
-
-      const id = line.substring(cols.id, cols.name).trim();
-      const name = line.substring(cols.name, cols.schedule).trim();
-      const schedule = line.substring(cols.schedule, cols.next).trim();
-      const next = line.substring(cols.next, cols.last).trim();
-      const last = line.substring(cols.last, cols.status).trim();
-      const status = line.substring(cols.status, cols.target).trim();
-      const model = cols.model >= 0 ? line.substring(cols.model).trim() : "";
-
-      if (!id || id.includes("─")) continue;
-
-      jobs.push({
-        id: id.length > 8 ? id.slice(0, 8) : id,
-        name,
-        schedule,
-        model: model || "default",
-        status: status.toLowerCase(),
-        lastRun: last && last !== "-" ? last : null,
-        nextRun: next && next !== "-" ? next : null,
-        enabled: status.toLowerCase() !== "disabled",
-      });
-    }
-
-    return jobs;
+    return jobs.map((job) => ({
+      id: job.id.slice(0, 8),
+      name: job.name,
+      schedule: `cron ${job.schedule.expr}`,
+      model: job.payload?.model || "default",
+      status: job.state?.lastRunStatus || (job.enabled ? "idle" : "disabled"),
+      lastRun: formatRelative(job.state?.lastRunAtMs),
+      nextRun: formatRelative(job.state?.nextRunAtMs),
+      enabled: job.enabled,
+    }));
   } catch {
     return [];
   }
