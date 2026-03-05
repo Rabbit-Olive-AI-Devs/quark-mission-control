@@ -81,7 +81,17 @@ export function parseMetrics(): MetricsData {
     }
     if (weeklyMatch) {
       result.codexQuota.weeklyRemaining = parseInt(weeklyMatch[1]);
-      result.codexQuota.weeklyLabel = `${weeklyMatch[1]}% remaining`;
+      // Check for parenthetical detail, otherwise compute days until weekly reset (Monday)
+      const weeklyDetailMatch = content.match(/Codex weekly quota:\s*\*\*[^*]+\*\*\s*\(([^)]+)\)/);
+      if (weeklyDetailMatch) {
+        result.codexQuota.weeklyLabel = weeklyDetailMatch[1];
+      } else {
+        // Weekly quota resets on Monday. Calculate days remaining.
+        const now = new Date();
+        const day = now.getDay(); // 0=Sun, 1=Mon
+        const daysUntilMonday = day === 0 ? 1 : day === 1 ? 7 : 8 - day;
+        result.codexQuota.weeklyLabel = `Resets in ${daysUntilMonday}d (Monday)`;
+      }
     }
   } catch {
     // Return defaults

@@ -55,8 +55,8 @@ export function CodexQuota() {
       </div>
 
       {data?.lastUpdated && (
-        <div className="mt-3 text-center">
-          <span className="text-[9px] text-[#94A3B8]/50">Updated: {data.lastUpdated}</span>
+        <div className="mt-3 pt-2 border-t border-white/5 text-center">
+          <span className="text-[9px] text-[#F59E0B]/70">Last sync: {data.lastUpdated}</span>
         </div>
       )}
     </GlassCard>
