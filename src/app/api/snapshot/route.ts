@@ -9,7 +9,7 @@ import { parseCronList } from "@/lib/parsers/cron";
 import { parseSessionLog } from "@/lib/parsers/session-log";
 import { parseContentLog, parseHookTracker, parseContentCalendar, parseHookLibrary } from "@/lib/parsers/content";
 import { getSystemInfo } from "@/lib/parsers/system";
-import { listMemoryFiles } from "@/lib/parsers/memory";
+import { listMemoryFilesWithContent } from "@/lib/parsers/memory";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +53,7 @@ export async function GET(request: Request) {
       hookLibrary: parseHookLibrary(),
     },
     system: getSystemInfo(),
-    memory: { files: listMemoryFiles() },
+    memory: { files: listMemoryFilesWithContent() },
   };
 
   return NextResponse.json(snapshot, {

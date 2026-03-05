@@ -1,7 +1,7 @@
 "use client";
 
 import { GlassCard } from "@/components/ui/glass-card";
-import { Heart } from "lucide-react";
+import { Heart, Clock, Mail, FileText } from "lucide-react";
 import { useApi } from "@/hooks/use-api";
 import { formatRelativeTime } from "@/lib/utils";
 import type { HeartbeatState } from "@/lib/parsers/types";
@@ -12,17 +12,13 @@ export function HeartbeatCard() {
   if (loading) {
     return (
       <GlassCard delay={0.1}>
-        <div className="flex items-center gap-2 mb-3">
-          <Heart size={16} className="text-[#EF4444]" />
-          <h3 className="text-sm font-medium">Heartbeat</h3>
-        </div>
-        <div className="animate-pulse h-16 bg-white/5 rounded" />
+        <div className="animate-pulse h-full min-h-[120px] bg-white/5 rounded" />
       </GlassCard>
     );
   }
 
   const lastBeat = data?.lastHeartbeat ? new Date(data.lastHeartbeat) : null;
-  const isRecent = lastBeat && Date.now() - lastBeat.getTime() < 3 * 60 * 60 * 1000; // within 3h
+  const isRecent = lastBeat && Date.now() - lastBeat.getTime() < 3 * 60 * 60 * 1000;
 
   return (
     <GlassCard delay={0.1}>
@@ -38,16 +34,39 @@ export function HeartbeatCard() {
         </span>
       </div>
 
-      <div className="space-y-2 text-xs">
-        <div className="flex justify-between">
-          <span className="text-[#94A3B8]">Last heartbeat</span>
-          <span className="text-[#F1F5F9]">{lastBeat ? formatRelativeTime(lastBeat) : "Never"}</span>
+      <div className="space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-[#EF4444]/10 flex items-center justify-center">
+            <Clock size={14} className="text-[#EF4444]" />
+          </div>
+          <div>
+            <div className="text-xs text-[#94A3B8]">Last heartbeat</div>
+            <div className="text-sm font-medium text-[#F1F5F9]">{lastBeat ? formatRelativeTime(lastBeat) : "Never"}</div>
+          </div>
         </div>
-        <div className="flex justify-between">
-          <span className="text-[#94A3B8]">Last DM check</span>
-          <span className="text-[#F1F5F9]">
-            {data?.lastDmTimestamp ? formatRelativeTime(new Date(data.lastDmTimestamp)) : "Never"}
-          </span>
+
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-[#7C3AED]/10 flex items-center justify-center">
+            <Mail size={14} className="text-[#7C3AED]" />
+          </div>
+          <div>
+            <div className="text-xs text-[#94A3B8]">Last DM check</div>
+            <div className="text-sm font-medium text-[#F1F5F9]">
+              {data?.lastDmTimestamp ? formatRelativeTime(new Date(data.lastDmTimestamp)) : "Never"}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-[#3B82F6]/10 flex items-center justify-center">
+            <FileText size={14} className="text-[#3B82F6]" />
+          </div>
+          <div>
+            <div className="text-xs text-[#94A3B8]">Last digest</div>
+            <div className="text-sm font-medium text-[#F1F5F9]">
+              {data?.lastDigestTimestamp ? formatRelativeTime(new Date(data.lastDigestTimestamp)) : "Never"}
+            </div>
+          </div>
         </div>
       </div>
     </GlassCard>

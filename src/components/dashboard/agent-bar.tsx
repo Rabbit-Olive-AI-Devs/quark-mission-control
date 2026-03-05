@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { GlassCard } from "@/components/ui/glass-card";
 import { StatusDot } from "@/components/ui/status-dot";
 import { AgentAvatar } from "@/components/ui/agent-avatar";
@@ -15,6 +16,7 @@ const agentRoles: Record<string, string> = {
 };
 
 export function AgentBar() {
+  const router = useRouter();
   const { data, loading } = useApi<{ agents: AgentStatus[]; broadcast: BroadcastStatus }>(
     "/api/agents",
     ["comms"]
@@ -53,14 +55,15 @@ export function AgentBar() {
         )}
       </div>
 
-      <div className="flex gap-3">
+      <div className="grid grid-cols-4 gap-3">
         {agents.map((agent) => (
-          <div
+          <button
             key={agent.config.name}
-            className="flex-1 flex flex-col items-center gap-2.5 p-4 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors"
+            onClick={() => router.push(`/agents?agent=${agent.config.name}`)}
+            className="flex flex-col items-center gap-3 p-5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-all hover:scale-[1.02] cursor-pointer"
           >
             <div className="relative">
-              <AgentAvatar name={agent.config.name} size={48} glow={agent.hasInbound} />
+              <AgentAvatar name={agent.config.name} size={72} glow={agent.hasInbound} />
               <div className="absolute -bottom-0.5 -right-0.5">
                 <StatusDot
                   status={agent.hasInbound ? "active" : "idle"}
@@ -69,11 +72,11 @@ export function AgentBar() {
                 />
               </div>
             </div>
-            <span className="text-xs font-medium text-[#F1F5F9]">{agent.config.name}</span>
+            <span className="text-sm font-medium text-[#F1F5F9]">{agent.config.name}</span>
             <span className="text-[10px] text-[#94A3B8] text-center line-clamp-1">
               {agentRoles[agent.config.name] || agent.config.description.split("—")[0]?.trim()}
             </span>
-          </div>
+          </button>
         ))}
       </div>
     </GlassCard>

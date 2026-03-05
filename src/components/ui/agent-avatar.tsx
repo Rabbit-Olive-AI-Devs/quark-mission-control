@@ -7,10 +7,10 @@ interface AgentAvatarProps {
 }
 
 const AGENT_IMAGES: Record<string, { src: string; tint: string }> = {
-  Neo: { src: "/agents/neo.jpg", tint: "rgba(0, 255, 65, 0.15)" },
-  Fulcrum: { src: "/agents/fulcrum.jpg", tint: "rgba(232, 101, 26, 0.15)" },
-  Cassian: { src: "/agents/cassian.jpg", tint: "rgba(74, 123, 204, 0.15)" },
-  Chandler: { src: "/agents/chandler.jpg", tint: "rgba(124, 58, 237, 0.15)" },
+  Neo: { src: "/agents/neo.png", tint: "rgba(0, 255, 65, 0.12)" },
+  Fulcrum: { src: "/agents/fulcrum.png", tint: "rgba(232, 101, 26, 0.12)" },
+  Cassian: { src: "/agents/cassian.png", tint: "rgba(74, 123, 204, 0.12)" },
+  Chandler: { src: "/agents/chandler.png", tint: "rgba(124, 58, 237, 0.12)" },
 };
 
 const GLOW_COLORS: Record<string, string> = {

@@ -19,7 +19,7 @@ export function ModelFallbackChain() {
         <h3 className="text-sm font-medium">Model Fallback Chain</h3>
       </div>
 
-      <div className="flex items-center gap-1 overflow-x-auto pb-2">
+      <div className="flex items-center justify-center gap-1 overflow-x-auto pb-2">
         {FALLBACK_CHAIN.map((model, i) => (
           <div key={model.name} className="flex items-center gap-1">
             <div

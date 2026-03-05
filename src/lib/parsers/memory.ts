@@ -17,6 +17,18 @@ function classifyFile(name: string): MemoryFile["type"] {
   return "other";
 }
 
+export interface MemoryFileWithContent extends MemoryFile {
+  content: string;
+}
+
+export function listMemoryFilesWithContent(): MemoryFileWithContent[] {
+  const files = listMemoryFiles();
+  return files.map((f) => {
+    const result = readMemoryFile(f.path);
+    return { ...f, content: result?.content || "" };
+  });
+}
+
 export function listMemoryFiles(): MemoryFile[] {
   const memDir = path.join(WORKSPACE_PATH, "memory");
   const files: MemoryFile[] = [];

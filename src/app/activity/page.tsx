@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { AppShell } from "@/components/layout/app-shell";
 import { GlassCard } from "@/components/ui/glass-card";
-import { Activity, Search, ChevronLeft, ChevronRight, Mail, Twitter, Calendar, MessageSquare, FileText, Zap } from "lucide-react";
+import { Activity, Search, ChevronLeft, ChevronRight, Mail, Twitter, Calendar, MessageSquare, FileText, Zap, Clock } from "lucide-react";
 import { useApi } from "@/hooks/use-api";
 import type { SessionEntry } from "@/lib/parsers/types";
 
