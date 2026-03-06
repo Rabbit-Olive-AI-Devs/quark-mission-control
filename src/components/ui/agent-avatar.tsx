@@ -30,8 +30,17 @@ const BORDER_COLORS: Record<string, string> = {
   MSE6: "rgba(74, 158, 224, 0.4)",
 };
 
+function normalizeAgentKey(name: string): string {
+  return name.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+}
+
 export function AgentAvatar({ name, size = 48, glow = false }: AgentAvatarProps) {
-  const agent = AGENT_IMAGES[name];
+  const key = normalizeAgentKey(name);
+  const agent =
+    AGENT_IMAGES[name] ||
+    AGENT_IMAGES[key] ||
+    AGENT_IMAGES[name.toLowerCase()] ||
+    AGENT_IMAGES[name.toUpperCase()];
 
   if (!agent) {
     return (
@@ -50,8 +59,8 @@ export function AgentAvatar({ name, size = 48, glow = false }: AgentAvatarProps)
       style={{
         width: size,
         height: size,
-        boxShadow: glow ? `0 0 20px ${GLOW_COLORS[name]}` : "none",
-        border: `2px solid ${BORDER_COLORS[name] || "rgba(255,255,255,0.1)"}`,
+        boxShadow: glow ? `0 0 20px ${GLOW_COLORS[name] || GLOW_COLORS[key] || "rgba(255,255,255,0.2)"}` : "none",
+        border: `2px solid ${BORDER_COLORS[name] || BORDER_COLORS[key] || "rgba(255,255,255,0.1)"}`,
       }}
     >
       {/* Character photo */}
