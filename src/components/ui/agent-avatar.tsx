@@ -11,7 +11,7 @@ const AGENT_IMAGES: Record<string, { src: string; tint: string }> = {
   Fulcrum: { src: "/agents/fulcrum.png", tint: "rgba(232, 101, 26, 0.12)" },
   Cassian: { src: "/agents/cassian.png", tint: "rgba(74, 123, 204, 0.12)" },
   Chandler: { src: "/agents/chandler.png", tint: "rgba(124, 58, 237, 0.12)" },
-  MSE6: { src: "/agents/mse6.svg", tint: "rgba(74, 158, 224, 0.12)" },
+  MSE6: { src: "/agents/mse6.jpg", tint: "rgba(74, 158, 224, 0.12)" },
 };
 
 const GLOW_COLORS: Record<string, string> = {
