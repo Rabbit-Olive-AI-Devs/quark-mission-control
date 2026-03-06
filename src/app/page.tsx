@@ -24,14 +24,14 @@ export default function DashboardPage() {
         </div>
 
         {/* Top row: Pending + Heartbeat + System */}
-        <div className="grid grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
           <PendingBadge />
           <HeartbeatCard />
           <SystemVitals />
         </div>
 
         {/* Middle: Cron Grid + Activity */}
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <CronGrid />
           <ActivityTicker />
         </div>
@@ -42,9 +42,9 @@ export default function DashboardPage() {
         </div>
 
         {/* Codex Quota + Model Fallback Chain */}
-        <div className="grid grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
           <CodexQuota />
-          <div className="col-span-2">
+          <div className="lg:col-span-2">
             <ModelFallbackChain />
           </div>
         </div>

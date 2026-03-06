@@ -16,7 +16,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <Sidebar />
 
-      <main className="ml-60 p-6 relative z-10">
+      <main className="pt-16 px-4 pb-6 md:ml-60 md:pt-6 md:px-6 relative z-10">
         {/* SSE event indicator */}
         {lastEvent && Date.now() - lastEvent.timestamp < 3000 && (
           <div className="fixed top-4 right-4 z-50 glass-card px-3 py-2 text-xs text-[#00D4AA] flex items-center gap-2">

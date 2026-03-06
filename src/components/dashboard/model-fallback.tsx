@@ -19,7 +19,7 @@ export function ModelFallbackChain() {
         <h3 className="text-sm font-medium">Model Fallback Chain</h3>
       </div>
 
-      <div className="flex items-center justify-center gap-1 overflow-x-auto pb-2">
+      <div className="flex items-center justify-center gap-1 overflow-x-auto pb-2 flex-wrap sm:flex-nowrap">
         {FALLBACK_CHAIN.map((model, i) => (
           <div key={model.name} className="flex items-center gap-1">
             <div
@@ -28,7 +28,7 @@ export function ModelFallbackChain() {
                   ? "bg-[#00D4AA]/10 border-[#00D4AA]/30 shadow-[0_0_20px_rgba(0,212,170,0.1)]"
                   : "bg-white/[0.03] border-white/5 hover:bg-white/[0.06]"
               }`}
-              style={{ minWidth: "90px" }}
+              style={{ minWidth: "80px" }}
             >
               <div
                 className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold mb-1.5"

@@ -42,7 +42,7 @@ export default function SettingsPage() {
             <Monitor size={16} className="text-[#00D4AA]" />
             System Information
           </h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <Cpu size={14} className="text-[#94A3B8]" />

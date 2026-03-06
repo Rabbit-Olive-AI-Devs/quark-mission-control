@@ -40,7 +40,7 @@ export default function MetricsPage() {
         ) : (
           <>
             {/* KPI Cards */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
               <GlassCard>
                 <div className="text-xs text-[#94A3B8] mb-1">Cron Reliability</div>
                 <div className="text-2xl font-bold text-[#00D4AA]">{data?.cronReliability || "N/A"}</div>

@@ -47,7 +47,7 @@ export default function ActivityPage() {
   return (
     <AppShell>
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="text-2xl font-semibold flex items-center gap-3">
               <Activity size={24} className="text-[#00D4AA]" />

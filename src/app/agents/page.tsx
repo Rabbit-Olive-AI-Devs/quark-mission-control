@@ -94,7 +94,7 @@ function AgentsContent() {
       )}
 
       {loading ? (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[1, 2, 3, 4].map((i) => (
             <GlassCard key={i}>
               <div className="animate-pulse h-32 bg-white/5 rounded" />
@@ -102,7 +102,7 @@ function AgentsContent() {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           {agents.map((agent, i) => {
             const isSelected = selectedAgent === agent.config.name;
 
@@ -140,7 +140,7 @@ function AgentsContent() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-[#94A3B8]">Latest</span>
-                      <span className="text-[#F1F5F9] truncate ml-4 max-w-48">{agent.latestComms}</span>
+                      <span className="text-[#F1F5F9] truncate ml-4 max-w-[45vw] md:max-w-48">{agent.latestComms}</span>
                     </div>
                   </div>
                 </div>

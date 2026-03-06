@@ -106,7 +106,7 @@ export default function CronPage() {
         </div>
 
         {/* Summary cards */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <GlassCard className="text-center">
             <div className="text-3xl font-bold text-[#00D4AA]">{summary.total}</div>
             <div className="text-xs text-[#94A3B8] mt-1">Total Jobs</div>

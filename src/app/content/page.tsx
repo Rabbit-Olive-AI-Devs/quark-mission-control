@@ -84,7 +84,7 @@ function HookKanban({ hooks }: { hooks: HookLibraryEntry[] }) {
         <span className="text-xs text-[#94A3B8]">{hooks.length} hooks</span>
       </div>
 
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {grouped.map((col) => (
           <div key={col.key}>
             <div className="flex items-center gap-2 mb-2">
