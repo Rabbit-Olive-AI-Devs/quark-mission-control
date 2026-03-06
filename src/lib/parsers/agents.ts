@@ -3,7 +3,7 @@ import path from "path";
 import { WORKSPACE_PATH } from "../config";
 import type { AgentConfig, AgentStatus, BroadcastStatus, CommsMessage } from "./types";
 
-const CREW_AGENTS = ["neo", "fulcrum", "cassian", "chandler"];
+const CREW_AGENTS = ["neo", "fulcrum", "cassian", "chandler", "mse6"];
 
 export function parseAgentConfig(agentName: string): AgentConfig | null {
   const configPath = path.join(WORKSPACE_PATH, `.agents/${agentName}/config.json`);

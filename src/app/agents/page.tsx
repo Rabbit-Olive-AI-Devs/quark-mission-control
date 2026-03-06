@@ -15,6 +15,7 @@ const agentFiction: Record<string, string> = {
   Fulcrum: "Star Wars: Ahsoka",
   Cassian: "Star Wars: Andor",
   Chandler: "Friends",
+  MSE6: "Star Wars: A New Hope",
 };
 
 function AgentDetail({ agentName }: { agentName: string }) {
@@ -79,7 +80,7 @@ function AgentsContent() {
           <Users size={24} className="text-[#00D4AA]" />
           Agent Network
         </h1>
-        <p className="text-sm text-[#94A3B8] mt-1">The Crew — 4 agents deployed</p>
+        <p className="text-sm text-[#94A3B8] mt-1">The Crew — 5 agents deployed</p>
       </div>
 
       {/* Broadcast banner */}

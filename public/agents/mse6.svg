@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <!-- Body -->
+  <rect x="24" y="44" width="80" height="48" rx="8" fill="#2A2A3E" stroke="#4A9EE0" stroke-width="2"/>
+  <!-- Eye strip -->
+  <rect x="32" y="56" width="64" height="12" rx="4" fill="#1A1A2E"/>
+  <!-- Eyes -->
+  <circle cx="48" cy="62" r="4" fill="#4A9EE0"/>
+  <circle cx="80" cy="62" r="4" fill="#4A9EE0"/>
+  <circle cx="48" cy="62" r="2" fill="#8DD8FF"/>
+  <circle cx="80" cy="62" r="2" fill="#8DD8FF"/>
+  <!-- Antenna -->
+  <line x1="64" y1="44" x2="64" y2="28" stroke="#4A9EE0" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="64" cy="26" r="4" fill="#4A9EE0"/>
+  <circle cx="64" cy="26" r="2" fill="#8DD8FF"/>
+  <!-- Wheels -->
+  <circle cx="38" cy="96" r="6" fill="#2A2A3E" stroke="#4A9EE0" stroke-width="2"/>
+  <circle cx="64" cy="96" r="6" fill="#2A2A3E" stroke="#4A9EE0" stroke-width="2"/>
+  <circle cx="90" cy="96" r="6" fill="#2A2A3E" stroke="#4A9EE0" stroke-width="2"/>
+  <!-- Detail lines -->
+  <line x1="36" y1="76" x2="56" y2="76" stroke="#4A9EE0" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+  <line x1="36" y1="80" x2="48" y2="80" stroke="#4A9EE0" stroke-width="1.5" stroke-linecap="round" opacity="0.3"/>
+</svg>

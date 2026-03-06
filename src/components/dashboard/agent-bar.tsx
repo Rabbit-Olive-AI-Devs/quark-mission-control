@@ -13,6 +13,7 @@ const agentRoles: Record<string, string> = {
   Fulcrum: "Intel Analyst",
   Cassian: "Content Strategist",
   Chandler: "Metrics & Reporting",
+  MSE6: "Mac Maintenance Droid",
 };
 
 export function AgentBar() {
@@ -55,7 +56,7 @@ export function AgentBar() {
         )}
       </div>
 
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-5 gap-3">
         {agents.map((agent) => (
           <button
             key={agent.config.name}
