@@ -19,9 +19,10 @@ export function parseSessionLog(date?: string): SessionEntry[] {
 
       const items: string[] = [];
       for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
+        const line = lines[i];
+        // Only collect top-level bullet items (not indented sub-items)
         if (line.startsWith("- ")) {
-          items.push(line.slice(2));
+          items.push(line.slice(2).trim());
         }
       }
 
