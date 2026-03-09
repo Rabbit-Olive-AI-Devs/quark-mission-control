@@ -22,31 +22,49 @@ function parseTable(text: string, headers: string[]): Record<string, string>[] {
   return rows;
 }
 
-function parseCodexQuotaFromModels(): CodexQuota | null {
+function readOpenClawModelsOutput(): string {
   try {
-    const output = execSync("openclaw models", {
+    return execSync("openclaw models", {
       encoding: "utf-8",
       stdio: ["ignore", "pipe", "ignore"],
       timeout: 15000,
     });
-
-    const line = output.split("\n").find((l) => l.includes("openai-codex usage:"));
-    if (!line) return null;
-
-    const dailyMatch = line.match(/usage:\s*5h\s*(\d+)%\s*left\s*⏱([^·\n]+)/i);
-    const weeklyMatch = line.match(/Week\s*(\d+)%\s*left\s*⏱([^\n]+)/i);
-
-    if (!dailyMatch && !weeklyMatch) return null;
-
-    return {
-      dailyRemaining: dailyMatch ? parseInt(dailyMatch[1], 10) : 0,
-      dailyLabel: dailyMatch ? `Resets in ${dailyMatch[2].trim()}` : "Unavailable",
-      weeklyRemaining: weeklyMatch ? parseInt(weeklyMatch[1], 10) : 0,
-      weeklyLabel: weeklyMatch ? `Resets in ${weeklyMatch[2].trim()}` : "Unavailable",
-    };
   } catch {
-    return null;
+    return "";
   }
+}
+
+function parseCodexQuotaFromModels(output: string): CodexQuota | null {
+  const line = output.split("\n").find((l) => l.includes("openai-codex usage:"));
+  if (!line) return null;
+
+  const dailyMatch = line.match(/usage:\s*5h\s*(\d+)%\s*left\s*⏱([^·\n]+)/i);
+  const weeklyMatch = line.match(/Week\s*(\d+)%\s*left\s*⏱([^\n]+)/i);
+
+  if (!dailyMatch && !weeklyMatch) return null;
+
+  return {
+    dailyRemaining: dailyMatch ? parseInt(dailyMatch[1], 10) : 0,
+    dailyLabel: dailyMatch ? `Resets in ${dailyMatch[2].trim()}` : "Unavailable",
+    weeklyRemaining: weeklyMatch ? parseInt(weeklyMatch[1], 10) : 0,
+    weeklyLabel: weeklyMatch ? `Resets in ${weeklyMatch[2].trim()}` : "Unavailable",
+  };
+}
+
+function parseCodexUsageFromModels(output: string): string | null {
+  const line = output.split("\n").find((l) => l.includes("openai-codex usage:"));
+  if (!line) return null;
+  const compact = line.replace(/^\s*-\s*openai-codex\s+usage:\s*/i, "").trim();
+  return compact || null;
+}
+
+function parseCodexAuthStatusFromModels(output: string): string | null {
+  const line = output
+    .split("\n")
+    .find((l) => l.includes("openai-codex:default") && /\b(ok|expired|invalid)\b/i.test(l));
+  if (!line) return null;
+  const match = line.match(/openai-codex:default\s+(ok|expired|invalid)[^\n]*/i);
+  return match ? match[0].replace(/^openai-codex:default\s*/i, "") : line.trim();
 }
 
 export function parseMetrics(): MetricsData {
@@ -62,8 +80,13 @@ export function parseMetrics(): MetricsData {
   };
 
   try {
-    const liveQuota = parseCodexQuotaFromModels();
+    const modelsOutput = readOpenClawModelsOutput();
+    const liveQuota = parseCodexQuotaFromModels(modelsOutput);
+    const liveCodexUsage = parseCodexUsageFromModels(modelsOutput);
+    const liveCodexAuthStatus = parseCodexAuthStatusFromModels(modelsOutput);
+
     if (liveQuota) result.codexQuota = liveQuota;
+    if (liveCodexUsage) result.codexUsage = liveCodexUsage;
 
     const content = fs.readFileSync(filePath, "utf-8");
 
@@ -99,7 +122,7 @@ export function parseMetrics(): MetricsData {
     if (cronMatch) result.cronReliability = cronMatch.Value || "";
 
     const codexMatch = opsRows.find((r) => r.Metric?.includes("Codex"));
-    if (codexMatch) result.codexUsage = codexMatch.Value || "";
+    if (codexMatch && !result.codexUsage) result.codexUsage = codexMatch.Value || "";
 
     // Parse Codex daily and weekly quotas from bullet points
     const dailyMatch = content.match(/Codex usage window:\s*\*\*(\d+)%\s*remaining\*\*/);
@@ -129,6 +152,22 @@ export function parseMetrics(): MetricsData {
         result.codexQuota.dailyLabel = "No live quota data in metrics source";
         result.codexQuota.weeklyLabel = "No live quota data in metrics source";
       }
+    }
+
+    if (liveCodexAuthStatus) {
+      result.opsHealth = result.opsHealth.map((row) =>
+        row.metric.toLowerCase().includes("codex")
+          ? {
+              ...row,
+              value: liveCodexAuthStatus,
+              status: /\bok\b/i.test(liveCodexAuthStatus) ? "✅" : "❌",
+            }
+          : row
+      );
+    }
+
+    if (liveCodexUsage && /\bexpired\/invalid\b/i.test(result.codexUsage)) {
+      result.degradationStatus = "ATTENTION";
     }
   } catch {
     // Return defaults

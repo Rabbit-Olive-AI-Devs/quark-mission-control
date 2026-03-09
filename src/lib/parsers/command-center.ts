@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { WORKSPACE_PATH } from "../config";
+import { parseMetrics } from "./metrics";
 
 export type CommandCenterModelRow = {
   model: string;
@@ -98,30 +98,13 @@ function loadOpenClawConfig(): { primaryModel: string; fallbackChain: string[] }
 }
 
 function loadQuota(): CommandCenterData["quota"] {
-  const metricsPath = path.join(WORKSPACE_PATH, "metrics/dashboard.md");
-  const fallback = {
-    dailyRemaining: 100,
-    dailyLabel: "Unknown",
-    weeklyRemaining: 100,
-    weeklyLabel: "Unknown",
+  const metrics = parseMetrics();
+  return {
+    dailyRemaining: metrics.codexQuota.dailyRemaining,
+    dailyLabel: metrics.codexQuota.dailyLabel,
+    weeklyRemaining: metrics.codexQuota.weeklyRemaining,
+    weeklyLabel: metrics.codexQuota.weeklyLabel,
   };
-
-  try {
-    const content = fs.readFileSync(metricsPath, "utf-8");
-    const dailyMatch = content.match(/Codex usage window:\s*\*\*(\d+)%\s*remaining\*\*/);
-    const weeklyMatch = content.match(/Codex weekly quota:\s*\*\*(\d+)%\s*remaining\*\*/);
-    const dailyLabel = content.match(/Codex usage window:\s*\*\*[^*]+\*\*\s*\(([^)]+)\)/)?.[1] || fallback.dailyLabel;
-    const weeklyLabel = content.match(/Codex weekly quota:\s*\*\*[^*]+\*\*\s*\(([^)]+)\)/)?.[1] || fallback.weeklyLabel;
-
-    return {
-      dailyRemaining: dailyMatch ? parseInt(dailyMatch[1], 10) : fallback.dailyRemaining,
-      dailyLabel,
-      weeklyRemaining: weeklyMatch ? parseInt(weeklyMatch[1], 10) : fallback.weeklyRemaining,
-      weeklyLabel,
-    };
-  } catch {
-    return fallback;
-  }
 }
 
 function loadRuns(): RunEntry[] {
