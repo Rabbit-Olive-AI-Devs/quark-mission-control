@@ -10,8 +10,9 @@ export function CodexQuota() {
   const { data } = useApi<MetricsData>("/api/metrics", ["metrics"]);
 
   const quota = data?.codexQuota;
-  const daily = quota?.dailyRemaining ?? 100;
-  const weekly = quota?.weeklyRemaining ?? 100;
+  const daily = quota?.dailyRemaining ?? 0;
+  const weekly = quota?.weeklyRemaining ?? 0;
+  const hasLiveQuota = quota?.dailyLabel !== "Unavailable" && quota?.dailyLabel !== "No live quota data in metrics source";
 
   const getColor = (pct: number) => {
     if (pct > 50) return "#10B981";
@@ -53,6 +54,12 @@ export function CodexQuota() {
           )}
         </div>
       </div>
+
+      {!hasLiveQuota && (
+        <div className="mt-3 rounded-lg border border-[#F59E0B]/20 bg-[#F59E0B]/10 px-3 py-2 text-[10px] text-[#FCD34D]">
+          This card is now honest: current remote metrics don&apos;t include live Codex quota percentages.
+        </div>
+      )}
 
       {data?.lastUpdated && (
         <div className="mt-3 pt-2 border-t border-white/5 text-center">

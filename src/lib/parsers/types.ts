@@ -65,6 +65,65 @@ export interface MetricsData {
   contentPerf: { metric: string; today: string; sevenDayTotal: string; sevenDayAvg: string }[];
 }
 
+export interface CommandCenterModelRow {
+  model: string;
+  provider: string;
+  runs: number;
+  okRuns: number;
+  errorRuns: number;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  avgDurationMs: number;
+  lastSeen: string | null;
+  sharePct: number;
+}
+
+export interface CommandCenterAnomaly {
+  id: string;
+  severity: "info" | "warning" | "critical";
+  title: string;
+  detail: string;
+}
+
+export interface CommandCenterData {
+  generatedAt: string;
+  primaryModel: string;
+  fallbackChain: string[];
+  quota: {
+    dailyRemaining: number;
+    dailyLabel: string;
+    weeklyRemaining: number;
+    weeklyLabel: string;
+  };
+  windows: {
+    last24h: {
+      totalRuns: number;
+      successRate: number;
+      totalTokens: number;
+      avgDurationMs: number;
+      primarySharePct: number;
+      fallbackSharePct: number;
+    };
+    last7d: {
+      totalRuns: number;
+      successRate: number;
+      totalTokens: number;
+      avgDurationMs: number;
+      primarySharePct: number;
+      fallbackSharePct: number;
+    };
+  };
+  cost: {
+    visibility: "estimated" | "unpriced";
+    estimatedUsd7d: number;
+    note: string;
+  };
+  topModels24h: CommandCenterModelRow[];
+  topModels7d: CommandCenterModelRow[];
+  anomalies: CommandCenterAnomaly[];
+}
+
 // Agent
 export interface AgentConfig {
   name: string;

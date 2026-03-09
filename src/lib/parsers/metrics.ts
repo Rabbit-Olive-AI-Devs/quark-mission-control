@@ -27,7 +27,7 @@ export function parseMetrics(): MetricsData {
     lastUpdated: "",
     cronReliability: "",
     codexUsage: "",
-    codexQuota: { dailyRemaining: 100, dailyLabel: "Unknown", weeklyRemaining: 100, weeklyLabel: "Unknown" },
+    codexQuota: { dailyRemaining: 0, dailyLabel: "Unavailable", weeklyRemaining: 0, weeklyLabel: "Unavailable" },
     degradationStatus: "NORMAL",
     opsHealth: [],
     contentPerf: [],
@@ -86,12 +86,16 @@ export function parseMetrics(): MetricsData {
       if (weeklyDetailMatch) {
         result.codexQuota.weeklyLabel = weeklyDetailMatch[1];
       } else {
-        // Weekly quota resets on Monday. Calculate days remaining.
         const now = new Date();
-        const day = now.getDay(); // 0=Sun, 1=Mon
+        const day = now.getDay();
         const daysUntilMonday = day === 0 ? 1 : day === 1 ? 7 : 8 - day;
         result.codexQuota.weeklyLabel = `Resets in ${daysUntilMonday}d (Monday)`;
       }
+    }
+
+    if (!dailyMatch && !weeklyMatch) {
+      result.codexQuota.dailyLabel = "No live quota data in metrics source";
+      result.codexQuota.weeklyLabel = "No live quota data in metrics source";
     }
   } catch {
     // Return defaults

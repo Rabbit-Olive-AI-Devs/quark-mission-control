@@ -11,6 +11,7 @@ import { parseContentLog, parseHookTracker, parseContentCalendar, parseHookLibra
 import { getSystemInfo } from "@/lib/parsers/system";
 import { listMemoryFilesWithContent } from "@/lib/parsers/memory";
 import { listKnowledgeFilesWithContent } from "@/lib/parsers/knowledge";
+import { parseCommandCenter } from "@/lib/parsers/command-center";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,7 @@ export async function GET(request: Request) {
     pending: parsePending(),
     intel: parseIntel(),
     metrics: parseMetrics(),
+    commandCenter: parseCommandCenter(),
     agents: {
       agents: parseAgents(),
       broadcast: parseBroadcast(),

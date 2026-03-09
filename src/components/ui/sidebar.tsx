@@ -18,6 +18,7 @@ import {
   Settings,
   Menu,
   X,
+  BrainCircuit,
 } from "lucide-react";
 import { StatusDot } from "./status-dot";
 import { useDashboardStore } from "@/stores/dashboard";
@@ -31,6 +32,7 @@ const navItems = [
   { href: "/intel", label: "Intel Feed", icon: Radio },
   { href: "/memory-browser", label: "Memory Browser", icon: BookOpen },
   { href: "/knowledge", label: "Knowledge Base", icon: Database },
+  { href: "/command-center", label: "Command Center", icon: BrainCircuit },
   { href: "/metrics-page", label: "Metrics", icon: BarChart3 },
   { href: "/calendar", label: "Calendar", icon: Calendar },
   { href: "/settings", label: "Settings", icon: Settings },

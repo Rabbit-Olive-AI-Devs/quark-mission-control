@@ -32,9 +32,15 @@ export function parseHeartbeat(): HeartbeatState {
         case "last_heartbeat":
           defaults.lastHeartbeat = value;
           break;
-        case "last_digest_timestamp":
-          defaults.lastDigestTimestamp = value;
+        case "last_digest_timestamp": {
+          if (/^\d+$/.test(value)) {
+            const ms = Number(value);
+            defaults.lastDigestTimestamp = Number.isFinite(ms) ? new Date(ms).toISOString() : value;
+          } else {
+            defaults.lastDigestTimestamp = value;
+          }
           break;
+        }
         case "last_proactive_suggestion_date":
           defaults.lastProactiveSuggestionDate = value;
           break;
