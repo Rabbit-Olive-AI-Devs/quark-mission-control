@@ -4,13 +4,58 @@ import { AppShell } from "@/components/layout/app-shell";
 import { GlassCard } from "@/components/ui/glass-card";
 import { BarChart3, CheckCircle, AlertTriangle, XCircle } from "lucide-react";
 import { useApi } from "@/hooks/use-api";
-import type { MetricsData } from "@/lib/parsers/types";
+import type { MetricsData, MetricRow } from "@/lib/parsers/types";
 
-function statusIcon(status: string) {
-  if (status.includes("\u2705") || status.toLowerCase().includes("ok")) return <CheckCircle size={14} className="text-[#10B981]" />;
-  if (status.includes("\u26AA") || status.toLowerCase().includes("n/a")) return <AlertTriangle size={14} className="text-[#94A3B8]" />;
-  if (status.includes("\u274C")) return <XCircle size={14} className="text-[#EF4444]" />;
-  return <CheckCircle size={14} className="text-[#10B981]" />;
+function parsePercent(value: string): number | null {
+  const match = value.match(/(\d+(?:\.\d+)?)%/);
+  return match ? Number(match[1]) : null;
+}
+
+function parseInteger(value: string): number | null {
+  const match = value.match(/-?\d+/);
+  return match ? Number(match[0]) : null;
+}
+
+function evaluateRow(row: MetricRow): "good" | "warn" | "bad" | "unknown" {
+  const metric = row.metric.toLowerCase();
+  const value = row.value.toLowerCase();
+  const target = row.target.toLowerCase();
+
+  if (metric.includes("cron reliability")) {
+    const actual = parsePercent(row.value);
+    const targetPct = parsePercent(row.target);
+    if (actual == null || targetPct == null) return "unknown";
+    return actual >= targetPct ? "good" : "bad";
+  }
+
+  if (metric.includes("codex oauth") || metric.includes("oauth")) {
+    if (/\bok\b/.test(value) && !/expired|invalid|fail/.test(value)) return "good";
+    if (/expired|invalid|fail/.test(value)) return "bad";
+    return "unknown";
+  }
+
+  if (metric.includes("suspicious runs") || metric.includes("fallback freq")) {
+    const actual = parseInteger(row.value);
+    const targetNum = parseInteger(row.target);
+    if (actual == null || targetNum == null) return "unknown";
+    if (actual === targetNum) return "good";
+    return actual > targetNum ? "bad" : "warn";
+  }
+
+  if (/n\/a|unknown/.test(value)) return "unknown";
+  if (/ok|healthy|normal/.test(value)) return "good";
+  if (/warn|degraded|attention/.test(value)) return "warn";
+  if (/error|fail|expired|invalid/.test(value)) return "bad";
+
+  return "unknown";
+}
+
+function statusIcon(row: MetricRow) {
+  const state = evaluateRow(row);
+  if (state === "good") return <CheckCircle size={14} className="text-[#10B981]" />;
+  if (state === "warn") return <AlertTriangle size={14} className="text-[#F59E0B]" />;
+  if (state === "bad") return <XCircle size={14} className="text-[#EF4444]" />;
+  return <AlertTriangle size={14} className="text-[#94A3B8]" />;
 }
 
 export default function MetricsPage() {
@@ -39,7 +84,6 @@ export default function MetricsPage() {
           </div>
         ) : (
           <>
-            {/* KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
               <GlassCard>
                 <div className="text-xs text-[#94A3B8] mb-1">Cron Reliability</div>
@@ -59,7 +103,6 @@ export default function MetricsPage() {
               </GlassCard>
             </div>
 
-            {/* Ops Health Table */}
             <GlassCard delay={0.15}>
               <h3 className="text-sm font-medium mb-4">Ops Health</h3>
               <table className="w-full text-sm">
@@ -77,14 +120,13 @@ export default function MetricsPage() {
                       <td className="py-3 text-[#F1F5F9]">{row.metric}</td>
                       <td className="py-3 text-[#94A3B8]">{row.value}</td>
                       <td className="py-3 text-[#94A3B8]">{row.target}</td>
-                      <td className="py-3">{statusIcon(row.status)}</td>
+                      <td className="py-3">{statusIcon(row)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </GlassCard>
 
-            {/* Content Performance Table */}
             {(data?.contentPerf?.length || 0) > 0 && (
               <GlassCard delay={0.2} className="mt-4">
                 <h3 className="text-sm font-medium mb-4">Content Performance (7-Day)</h3>
