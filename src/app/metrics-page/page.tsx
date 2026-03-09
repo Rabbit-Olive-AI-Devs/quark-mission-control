@@ -2,7 +2,8 @@
 
 import { AppShell } from "@/components/layout/app-shell";
 import { GlassCard } from "@/components/ui/glass-card";
-import { BarChart3, CheckCircle, AlertTriangle, XCircle } from "lucide-react";
+import { Gauge } from "@/components/ui/gauge";
+import { BarChart3, CheckCircle, AlertTriangle, XCircle, Cpu, TimerReset } from "lucide-react";
 import { useApi } from "@/hooks/use-api";
 import type { MetricsData, MetricRow } from "@/lib/parsers/types";
 
@@ -19,7 +20,6 @@ function parseInteger(value: string): number | null {
 function evaluateRow(row: MetricRow): "good" | "warn" | "bad" | "unknown" {
   const metric = row.metric.toLowerCase();
   const value = row.value.toLowerCase();
-  const target = row.target.toLowerCase();
 
   if (metric.includes("cron reliability")) {
     const actual = parsePercent(row.value);
@@ -58,8 +58,15 @@ function statusIcon(row: MetricRow) {
   return <AlertTriangle size={14} className="text-[#94A3B8]" />;
 }
 
+function gaugeColor(pct: number) {
+  if (pct > 50) return "#10B981";
+  if (pct > 20) return "#F59E0B";
+  return "#EF4444";
+}
+
 export default function MetricsPage() {
   const { data, loading } = useApi<MetricsData>("/api/metrics", ["metrics"]);
+  const quota = data?.codexQuota;
 
   return (
     <AppShell>
@@ -89,10 +96,38 @@ export default function MetricsPage() {
                 <div className="text-xs text-[#94A3B8] mb-1">Cron Reliability</div>
                 <div className="text-2xl font-bold text-[#00D4AA]">{data?.cronReliability || "N/A"}</div>
               </GlassCard>
+
               <GlassCard delay={0.05}>
-                <div className="text-xs text-[#94A3B8] mb-1">Codex Usage</div>
-                <div className="text-2xl font-bold text-[#7C3AED]">{data?.codexUsage || "N/A"}</div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Cpu size={16} className="text-[#7C3AED]" />
+                  <div className="text-xs text-[#94A3B8]">Codex Usage</div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col items-center rounded-xl bg-white/[0.03] py-3">
+                    <Gauge
+                      value={quota?.dailyRemaining ?? 0}
+                      max={100}
+                      size={76}
+                      color={gaugeColor(quota?.dailyRemaining ?? 0)}
+                    />
+                    <div className="mt-2 text-[11px] text-[#F1F5F9]">5h window</div>
+                    <div className="text-[10px] text-[#94A3B8] text-center px-2">{quota?.dailyLabel || "Unavailable"}</div>
+                  </div>
+
+                  <div className="flex flex-col items-center rounded-xl bg-white/[0.03] py-3">
+                    <Gauge
+                      value={quota?.weeklyRemaining ?? 0}
+                      max={100}
+                      size={76}
+                      color={gaugeColor(quota?.weeklyRemaining ?? 0)}
+                    />
+                    <div className="mt-2 text-[11px] text-[#F1F5F9]">Weekly quota</div>
+                    <div className="text-[10px] text-[#94A3B8] text-center px-2">{quota?.weeklyLabel || "Unavailable"}</div>
+                  </div>
+                </div>
               </GlassCard>
+
               <GlassCard delay={0.1}>
                 <div className="text-xs text-[#94A3B8] mb-1">Degradation</div>
                 <div className={`text-2xl font-bold ${
