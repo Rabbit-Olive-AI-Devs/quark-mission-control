@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { execSync } from "child_process";
 import { WORKSPACE_PATH } from "../config";
 import type { MetricsData, MetricRow, CodexQuota } from "./types";
 
@@ -21,6 +22,33 @@ function parseTable(text: string, headers: string[]): Record<string, string>[] {
   return rows;
 }
 
+function parseCodexQuotaFromModels(): CodexQuota | null {
+  try {
+    const output = execSync("openclaw models", {
+      encoding: "utf-8",
+      stdio: ["ignore", "pipe", "ignore"],
+      timeout: 15000,
+    });
+
+    const line = output.split("\n").find((l) => l.includes("openai-codex usage:"));
+    if (!line) return null;
+
+    const dailyMatch = line.match(/usage:\s*5h\s*(\d+)%\s*left\s*⏱([^·\n]+)/i);
+    const weeklyMatch = line.match(/Week\s*(\d+)%\s*left\s*⏱([^\n]+)/i);
+
+    if (!dailyMatch && !weeklyMatch) return null;
+
+    return {
+      dailyRemaining: dailyMatch ? parseInt(dailyMatch[1], 10) : 0,
+      dailyLabel: dailyMatch ? `Resets in ${dailyMatch[2].trim()}` : "Unavailable",
+      weeklyRemaining: weeklyMatch ? parseInt(weeklyMatch[1], 10) : 0,
+      weeklyLabel: weeklyMatch ? `Resets in ${weeklyMatch[2].trim()}` : "Unavailable",
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function parseMetrics(): MetricsData {
   const filePath = path.join(WORKSPACE_PATH, "metrics/dashboard.md");
   const result: MetricsData = {
@@ -34,6 +62,9 @@ export function parseMetrics(): MetricsData {
   };
 
   try {
+    const liveQuota = parseCodexQuotaFromModels();
+    if (liveQuota) result.codexQuota = liveQuota;
+
     const content = fs.readFileSync(filePath, "utf-8");
 
     const updatedMatch = content.match(/Last updated:\s*(.+)/);
@@ -75,27 +106,29 @@ export function parseMetrics(): MetricsData {
     const weeklyMatch = content.match(/Codex weekly quota:\s*\*\*(\d+)%\s*remaining\*\*/);
     const dailyWindowMatch = content.match(/Codex usage window:\s*\*\*[^*]+\*\*\s*\(([^)]+)\)/);
 
-    if (dailyMatch) {
-      result.codexQuota.dailyRemaining = parseInt(dailyMatch[1]);
-      result.codexQuota.dailyLabel = dailyWindowMatch ? dailyWindowMatch[1] : `${dailyMatch[1]}% remaining`;
-    }
-    if (weeklyMatch) {
-      result.codexQuota.weeklyRemaining = parseInt(weeklyMatch[1]);
-      // Check for parenthetical detail, otherwise compute days until weekly reset (Monday)
-      const weeklyDetailMatch = content.match(/Codex weekly quota:\s*\*\*[^*]+\*\*\s*\(([^)]+)\)/);
-      if (weeklyDetailMatch) {
-        result.codexQuota.weeklyLabel = weeklyDetailMatch[1];
-      } else {
-        const now = new Date();
-        const day = now.getDay();
-        const daysUntilMonday = day === 0 ? 1 : day === 1 ? 7 : 8 - day;
-        result.codexQuota.weeklyLabel = `Resets in ${daysUntilMonday}d (Monday)`;
+    if (!liveQuota) {
+      if (dailyMatch) {
+        result.codexQuota.dailyRemaining = parseInt(dailyMatch[1]);
+        result.codexQuota.dailyLabel = dailyWindowMatch ? dailyWindowMatch[1] : `${dailyMatch[1]}% remaining`;
       }
-    }
+      if (weeklyMatch) {
+        result.codexQuota.weeklyRemaining = parseInt(weeklyMatch[1]);
+        // Check for parenthetical detail, otherwise compute days until weekly reset (Monday)
+        const weeklyDetailMatch = content.match(/Codex weekly quota:\s*\*\*[^*]+\*\*\s*\(([^)]+)\)/);
+        if (weeklyDetailMatch) {
+          result.codexQuota.weeklyLabel = weeklyDetailMatch[1];
+        } else {
+          const now = new Date();
+          const day = now.getDay();
+          const daysUntilMonday = day === 0 ? 1 : day === 1 ? 7 : 8 - day;
+          result.codexQuota.weeklyLabel = `Resets in ${daysUntilMonday}d (Monday)`;
+        }
+      }
 
-    if (!dailyMatch && !weeklyMatch) {
-      result.codexQuota.dailyLabel = "No live quota data in metrics source";
-      result.codexQuota.weeklyLabel = "No live quota data in metrics source";
+      if (!dailyMatch && !weeklyMatch) {
+        result.codexQuota.dailyLabel = "No live quota data in metrics source";
+        result.codexQuota.weeklyLabel = "No live quota data in metrics source";
+      }
     }
   } catch {
     // Return defaults
