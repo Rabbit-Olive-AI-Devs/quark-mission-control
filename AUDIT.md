@@ -369,16 +369,19 @@ Helper functions (`recordCronRun`, `recordModelUsage`, `recordSystemSnapshot`) e
 
 | Issue | Location | Impact |
 |---|---|---|
+| **API errors silently swallowed** | All 12 pages | `useApi` returns `error` but **no page ever reads or displays it**. Failed API calls show "No data" with zero indication of failure — user cannot distinguish "empty" from "broken" |
 | No auto-refresh/polling | All pages | Data goes stale if SSE is down (always on Vercel) |
+| 4 pages never auto-refresh at all | Content, Settings, Memory Browser, Knowledge | These pages don't pass `refreshOn` to `useApi`, so data loads once and never updates even when SSE is working |
 | No "last updated" timestamps on most cards | Dashboard | User can't tell if data is fresh |
 | Memory Browser 3:9 grid breaks on tablet | Memory Browser | Content area too narrow |
 | Raw markdown shown instead of rendered | Memory Browser, Knowledge Base | Poor readability |
-| Search highlighting broken | Memory Browser | `>>>` / `<<<` approach is fragile |
+| Search highlighting broken | Memory Browser | `>>>` / `<<<` approach is fragile — re-runs `indexOf` for every part, matching first occurrence every time |
 | 48-row calendar is very tall | Calendar page | Poor scannability; most slots are empty |
 | No global search | All pages | Can only search within Memory Browser |
 | No breadcrumbs or back navigation | All pages | User can get lost in detail views |
 | Settings page is read-only | Settings | Misleading name — it's a "System Info" page |
 | Command Center labeled "POC" | Command Center | Under-sells the best page |
+| Array index React keys | Activity, Agents | `key={i}` on list items causes React reconciliation bugs when lists change via filtering |
 
 ---
 
@@ -395,6 +398,7 @@ Helper functions (`recordCronRun`, `recordModelUsage`, `recordSystemSnapshot`) e
 
 | Issue | File(s) | Impact |
 |---|---|---|
+| **`useApi` error never displayed** | All 12 pages | Systemic issue: hook returns `{ error }` but every page ignores it. Silent failures everywhere |
 | `execSync` blocks event loop | `metrics.ts`, `cron.ts`, `system.ts` | Entire API request blocks during shell exec |
 | No error boundaries | Any page | Unhandled errors crash entire page |
 | No tests | Entire codebase | Zero test files found |
