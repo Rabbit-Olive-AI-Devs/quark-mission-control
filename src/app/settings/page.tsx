@@ -2,17 +2,9 @@
 
 import { AppShell } from "@/components/layout/app-shell";
 import { GlassCard } from "@/components/ui/glass-card";
-import { Settings, Monitor, Cpu, HardDrive, Clock, Globe, Zap, Shield } from "lucide-react";
+import { Monitor, Cpu, HardDrive, Clock, Globe, Zap, Shield, Info } from "lucide-react";
 import { useApi } from "@/hooks/use-api";
-import type { SystemInfo } from "@/lib/parsers/types";
-
-const MODEL_CHAIN = [
-  { name: "openai-codex/gpt-5.3-codex", role: "Primary", desc: "ChatGPT Plus OAuth" },
-  { name: "minimax-portal/MiniMax-M2.5", role: "Fallback 1", desc: "Paid API" },
-  { name: "google/gemini-2.5-flash", role: "Fallback 2", desc: "Free, 250 RPD" },
-  { name: "gpt-5-nano", role: "Fallback 3", desc: "Lightweight" },
-  { name: "gpt-4.1-mini", role: "Fallback 4", desc: "Last resort" },
-];
+import type { SystemInfo, CommandCenterData } from "@/lib/parsers/types";
 
 function formatUptime(seconds: number): string {
   const days = Math.floor(seconds / 86400);
@@ -23,15 +15,20 @@ function formatUptime(seconds: number): string {
 }
 
 export default function SettingsPage() {
-  const { data: system } = useApi<SystemInfo>("/api/system");
+  const { data: system } = useApi<SystemInfo>("/api/system", ["heartbeat"]);
+  const { data: cc } = useApi<CommandCenterData>("/api/command-center", ["metrics"]);
+
+  const modelChain = cc
+    ? [{ name: cc.primaryModel, role: "Primary" }, ...cc.fallbackChain.map((m, i) => ({ name: m, role: `Fallback ${i + 1}` }))]
+    : [];
 
   return (
     <AppShell>
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold flex items-center gap-3">
-            <Settings size={24} className="text-[#00D4AA]" />
-            Settings
+            <Info size={24} className="text-[#00D4AA]" />
+            System Info
           </h1>
           <p className="text-sm text-[#94A3B8] mt-1">System configuration and information</p>
         </div>
@@ -91,19 +88,19 @@ export default function SettingsPage() {
           <div className="space-y-2 text-xs">
             <div className="flex justify-between py-1.5 border-b border-white/5">
               <span className="text-[#94A3B8]">Path</span>
-              <span className="text-[#F1F5F9] font-mono">~/.openclaw/workspace</span>
+              <span className="text-[#F1F5F9] font-mono">{process.env.NEXT_PUBLIC_WORKSPACE_PATH || "~/.openclaw/workspace"}</span>
             </div>
             <div className="flex justify-between py-1.5 border-b border-white/5">
               <span className="text-[#94A3B8]">Host</span>
-              <span className="text-[#F1F5F9]">MacBook Pro (Quark)</span>
+              <span className="text-[#F1F5F9]">{system ? `${system.cpuPercent !== undefined ? "Connected" : "Unknown"}` : "Loading..."}</span>
             </div>
             <div className="flex justify-between py-1.5 border-b border-white/5">
-              <span className="text-[#94A3B8]">Delivery</span>
-              <span className="text-[#F1F5F9]">Telegram</span>
+              <span className="text-[#94A3B8]">Primary Model</span>
+              <span className="text-[#F1F5F9] font-mono text-[10px]">{cc?.primaryModel || "Loading..."}</span>
             </div>
             <div className="flex justify-between py-1.5">
               <span className="text-[#94A3B8]">Dashboard Version</span>
-              <span className="text-[#F1F5F9]">1.0.0 — Phase 3</span>
+              <span className="text-[#F1F5F9]">{process.env.NEXT_PUBLIC_VERSION || "1.0.0"}</span>
             </div>
           </div>
         </GlassCard>
@@ -114,33 +111,36 @@ export default function SettingsPage() {
             <Zap size={16} className="text-[#F59E0B]" />
             Model Fallback Chain
           </h3>
-          <div className="space-y-2">
-            {MODEL_CHAIN.map((model, i) => (
-              <div
-                key={model.name}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg ${
-                  i === 0 ? "bg-[#00D4AA]/5 border border-[#00D4AA]/20" : "bg-white/[0.02]"
-                }`}
-              >
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                  i === 0 ? "bg-[#00D4AA]/20 text-[#00D4AA]" : "bg-white/10 text-[#94A3B8]"
-                }`}>
-                  {i + 1}
+          {modelChain.length === 0 ? (
+            <div className="animate-pulse h-20 bg-white/5 rounded" />
+          ) : (
+            <div className="space-y-2">
+              {modelChain.map((model, i) => (
+                <div
+                  key={model.name}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg ${
+                    i === 0 ? "bg-[#00D4AA]/5 border border-[#00D4AA]/20" : "bg-white/[0.02]"
+                  }`}
+                >
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                    i === 0 ? "bg-[#00D4AA]/20 text-[#00D4AA]" : "bg-white/10 text-[#94A3B8]"
+                  }`}>
+                    {i + 1}
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-xs text-[#F1F5F9] font-mono">{model.name}</div>
+                  </div>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                    i === 0
+                      ? "bg-[#00D4AA]/10 text-[#00D4AA]"
+                      : "bg-white/5 text-[#94A3B8]"
+                  }`}>
+                    {model.role}
+                  </span>
                 </div>
-                <div className="flex-1">
-                  <div className="text-xs text-[#F1F5F9] font-mono">{model.name}</div>
-                  <div className="text-[10px] text-[#94A3B8]">{model.desc}</div>
-                </div>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                  i === 0
-                    ? "bg-[#00D4AA]/10 text-[#00D4AA]"
-                    : "bg-white/5 text-[#94A3B8]"
-                }`}>
-                  {model.role}
-                </span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </GlassCard>
 
         {/* Security */}

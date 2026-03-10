@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { parseAgents, parseBroadcast } from "@/lib/parsers/agents";
+import { parseAgents, parseBroadcast, parseComms } from "@/lib/parsers/agents";
 import { isRemote, getSnapshotSection } from "@/lib/data-source";
 import type { AgentStatus, BroadcastStatus } from "@/lib/parsers/types";
 
@@ -39,10 +39,14 @@ export async function GET() {
     if (data) return NextResponse.json(ensureMse6(data));
   }
 
+  const agents = parseAgents();
   return NextResponse.json(
     ensureMse6({
-      agents: parseAgents(),
+      agents,
       broadcast: parseBroadcast(),
+      comms: Object.fromEntries(
+        agents.map((a) => [a.config.name.toLowerCase(), parseComms(a.config.name.toLowerCase())])
+      ),
     })
   );
 }

@@ -11,11 +11,12 @@ import { useApi } from "@/hooks/use-api";
 import type { AgentStatus, BroadcastStatus, CommsMessage } from "@/lib/parsers/types";
 
 const agentFiction: Record<string, string> = {
-  Neo: "The Matrix",
-  Fulcrum: "Star Wars: Ahsoka",
-  Cassian: "Star Wars: Andor",
-  Chandler: "Friends",
-  MSE6: "Star Wars: A New Hope",
+  neo: "The Matrix",
+  fulcrum: "Star Wars: Ahsoka",
+  cassian: "Star Wars: Andor",
+  chandler: "Friends",
+  "mse-6": "Star Wars: A New Hope",
+  mse6: "Star Wars: A New Hope",
 };
 
 function AgentDetail({ agentName }: { agentName: string }) {
@@ -35,7 +36,7 @@ function AgentDetail({ agentName }: { agentName: string }) {
         <div className="space-y-2 max-h-80 overflow-y-auto">
           {messages.map((msg, i) => (
             <div
-              key={i}
+              key={`${msg.direction}-${i}`}
               className={`px-3 py-2 rounded-lg text-xs ${
                 msg.direction === "inbound"
                   ? "bg-[#7C3AED]/10 border-l-2 border-[#7C3AED]"
@@ -80,7 +81,7 @@ function AgentsContent() {
           <Users size={24} className="text-[#00D4AA]" />
           Agent Network
         </h1>
-        <p className="text-sm text-[#94A3B8] mt-1">The Crew — 5 agents deployed</p>
+        <p className="text-sm text-[#94A3B8] mt-1">The Crew — {agents.length} agent{agents.length !== 1 ? "s" : ""} deployed</p>
       </div>
 
       {/* Broadcast banner */}
@@ -119,7 +120,7 @@ function AgentsContent() {
                       <AgentAvatar name={agent.config.name} size={52} glow={agent.hasInbound} />
                       <div>
                         <h3 className="font-semibold text-[#F1F5F9]">{agent.config.name}</h3>
-                        <p className="text-[10px] text-[#94A3B8] italic">{agentFiction[agent.config.name]}</p>
+                        <p className="text-[10px] text-[#94A3B8] italic">{agentFiction[agent.config.name.toLowerCase()]}</p>
                         <p className="text-xs text-[#94A3B8] mt-0.5">{agent.config.description.split("—")[0]?.trim()}</p>
                       </div>
                     </div>

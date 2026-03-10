@@ -105,7 +105,7 @@ export default function ActivityPage() {
                 const Icon = getIcon(item.text);
                 return (
                   <div
-                    key={i}
+                    key={`${item.timeRange}-${i}`}
                     className="flex gap-3 py-3 px-2 rounded-lg hover:bg-white/[0.03] transition-colors border-b border-white/5 last:border-0"
                   >
                     <div className="shrink-0 mt-0.5">

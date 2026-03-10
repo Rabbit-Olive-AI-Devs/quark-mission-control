@@ -110,8 +110,8 @@ function ViralityDistribution({ data }: { data: IntelReport }) {
         <ResponsiveContainer width="100%" height={180}>
           <PieChart>
             <Pie data={distribution} dataKey="value" cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={3}>
-              {distribution.map((d, i) => (
-                <Cell key={i} fill={d.color} />
+              {distribution.map((d) => (
+                <Cell key={d.name} fill={d.color} />
               ))}
             </Pie>
             <Tooltip
@@ -136,7 +136,7 @@ function ViralityDistribution({ data }: { data: IntelReport }) {
 export default function IntelPage() {
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
   const [archiveDate, setArchiveDate] = useState(today);
-  const { data, loading } = useApi<IntelReport>("/api/intel", ["intel"]);
+  const { data, loading } = useApi<IntelReport>(`/api/intel?date=${archiveDate}`, ["intel"]);
 
   const navigateDate = (delta: number) => {
     const d = new Date(archiveDate + "T12:00:00");
@@ -199,11 +199,11 @@ export default function IntelPage() {
               <GlassCard delay={0.1} className="mb-6 !border-[#00D4AA]/20 !bg-[#00D4AA]/[0.03]">
                 <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
                   <TrendingUp size={14} className="text-[#00D4AA]" />
-                  Content Suggestions for Cassian
+                  Content Suggestions
                 </h3>
                 <div className="space-y-2">
                   {data.suggestions.map((s, i) => (
-                    <div key={i} className="flex gap-2 text-xs">
+                    <div key={`suggestion-${i}`} className="flex gap-2 text-xs">
                       <span className="text-[#00D4AA] font-semibold shrink-0">{i + 1}.</span>
                       <span className="text-[#F1F5F9]">{s}</span>
                     </div>
@@ -221,7 +221,7 @@ export default function IntelPage() {
                 </h2>
                 <div className="grid grid-cols-1 gap-3">
                   {data.highSignal.map((trend, i) => (
-                    <TrendCard key={i} trend={trend} index={i} />
+                    <TrendCard key={trend.title || i} trend={trend} index={i} />
                   ))}
                 </div>
               </div>
@@ -236,7 +236,7 @@ export default function IntelPage() {
                 </h2>
                 <div className="grid grid-cols-1 gap-3">
                   {data.rising.map((trend, i) => (
-                    <TrendCard key={i} trend={trend} index={i} />
+                    <TrendCard key={trend.title || i} trend={trend} index={i} />
                   ))}
                 </div>
               </div>
@@ -251,7 +251,7 @@ export default function IntelPage() {
                 </h2>
                 <div className="grid grid-cols-1 gap-3">
                   {data.nicheSignals.map((trend, i) => (
-                    <TrendCard key={i} trend={trend} index={i} />
+                    <TrendCard key={trend.title || i} trend={trend} index={i} />
                   ))}
                 </div>
               </div>

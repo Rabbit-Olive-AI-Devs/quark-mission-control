@@ -17,7 +17,7 @@ export async function GET() {
     summary: {
       total: jobs.length,
       ok: jobs.filter((j) => j.status === "ok").length,
-      failed: jobs.filter((j) => j.status !== "ok" && j.status !== "unknown").length,
+      failed: jobs.filter((j) => j.status !== "ok" && j.status !== "idle" && j.status !== "unknown" && j.status !== "disabled").length,
     },
     source,
     warning:

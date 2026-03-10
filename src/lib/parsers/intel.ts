@@ -28,8 +28,20 @@ function parseTrendBlock(block: string): IntelTrend {
   return { title, source, virality, confidence, expiry, angle };
 }
 
-export function parseIntel(): IntelReport {
-  const filePath = path.join(WORKSPACE_PATH, "intel/DAILY-INTEL.md");
+export function parseIntel(date?: string): IntelReport {
+  // If a date is provided, try to read an archive file first, then fall back to the main file
+  let filePath = path.join(WORKSPACE_PATH, "intel/DAILY-INTEL.md");
+  if (date) {
+    const archivePath = path.join(WORKSPACE_PATH, `intel/archive/${date}.md`);
+    if (fs.existsSync(archivePath)) {
+      filePath = archivePath;
+    }
+    // Also try intel/{date}.md as another common pattern
+    const altPath = path.join(WORKSPACE_PATH, `intel/${date}.md`);
+    if (!fs.existsSync(filePath) && fs.existsSync(altPath)) {
+      filePath = altPath;
+    }
+  }
   const result: IntelReport = {
     date: "", compiled: "", highSignal: [], rising: [], nicheSignals: [], suggestions: [],
   };

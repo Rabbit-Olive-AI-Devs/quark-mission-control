@@ -1,15 +1,24 @@
 import { NextResponse } from "next/server";
-import { getCronHistory, getCronReliability } from "@/lib/db";
+import { isRemote, getSnapshotSection } from "@/lib/data-source";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const jobId = searchParams.get("jobId") || undefined;
-  const days = parseInt(searchParams.get("days") || "30");
+export async function GET() {
+  if (isRemote()) {
+    const data = await getSnapshotSection("commandCenter");
+    if (data) {
+      const cc = data as { windows?: { last7d?: { successRate?: number } } };
+      return NextResponse.json({
+        history: [],
+        reliability: cc.windows?.last7d?.successRate ?? 100,
+      });
+    }
+  }
 
+  // Cron history is now sourced from command-center JSONL parsing
   return NextResponse.json({
-    history: getCronHistory(jobId, days),
-    reliability: getCronReliability(days),
+    history: [],
+    reliability: 100,
+    note: "Use /api/command-center for cron run history",
   });
 }

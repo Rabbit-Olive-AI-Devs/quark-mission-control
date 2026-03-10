@@ -9,7 +9,7 @@ interface GaugeProps {
 }
 
 export function Gauge({ value, max, label, color = "#00D4AA", size = 80 }: GaugeProps) {
-  const percent = Math.min(100, (value / max) * 100);
+  const percent = max > 0 ? Math.min(100, (value / max) * 100) : 0;
   const radius = (size - 8) / 2;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (percent / 100) * circumference;

@@ -17,16 +17,25 @@ export function getSystemInfo(): SystemInfo {
     cpuPercent = 0;
   }
 
-  // Disk usage
+  // Disk usage — try macOS format first, then Linux
   let diskUsedGb = 0;
   let diskTotalGb = 0;
   try {
+    // macOS: df -g outputs in GB blocks
     const df = execSync("df -g / 2>/dev/null", { encoding: "utf-8" });
     const parts = df.split("\n")[1]?.split(/\s+/) || [];
     diskTotalGb = parseFloat(parts[1] || "0");
     diskUsedGb = parseFloat(parts[2] || "0");
   } catch {
-    // Defaults
+    try {
+      // Linux: df -BG outputs in GB blocks with "G" suffix
+      const df = execSync("df -BG / 2>/dev/null", { encoding: "utf-8" });
+      const parts = df.split("\n")[1]?.split(/\s+/) || [];
+      diskTotalGb = parseFloat((parts[1] || "0").replace("G", ""));
+      diskUsedGb = parseFloat((parts[2] || "0").replace("G", ""));
+    } catch {
+      // Defaults
+    }
   }
 
   return {
