@@ -35,7 +35,7 @@ export async function GET(request: Request) {
       summary: {
         total: jobs.length,
         ok: jobs.filter((j) => j.status === "ok").length,
-        failed: jobs.filter((j) => j.status !== "ok" && j.status !== "idle" && j.status !== "unknown").length,
+        failed: jobs.filter((j) => j.status !== "ok" && j.status !== "idle" && j.status !== "disabled" && j.status !== "unknown").length,
       },
     },
     heartbeat: parseHeartbeat(),

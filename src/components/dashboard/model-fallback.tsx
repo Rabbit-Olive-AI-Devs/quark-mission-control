@@ -1,6 +1,7 @@
 "use client";
 
 import { GlassCard } from "@/components/ui/glass-card";
+import { CardFooter } from "@/components/ui/card-footer";
 import { Zap, ArrowRight } from "lucide-react";
 import { useApi } from "@/hooks/use-api";
 import type { CommandCenterData } from "@/lib/parsers/types";
@@ -8,7 +9,7 @@ import type { CommandCenterData } from "@/lib/parsers/types";
 const MODEL_COLORS = ["#00D4AA", "#7C3AED", "#3B82F6", "#F59E0B", "#EF4444", "#10B981"];
 
 export function ModelFallbackChain() {
-  const { data } = useApi<CommandCenterData>("/api/command-center", ["metrics"]);
+  const { data, error, lastUpdated, refetch } = useApi<CommandCenterData>("/api/command-center", ["metrics"]);
 
   const chain = data ? [data.primaryModel, ...data.fallbackChain] : [];
 
@@ -60,6 +61,8 @@ export function ModelFallbackChain() {
           })}
         </div>
       )}
+
+      <CardFooter lastUpdated={lastUpdated} error={error} onRefresh={refetch} />
     </GlassCard>
   );
 }
