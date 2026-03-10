@@ -29,9 +29,37 @@ function formatRelative(ms: number | undefined): string | null {
   }
 }
 
+function findOpenclawBin(): string {
+  const envPath = process.env.OPENCLAW_BIN;
+  if (envPath) return envPath;
+
+  // Try common locations
+  const candidates = [
+    "/opt/homebrew/bin/openclaw",
+    "/usr/local/bin/openclaw",
+    "/usr/bin/openclaw",
+  ];
+  for (const bin of candidates) {
+    try {
+      execSync(`test -x ${bin}`, { timeout: 2000 });
+      return bin;
+    } catch {
+      // try next
+    }
+  }
+
+  // Fallback: try PATH
+  try {
+    return execSync("which openclaw 2>/dev/null", { encoding: "utf-8", timeout: 3000 }).trim();
+  } catch {
+    return "openclaw"; // last resort, let it fail naturally
+  }
+}
+
 export function parseCronList(): CronJob[] {
   try {
-    const output = execSync("/opt/homebrew/bin/openclaw cron list --json 2>/dev/null", {
+    const bin = findOpenclawBin();
+    const output = execSync(`${bin} cron list --json 2>/dev/null`, {
       timeout: 10000,
       encoding: "utf-8",
     });

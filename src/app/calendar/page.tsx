@@ -87,10 +87,10 @@ export default function CalendarPage() {
         <div className="mb-6">
           <h1 className="text-2xl font-semibold flex items-center gap-3">
             <Calendar size={24} className="text-[#00D4AA]" />
-            Calendar
+            Cron Schedule
           </h1>
           <p className="text-sm text-[#94A3B8] mt-1">
-            Cron schedule — 30-min intervals — {jobs.length} jobs mapped
+            30-min intervals — {jobs.length} jobs mapped
           </p>
         </div>
 

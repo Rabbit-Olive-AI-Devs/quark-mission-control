@@ -16,13 +16,20 @@ const KANBAN_COLUMNS = [
 ];
 
 // Warmup: 14-day ramp for new accounts
+// Configurable via env var NEXT_PUBLIC_WARMUP_START (YYYY-MM-DD)
 const WARMUP_DAYS = 14;
-const WARMUP_START = "2026-03-03"; // approximate start
 
 function WarmupTracker() {
-  const start = new Date(WARMUP_START);
+  const warmupStart = process.env.NEXT_PUBLIC_WARMUP_START;
+  if (!warmupStart) return null; // Don't render if not configured
+
+  const start = new Date(warmupStart);
+  if (isNaN(start.getTime())) return null;
+
   const now = new Date();
   const elapsed = Math.floor((now.getTime() - start.getTime()) / 86400000);
+  if (elapsed >= WARMUP_DAYS) return null; // Auto-hide when warmup is complete
+
   const day = Math.min(elapsed, WARMUP_DAYS);
   const pct = Math.round((day / WARMUP_DAYS) * 100);
 
@@ -55,12 +62,6 @@ function WarmupTracker() {
           </div>
         ))}
       </div>
-
-      {day >= WARMUP_DAYS && (
-        <div className="mt-3 text-xs text-[#10B981] flex items-center gap-1">
-          <Zap size={12} /> Warmup complete — full posting cadence unlocked
-        </div>
-      )}
     </GlassCard>
   );
 }
@@ -148,8 +149,8 @@ function HookPerformanceChart({ categories }: { categories: Record<string, HookC
             labelStyle={{ color: "#F1F5F9" }}
           />
           <Bar dataKey="posts" radius={[4, 4, 0, 0]}>
-            {chartData.map((_, i) => (
-              <Cell key={i} fill={colors[i % colors.length]} />
+            {chartData.map((entry, i) => (
+              <Cell key={entry.name} fill={colors[i % colors.length]} />
             ))}
           </Bar>
         </BarChart>

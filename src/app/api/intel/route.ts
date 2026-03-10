@@ -4,10 +4,13 @@ import { isRemote, getSnapshotSection } from "@/lib/data-source";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  if (isRemote()) {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const date = searchParams.get("date") || undefined;
+
+  if (isRemote() && !date) {
     const data = await getSnapshotSection("intel");
     if (data) return NextResponse.json(data);
   }
-  return NextResponse.json(parseIntel());
+  return NextResponse.json(parseIntel(date));
 }

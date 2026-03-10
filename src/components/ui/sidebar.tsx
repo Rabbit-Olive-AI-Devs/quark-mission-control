@@ -34,8 +34,8 @@ const navItems = [
   { href: "/knowledge", label: "Knowledge Base", icon: Database },
   { href: "/command-center", label: "Command Center", icon: BrainCircuit },
   { href: "/metrics-page", label: "Metrics", icon: BarChart3 },
-  { href: "/calendar", label: "Calendar", icon: Calendar },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/calendar", label: "Cron Schedule", icon: Calendar },
+  { href: "/settings", label: "System Info", icon: Settings },
 ];
 
 export function Sidebar() {

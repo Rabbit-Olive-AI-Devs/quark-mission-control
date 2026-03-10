@@ -9,11 +9,12 @@ import { useApi } from "@/hooks/use-api";
 import type { AgentStatus, BroadcastStatus } from "@/lib/parsers/types";
 
 const agentRoles: Record<string, string> = {
-  Neo: "Dev Operative",
-  Fulcrum: "Intel Analyst",
-  Cassian: "Content Strategist",
-  Chandler: "Metrics & Reporting",
-  MSE6: "Mac Maintenance Droid",
+  neo: "Dev Operative",
+  fulcrum: "Intel Analyst",
+  cassian: "Content Strategist",
+  chandler: "Metrics & Reporting",
+  "mse-6": "Mac Maintenance Droid",
+  mse6: "Mac Maintenance Droid",
 };
 
 export function AgentBar() {
@@ -75,7 +76,7 @@ export function AgentBar() {
             </div>
             <span className="text-sm font-medium text-[#F1F5F9]">{agent.config.name}</span>
             <span className="text-[10px] text-[#94A3B8] text-center line-clamp-1">
-              {agentRoles[agent.config.name] || agent.config.description.split("—")[0]?.trim()}
+              {agentRoles[agent.config.name.toLowerCase()] || agent.config.description.split("—")[0]?.trim()}
             </span>
           </button>
         ))}

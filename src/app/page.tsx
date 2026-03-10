@@ -1,6 +1,7 @@
 "use client";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { CronGrid } from "@/components/dashboard/cron-grid";
 import { SystemVitals } from "@/components/dashboard/system-vitals";
 import { AgentBar } from "@/components/dashboard/agent-bar";
@@ -15,7 +16,7 @@ export default function DashboardPage() {
   return (
     <AppShell>
       <div className="max-w-7xl mx-auto">
-        <DegradationBanner />
+        <ErrorBoundary><DegradationBanner /></ErrorBoundary>
 
         {/* Header */}
         <div className="mb-6">
@@ -25,27 +26,27 @@ export default function DashboardPage() {
 
         {/* Top row: Pending + Heartbeat + System */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-          <PendingBadge />
-          <HeartbeatCard />
-          <SystemVitals />
+          <ErrorBoundary><PendingBadge /></ErrorBoundary>
+          <ErrorBoundary><HeartbeatCard /></ErrorBoundary>
+          <ErrorBoundary><SystemVitals /></ErrorBoundary>
         </div>
 
         {/* Middle: Cron Grid + Activity */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <CronGrid />
-          <ActivityTicker />
+          <ErrorBoundary><CronGrid /></ErrorBoundary>
+          <ErrorBoundary><ActivityTicker /></ErrorBoundary>
         </div>
 
         {/* Agent Network */}
         <div className="mb-4">
-          <AgentBar />
+          <ErrorBoundary><AgentBar /></ErrorBoundary>
         </div>
 
         {/* Codex Quota + Model Fallback Chain */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-          <CodexQuota />
+          <ErrorBoundary><CodexQuota /></ErrorBoundary>
           <div className="lg:col-span-2">
-            <ModelFallbackChain />
+            <ErrorBoundary><ModelFallbackChain /></ErrorBoundary>
           </div>
         </div>
       </div>

@@ -7,6 +7,9 @@ export const runtime = "nodejs";
 export async function GET() {
   const encoder = new TextEncoder();
 
+  // Store cleanup function in outer scope so cancel() can access it
+  let cleanupFn: (() => void) | null = null;
+
   const stream = new ReadableStream({
     async start(controller) {
       // Dynamic import chokidar to avoid bundling issues
@@ -56,20 +59,20 @@ export async function GET() {
         }
       });
 
-      // Cleanup on abort
-      const cleanup = () => {
+      // Store cleanup in outer scope for cancel() to access
+      cleanupFn = () => {
         clearInterval(heartbeatInterval);
         watcher.close();
       };
 
       // Send initial connection event
       controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "connected", timestamp: Date.now() })}\n\n`));
-
-      // Store cleanup for when stream is cancelled
-      (controller as unknown as Record<string, () => void>)._cleanup = cleanup;
     },
     cancel() {
-      // Cleanup handled by watcher close
+      if (cleanupFn) {
+        cleanupFn();
+        cleanupFn = null;
+      }
     },
   });
 

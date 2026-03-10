@@ -50,7 +50,7 @@ export function CronGrid() {
             className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] transition-colors"
           >
             <StatusDot
-              status={job.status === "ok" ? "ok" : job.status === "unknown" ? "idle" : "error"}
+              status={job.status === "ok" ? "ok" : (job.status === "unknown" || job.status === "idle" || job.status === "disabled") ? "idle" : "error"}
               size="sm"
             />
             <span className="text-xs text-[#F1F5F9] truncate">{job.name}</span>

@@ -6,41 +6,38 @@ interface AgentAvatarProps {
   glow?: boolean;
 }
 
+// Use lowercase keys for consistent lookup regardless of input casing
 const AGENT_IMAGES: Record<string, { src: string; tint: string }> = {
-  Neo: { src: "/agents/neo.png", tint: "rgba(0, 255, 65, 0.12)" },
-  Fulcrum: { src: "/agents/fulcrum.png", tint: "rgba(232, 101, 26, 0.12)" },
-  Cassian: { src: "/agents/cassian.png", tint: "rgba(74, 123, 204, 0.12)" },
-  Chandler: { src: "/agents/chandler.png", tint: "rgba(124, 58, 237, 0.12)" },
-  MSE6: { src: "/agents/mse6.jpg", tint: "rgba(74, 158, 224, 0.12)" },
+  neo: { src: "/agents/neo.png", tint: "rgba(0, 255, 65, 0.12)" },
+  fulcrum: { src: "/agents/fulcrum.png", tint: "rgba(232, 101, 26, 0.12)" },
+  cassian: { src: "/agents/cassian.png", tint: "rgba(74, 123, 204, 0.12)" },
+  chandler: { src: "/agents/chandler.png", tint: "rgba(124, 58, 237, 0.12)" },
+  mse6: { src: "/agents/mse6.jpg", tint: "rgba(74, 158, 224, 0.12)" },
 };
 
 const GLOW_COLORS: Record<string, string> = {
-  Neo: "rgba(0, 255, 65, 0.3)",
-  Fulcrum: "rgba(232, 101, 26, 0.3)",
-  Cassian: "rgba(74, 123, 204, 0.3)",
-  Chandler: "rgba(124, 58, 237, 0.3)",
-  MSE6: "rgba(74, 158, 224, 0.3)",
+  neo: "rgba(0, 255, 65, 0.3)",
+  fulcrum: "rgba(232, 101, 26, 0.3)",
+  cassian: "rgba(74, 123, 204, 0.3)",
+  chandler: "rgba(124, 58, 237, 0.3)",
+  mse6: "rgba(74, 158, 224, 0.3)",
 };
 
 const BORDER_COLORS: Record<string, string> = {
-  Neo: "rgba(0, 255, 65, 0.4)",
-  Fulcrum: "rgba(232, 101, 26, 0.4)",
-  Cassian: "rgba(74, 123, 204, 0.4)",
-  Chandler: "rgba(124, 58, 237, 0.4)",
-  MSE6: "rgba(74, 158, 224, 0.4)",
+  neo: "rgba(0, 255, 65, 0.4)",
+  fulcrum: "rgba(232, 101, 26, 0.4)",
+  cassian: "rgba(74, 123, 204, 0.4)",
+  chandler: "rgba(124, 58, 237, 0.4)",
+  mse6: "rgba(74, 158, 224, 0.4)",
 };
 
 function normalizeAgentKey(name: string): string {
-  return name.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+  return name.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
 }
 
 export function AgentAvatar({ name, size = 48, glow = false }: AgentAvatarProps) {
   const key = normalizeAgentKey(name);
-  const agent =
-    AGENT_IMAGES[name] ||
-    AGENT_IMAGES[key] ||
-    AGENT_IMAGES[name.toLowerCase()] ||
-    AGENT_IMAGES[name.toUpperCase()];
+  const agent = AGENT_IMAGES[key];
 
   if (!agent) {
     return (
@@ -59,8 +56,8 @@ export function AgentAvatar({ name, size = 48, glow = false }: AgentAvatarProps)
       style={{
         width: size,
         height: size,
-        boxShadow: glow ? `0 0 20px ${GLOW_COLORS[name] || GLOW_COLORS[key] || "rgba(255,255,255,0.2)"}` : "none",
-        border: `2px solid ${BORDER_COLORS[name] || BORDER_COLORS[key] || "rgba(255,255,255,0.1)"}`,
+        boxShadow: glow ? `0 0 20px ${GLOW_COLORS[key] || "rgba(255,255,255,0.2)"}` : "none",
+        border: `2px solid ${BORDER_COLORS[key] || "rgba(255,255,255,0.1)"}`,
       }}
     >
       {/* Character photo */}

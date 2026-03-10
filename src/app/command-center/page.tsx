@@ -13,7 +13,7 @@ function fmtNumber(value: number) {
 
 function fmtMs(ms: number) {
   if (!ms) return "0s";
-  if (ms >= 60000) return `${Math.round(ms / 6000) / 10}m`;
+  if (ms >= 60000) return `${Math.round(ms / 60000 * 10) / 10}m`;
   return `${Math.round(ms / 1000)}s`;
 }
 
@@ -32,7 +32,7 @@ export default function CommandCenterPage() {
         <div className="mb-6">
           <h1 className="text-2xl font-semibold flex items-center gap-3">
             <BrainCircuit size={24} className="text-[#00D4AA]" />
-            Command Center POC
+            Command Center
           </h1>
           <p className="text-sm text-[#94A3B8] mt-1">
             Read-only model usage, quota headroom, and anomaly visibility.
