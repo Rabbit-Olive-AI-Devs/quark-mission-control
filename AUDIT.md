@@ -263,6 +263,16 @@ Helper functions (`recordCronRun`, `recordModelUsage`, `recordSystemSnapshot`) e
 | `agents/page.tsx` | "5 agents deployed" | Hardcoded count |
 | `agents/page.tsx` | `agentFiction` mapping | Hardcoded fiction references |
 
+### Confirmed BUGS (Silent Failures)
+
+| Location | Bug | Impact |
+|---|---|---|
+| `agent-bar.tsx` | `agentRoles` uses capitalized keys (`"Neo"`) but parsers return lowercase (`"neo"`) | Role lookup always fails — falls through to description-based fallback |
+| `agent-avatar.tsx` | `AGENT_IMAGES` uses capitalized keys (`"Neo"`) but receives lowercase names | Avatar image lookup fails — shows fallback purple circle with first letter instead of actual avatar photos |
+| `cron-grid.tsx` | Status mapping only handles `"ok"` and `"unknown"` — everything else (including `"idle"`, `"disabled"`) maps to `"error"` | Idle/disabled jobs incorrectly shown with error styling |
+| `system-vitals.tsx` | No `refreshOn` param to `useApi` | System stats load once and never update, even with SSE working |
+| `gauge.tsx` | Division by zero when `max === 0` produces `Infinity`/`NaN` | Some consumers guard against this, but the component itself doesn't |
+
 ### Confirmed STALE Data Risks
 
 | Location | Risk | Condition |
