@@ -1,13 +1,14 @@
 "use client";
 
 import { GlassCard } from "@/components/ui/glass-card";
+import { CardFooter } from "@/components/ui/card-footer";
 import { Gauge } from "@/components/ui/gauge";
 import { Cpu } from "lucide-react";
 import { useApi } from "@/hooks/use-api";
 import type { SystemInfo } from "@/lib/parsers/types";
 
 export function SystemVitals() {
-  const { data, loading, lastUpdated } = useApi<SystemInfo>("/api/system", ["heartbeat"]);
+  const { data, loading, error, lastUpdated, refetch } = useApi<SystemInfo>("/api/system", ["heartbeat"]);
 
   if (loading) {
     return (
@@ -50,17 +51,14 @@ export function SystemVitals() {
       </div>
 
       {data && (
-        <div className="mt-3 flex justify-between items-center">
+        <div className="mt-1 text-center">
           <span className="text-[10px] text-[#94A3B8]">
             Uptime: {Math.floor((data.uptime || 0) / 3600)}h {Math.floor(((data.uptime || 0) % 3600) / 60)}m
           </span>
-          {lastUpdated && (
-            <span className="text-[9px] text-[#94A3B8]/60">
-              Updated {new Date(lastUpdated).toLocaleTimeString()}
-            </span>
-          )}
         </div>
       )}
+
+      <CardFooter lastUpdated={lastUpdated} error={error} onRefresh={refetch} />
     </GlassCard>
   );
 }

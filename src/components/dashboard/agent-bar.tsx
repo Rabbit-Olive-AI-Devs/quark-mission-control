@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { GlassCard } from "@/components/ui/glass-card";
+import { CardFooter } from "@/components/ui/card-footer";
 import { StatusDot } from "@/components/ui/status-dot";
 import { AgentAvatar } from "@/components/ui/agent-avatar";
 import { Users } from "lucide-react";
@@ -19,7 +20,7 @@ const agentRoles: Record<string, string> = {
 
 export function AgentBar() {
   const router = useRouter();
-  const { data, loading } = useApi<{ agents: AgentStatus[]; broadcast: BroadcastStatus }>(
+  const { data, loading, error, lastUpdated, refetch } = useApi<{ agents: AgentStatus[]; broadcast: BroadcastStatus }>(
     "/api/agents",
     ["comms"]
   );
@@ -81,6 +82,8 @@ export function AgentBar() {
           </button>
         ))}
       </div>
+
+      <CardFooter lastUpdated={lastUpdated} error={error} onRefresh={refetch} />
     </GlassCard>
   );
 }

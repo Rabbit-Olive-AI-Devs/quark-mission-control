@@ -1,13 +1,14 @@
 "use client";
 
 import { GlassCard } from "@/components/ui/glass-card";
+import { CardFooter } from "@/components/ui/card-footer";
 import { Heart, Clock, Mail, FileText } from "lucide-react";
 import { useApi } from "@/hooks/use-api";
 import { formatRelativeTime } from "@/lib/utils";
 import type { HeartbeatState } from "@/lib/parsers/types";
 
 export function HeartbeatCard() {
-  const { data, loading } = useApi<HeartbeatState>("/api/heartbeat", ["heartbeat"]);
+  const { data, loading, error, lastUpdated, refetch } = useApi<HeartbeatState>("/api/heartbeat", ["heartbeat"]);
 
   if (loading) {
     return (
@@ -69,6 +70,8 @@ export function HeartbeatCard() {
           </div>
         </div>
       </div>
+
+      <CardFooter lastUpdated={lastUpdated} error={error} onRefresh={refetch} />
     </GlassCard>
   );
 }

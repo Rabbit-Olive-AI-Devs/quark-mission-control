@@ -1,13 +1,14 @@
 "use client";
 
 import { GlassCard } from "@/components/ui/glass-card";
+import { CardFooter } from "@/components/ui/card-footer";
 import { Gauge } from "@/components/ui/gauge";
 import { Cpu } from "lucide-react";
 import { useApi } from "@/hooks/use-api";
 import type { MetricsData } from "@/lib/parsers/types";
 
 export function CodexQuota() {
-  const { data } = useApi<MetricsData>("/api/metrics", ["metrics"]);
+  const { data, error, lastUpdated, refetch } = useApi<MetricsData>("/api/metrics", ["metrics"]);
 
   const quota = data?.codexQuota;
   const daily = quota?.dailyRemaining ?? 0;
@@ -61,11 +62,7 @@ export function CodexQuota() {
         </div>
       )}
 
-      {data?.lastUpdated && (
-        <div className="mt-3 pt-2 border-t border-white/5 text-center">
-          <span className="text-[9px] text-[#F59E0B]/70">Last sync: {data.lastUpdated}</span>
-        </div>
-      )}
+      <CardFooter lastUpdated={lastUpdated} error={error} onRefresh={refetch} />
     </GlassCard>
   );
 }

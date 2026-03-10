@@ -1,12 +1,13 @@
 "use client";
 
 import { GlassCard } from "@/components/ui/glass-card";
+import { CardFooter } from "@/components/ui/card-footer";
 import { Activity } from "lucide-react";
 import { useApi } from "@/hooks/use-api";
 import type { DigestEntry } from "@/lib/parsers/types";
 
 export function ActivityTicker() {
-  const { data, loading } = useApi<{ sections: DigestEntry[] }>("/api/digest", ["digest"]);
+  const { data, loading, error, lastUpdated, refetch } = useApi<{ sections: DigestEntry[] }>("/api/digest", ["digest"]);
 
   if (loading) {
     return (
@@ -55,6 +56,8 @@ export function ActivityTicker() {
           <p className="text-xs text-[#94A3B8] text-center py-4">No activity yet today</p>
         )}
       </div>
+
+      <CardFooter lastUpdated={lastUpdated} error={error} onRefresh={refetch} />
     </GlassCard>
   );
 }

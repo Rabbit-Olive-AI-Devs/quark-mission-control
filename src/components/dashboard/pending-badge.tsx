@@ -1,12 +1,13 @@
 "use client";
 
 import { GlassCard } from "@/components/ui/glass-card";
+import { CardFooter } from "@/components/ui/card-footer";
 import { AlertCircle, Mail, MessageSquare, AtSign } from "lucide-react";
 import { useApi } from "@/hooks/use-api";
 import type { PendingActions } from "@/lib/parsers/types";
 
 export function PendingBadge() {
-  const { data, loading } = useApi<PendingActions>("/api/pending", ["pending"]);
+  const { data, loading, error, lastUpdated, refetch } = useApi<PendingActions>("/api/pending", ["pending"]);
 
   const dm = data?.dmDrafts.length || 0;
   const x = data?.xDrafts.length || 0;
@@ -51,6 +52,8 @@ export function PendingBadge() {
           <span>{email} Email</span>
         </div>
       </div>
+
+      <CardFooter lastUpdated={lastUpdated} error={error} onRefresh={refetch} />
     </GlassCard>
   );
 }

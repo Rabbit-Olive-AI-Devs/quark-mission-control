@@ -1,13 +1,14 @@
 "use client";
 
 import { GlassCard } from "@/components/ui/glass-card";
+import { CardFooter } from "@/components/ui/card-footer";
 import { StatusDot } from "@/components/ui/status-dot";
 import { Clock } from "lucide-react";
 import { useApi } from "@/hooks/use-api";
 import type { CronJob } from "@/lib/parsers/types";
 
 export function CronGrid() {
-  const { data, loading } = useApi<{ jobs: CronJob[]; summary: { total: number; ok: number; failed: number } }>(
+  const { data, loading, error, lastUpdated, refetch } = useApi<{ jobs: CronJob[]; summary: { total: number; ok: number; failed: number } }>(
     "/api/cron",
     ["heartbeat"]
   );
@@ -61,6 +62,8 @@ export function CronGrid() {
       {jobs.length === 0 && (
         <p className="text-xs text-[#94A3B8] text-center py-4">No cron jobs found</p>
       )}
+
+      <CardFooter lastUpdated={lastUpdated} error={error} onRefresh={refetch} />
     </GlassCard>
   );
 }
