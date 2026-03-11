@@ -87,6 +87,26 @@ body {
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
+/* Pipeline cinematic effects */
+@keyframes glow-bar {
+  0%, 100% { box-shadow: 0 0 10px var(--glow-color, rgba(0, 212, 170, 0.2)); }
+  50% { box-shadow: 0 0 16px var(--glow-color, rgba(0, 212, 170, 0.35)); }
+}
+
+.glow-bar {
+  animation: glow-bar 2s ease-in-out infinite;
+}
+
+.light-line {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--line-color, rgba(0, 212, 170, 0.13)), transparent);
+}
+
+.light-line-purple {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.13), transparent);
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px;
