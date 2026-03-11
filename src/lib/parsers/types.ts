@@ -191,6 +191,46 @@ export interface HookCategory {
   bestPostId: string | null;
 }
 
+// Pipeline V2 types
+export interface PipelineStage {
+  name: string
+  status: 'completed' | 'active' | 'pending'
+  duration?: number
+  timestamp?: string
+  metadata?: Record<string, string>
+}
+
+export interface PipelineJob {
+  jobId: string
+  status: string
+  contentType: string
+  lane: string
+  viralityScore: number
+  viralitySource: string
+  topic: string
+  createdAt: string
+  elapsed: number
+  publishTargets: string[]
+  stages: PipelineStage[]
+  killedReason?: string
+}
+
+export interface PipelineScorecard {
+  published: number
+  killed: number
+  stale: number
+  pending: number
+  avgTimeToPublish: number
+  contentTypeBreakdown: Record<string, number>
+}
+
+export interface PipelineData {
+  activeJob: PipelineJob | null
+  jobs: PipelineJob[]
+  scorecard: PipelineScorecard
+  weights: Record<string, number>
+}
+
 // System
 export interface SystemInfo {
   cpuPercent: number;
