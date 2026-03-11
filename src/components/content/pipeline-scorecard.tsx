@@ -2,15 +2,7 @@
 
 import { motion } from "framer-motion"
 import { PipelineScorecard as ScorecardType } from "@/lib/parsers/types"
-
-const TYPE_COLORS: Record<string, string> = {
-  proof: "#7C3AED",
-  news_relay: "#3B82F6",
-  viral_ride: "#F59E0B",
-  hot_take: "#EF4444",
-  war_story: "#10B981",
-  reaction: "#EC4899",
-}
+import { TYPE_COLORS } from "@/lib/pipeline-constants"
 
 function StatCard({
   label,

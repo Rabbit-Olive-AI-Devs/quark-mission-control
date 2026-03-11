@@ -3,30 +3,9 @@
 import { motion } from "framer-motion"
 import { PipelineJob, PipelineStage } from "@/lib/parsers/types"
 import { useState } from "react"
+import { STATUS_COLORS, TYPE_COLORS, formatElapsed } from "@/lib/pipeline-constants"
 
 const SEGMENT_LABELS = ["Gate", "Proof", "Shot", "Script", "Spec", "HeyGen", "Asm", "Preview", "Publish"]
-
-const STATUS_COLORS: Record<string, string> = {
-  published: "#10B981",
-  killed: "#EF4444",
-  stale: "#F59E0B",
-  redo: "#7C3AED",
-}
-
-const TYPE_COLORS: Record<string, string> = {
-  proof: "#7C3AED",
-  news_relay: "#3B82F6",
-  viral_ride: "#F59E0B",
-  hot_take: "#EF4444",
-  war_story: "#10B981",
-  reaction: "#EC4899",
-}
-
-function formatElapsed(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`
-  return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`
-}
 
 function SegmentBar({ stages }: { stages: PipelineStage[] }) {
   return (
@@ -214,7 +193,7 @@ export function PipelineTracker({ job, lastJob }: { job: PipelineJob | null; las
       {/* Expandable stage log */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="text-[10px] text-[#94A3B8] hover:text-[#F1F5F9] mt-3 transition-colors"
+        className="text-[10px] text-[#94A3B8] hover:text-[#F1F5F9] mt-3 transition-colors min-h-[44px] flex items-center"
       >
         {expanded ? "▾ Hide stage log" : "▸ Show stage log"}
       </button>

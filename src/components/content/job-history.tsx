@@ -3,28 +3,7 @@
 import { motion } from "framer-motion"
 import { PipelineJob } from "@/lib/parsers/types"
 import { useState } from "react"
-
-const STATUS_COLORS: Record<string, string> = {
-  published: "#10B981",
-  killed: "#EF4444",
-  stale: "#F59E0B",
-  redo: "#7C3AED",
-}
-
-const TYPE_COLORS: Record<string, string> = {
-  proof: "#7C3AED",
-  news_relay: "#3B82F6",
-  viral_ride: "#F59E0B",
-  hot_take: "#EF4444",
-  war_story: "#10B981",
-  reaction: "#EC4899",
-}
-
-function formatElapsed(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`
-  return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`
-}
+import { STATUS_COLORS, TYPE_COLORS, formatElapsed } from "@/lib/pipeline-constants"
 
 function formatDate(iso: string): string {
   if (!iso) return "—"

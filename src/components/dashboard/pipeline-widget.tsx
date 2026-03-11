@@ -4,13 +4,7 @@ import { motion } from "framer-motion"
 import { useApi } from "@/hooks/use-api"
 import { PipelineData, PipelineStage } from "@/lib/parsers/types"
 import Link from "next/link"
-
-const STATUS_COLORS: Record<string, string> = {
-  published: "#10B981",
-  killed: "#EF4444",
-  stale: "#F59E0B",
-  redo: "#7C3AED",
-}
+import { STATUS_COLORS } from "@/lib/pipeline-constants"
 
 function MiniSegmentBar({ stages }: { stages: PipelineStage[] }) {
   return (

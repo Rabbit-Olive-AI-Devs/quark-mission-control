@@ -20,7 +20,7 @@ export default function ContentPage() {
         </div>
 
         {/* Zone 1: Hero — Live Pipeline Tracker */}
-        <PipelineTracker job={data?.activeJob ?? null} lastJob={data?.jobs?.[0] ?? null} />
+        <PipelineTracker job={data?.activeJob ?? null} lastJob={data?.jobs?.find(j => ['published','killed','stale'].includes(j.status)) ?? null} />
 
         {/* Zone 2: Scorecard */}
         {data && <PipelineScorecard scorecard={data.scorecard} />}
