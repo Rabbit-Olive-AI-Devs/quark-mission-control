@@ -3,6 +3,7 @@ export const STATUS_COLORS: Record<string, string> = {
   killed: "#EF4444",
   stale: "#F59E0B",
   redo: "#7C3AED",
+  intake_pending: "#F59E0B",
 }
 
 export const TYPE_COLORS: Record<string, string> = {

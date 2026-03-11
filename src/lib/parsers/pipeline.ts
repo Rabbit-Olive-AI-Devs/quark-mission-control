@@ -5,6 +5,7 @@ import { PipelineData, PipelineJob, PipelineStage, PipelineScorecard } from "./t
 const WORKSPACE = process.env.QUARK_WORKSPACE || path.join(process.env.HOME || "", ".openclaw/workspace")
 const RENDERS_DIR = path.join(WORKSPACE, "content-engine/renders")
 const INTAKE_DIR = path.join(WORKSPACE, "content-engine/intake/approved")
+const INTAKE_PENDING_DIR = path.join(WORKSPACE, "content-engine/intake/pending")
 const STATE_DIR = path.join(WORKSPACE, "content-engine/state")
 
 const TERMINAL_STATUSES = ["published", "killed", "stale"]
@@ -119,6 +120,33 @@ function parseManifest(filePath: string): PipelineJob | null {
   }
 }
 
+function parsePendingIntake(filePath: string): PipelineJob | null {
+  try {
+    const raw = JSON.parse(fs.readFileSync(filePath, "utf-8"))
+    const jobId = raw.job_id || path.basename(filePath, ".json")
+    const stat = fs.statSync(filePath)
+    const createdAt = stat.mtime.toISOString()
+    const elapsed = Math.floor((Date.now() - stat.mtime.getTime()) / 1000)
+
+    return {
+      jobId,
+      status: "intake_pending",
+      contentType: raw.content_type || "unknown",
+      lane: raw.lane || "unknown",
+      viralityScore: raw.virality_score || 0,
+      viralitySource: raw.virality_source || "",
+      topic: raw.topic || "",
+      createdAt,
+      elapsed,
+      publishTargets: [],
+      stages: deriveStages({ status: "intake_pending" }),
+      killedReason: undefined,
+    }
+  } catch {
+    return null
+  }
+}
+
 function computeScorecard(jobs: PipelineJob[]): PipelineScorecard {
   const now = new Date()
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
@@ -152,9 +180,23 @@ export function parsePipelineData(): PipelineData {
         .map((f) => path.join(RENDERS_DIR, f))
     }
 
-    const jobs: PipelineJob[] = manifestFiles
+    const manifestJobs: PipelineJob[] = manifestFiles
       .map(parseManifest)
       .filter((j): j is PipelineJob => j !== null)
+
+    const manifestJobIds = new Set(manifestJobs.map((j) => j.jobId))
+
+    // Include pending intake jobs that don't yet have render manifests
+    let pendingJobs: PipelineJob[] = []
+    if (fs.existsSync(INTAKE_PENDING_DIR)) {
+      pendingJobs = fs.readdirSync(INTAKE_PENDING_DIR)
+        .filter((f) => f.endsWith(".json"))
+        .map((f) => path.join(INTAKE_PENDING_DIR, f))
+        .map(parsePendingIntake)
+        .filter((j): j is PipelineJob => j !== null && !manifestJobIds.has(j.jobId))
+    }
+
+    const jobs = [...manifestJobs, ...pendingJobs]
       .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""))
 
     const activeJob = jobs.find((j) => !TERMINAL_STATUSES.includes(j.status)) || null

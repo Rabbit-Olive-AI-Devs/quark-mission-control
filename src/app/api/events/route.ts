@@ -24,6 +24,7 @@ export async function GET() {
         `${WORKSPACE_PATH}/comms`,
         `${WORKSPACE_PATH}/content-engine/renders`,
         `${WORKSPACE_PATH}/content-engine/state`,
+        `${WORKSPACE_PATH}/content-engine/intake/pending`,
       ];
 
       const watcher = chokidar.watch(watchPaths, {
