@@ -22,6 +22,8 @@ export async function GET() {
         `${WORKSPACE_PATH}/intel/DAILY-INTEL.md`,
         `${WORKSPACE_PATH}/metrics/dashboard.md`,
         `${WORKSPACE_PATH}/comms`,
+        `${WORKSPACE_PATH}/content-engine/renders`,
+        `${WORKSPACE_PATH}/content-engine/state`,
       ];
 
       const watcher = chokidar.watch(watchPaths, {
@@ -49,6 +51,7 @@ export async function GET() {
         else if (relative.includes("intel")) eventType = "intel";
         else if (relative.includes("metrics")) eventType = "metrics";
         else if (relative.includes("comms")) eventType = "comms";
+        else if (relative.includes("content-engine")) eventType = "pipeline";
 
         try {
           controller.enqueue(
