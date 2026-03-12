@@ -10,6 +10,12 @@ const STATE_DIR = path.join(WORKSPACE, "content-engine/state")
 
 const TERMINAL_STATUSES = ["published", "killed", "stale"]
 
+// Extract date from job ID like "2026-03-12-001" → "2026-03-12T00:00:00.000Z"
+function jobIdToDate(jobId: string): string {
+  const match = jobId.match(/^(\d{4}-\d{2}-\d{2})/)
+  return match ? `${match[1]}T00:00:00.000Z` : ""
+}
+
 const STAGE_ORDER = [
   "gate_passed",
   "proof_validated",
@@ -93,7 +99,7 @@ function parseManifest(filePath: string): PipelineJob | null {
       publishTargets = raw.publish_targets || []
     }
 
-    const createdAt = raw.created_at || ""
+    const createdAt = raw.created_at || raw.updated_at || jobIdToDate(jobId)
     let elapsed = 0
     if (createdAt) {
       const endTime = raw.published_at || raw.killed_at || new Date().toISOString()
