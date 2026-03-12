@@ -5,11 +5,10 @@ import { PipelineData, PipelineJob, PipelineStage, PipelineScorecard } from "./t
 const WORKSPACE = process.env.QUARK_WORKSPACE || path.join(process.env.HOME || "", ".openclaw/workspace")
 const RENDERS_DIR = path.join(WORKSPACE, "content-engine/renders")
 const INTAKE_DIR = path.join(WORKSPACE, "content-engine/intake/approved")
-const INTAKE_PENDING_DIR = path.join(WORKSPACE, "content-engine/intake/pending")
 const INTAKE_BUCKETS = ["approved", "rejected", "quarantined", "pending"] as const
 const STATE_DIR = path.join(WORKSPACE, "content-engine/state")
 
-const TERMINAL_STATUSES = ["published", "killed", "stale"]
+const TERMINAL_STATUSES = ["published", "killed", "stale", "rejected", "quarantined"]
 
 // Extract date from job ID like "2026-03-12-001" → "2026-03-12T00:00:00.000Z"
 function jobIdToDate(jobId: string): string {
@@ -146,27 +145,33 @@ function parseManifest(filePath: string): PipelineJob | null {
   }
 }
 
-function parsePendingIntake(filePath: string): PipelineJob | null {
+function parseIntakeAsJob(filePath: string, status: string): PipelineJob | null {
   try {
     const raw = JSON.parse(fs.readFileSync(filePath, "utf-8"))
     const jobId = raw.job_id || path.basename(filePath, ".json")
     const stat = fs.statSync(filePath)
-    const createdAt = stat.mtime.toISOString()
-    const elapsed = Math.floor((Date.now() - stat.mtime.getTime()) / 1000)
+    const createdAt = raw.updated_at || stat.mtime.toISOString()
+    const elapsed = Math.floor((Date.now() - new Date(createdAt).getTime()) / 1000)
+
+    const normalizedStatus =
+      status === "approved" ? "gate_passed" :
+      status === "rejected" ? "killed" :
+      status === "quarantined" ? "quarantined" :
+      "intake_pending"
 
     return {
       jobId,
-      status: "intake_pending",
+      status: normalizedStatus,
       contentType: raw.content_type || "unknown",
       lane: raw.lane || "unknown",
       viralityScore: raw.virality_score || 0,
       viralitySource: raw.virality_source || "",
-      topic: raw.topic || "",
+      topic: raw.topic || raw.title || "",
       createdAt,
-      elapsed,
+      elapsed: Math.max(0, elapsed),
       publishTargets: [],
-      stages: deriveStages({ status: "intake_pending" }),
-      killedReason: undefined,
+      stages: deriveStages({ status: normalizedStatus }),
+      killedReason: raw.rejection_reason || raw.reject_reason,
     }
   } catch {
     return null
@@ -212,17 +217,24 @@ export function parsePipelineData(): PipelineData {
 
     const manifestJobIds = new Set(manifestJobs.map((j) => j.jobId))
 
-    // Include pending intake jobs that don't yet have render manifests
-    let pendingJobs: PipelineJob[] = []
-    if (fs.existsSync(INTAKE_PENDING_DIR)) {
-      pendingJobs = fs.readdirSync(INTAKE_PENDING_DIR)
+    const intakeExtras: PipelineJob[] = []
+    const intakeBucketsForUI: Array<{ dir: string; status: string }> = [
+      { dir: path.join(WORKSPACE, "content-engine/intake/pending"), status: "pending" },
+      { dir: path.join(WORKSPACE, "content-engine/intake/rejected"), status: "rejected" },
+      { dir: path.join(WORKSPACE, "content-engine/intake/quarantined"), status: "quarantined" },
+    ]
+
+    for (const bucket of intakeBucketsForUI) {
+      if (!fs.existsSync(bucket.dir)) continue
+      const bucketJobs = fs.readdirSync(bucket.dir)
         .filter((f) => f.endsWith(".json"))
-        .map((f) => path.join(INTAKE_PENDING_DIR, f))
-        .map(parsePendingIntake)
+        .map((f) => path.join(bucket.dir, f))
+        .map((f) => parseIntakeAsJob(f, bucket.status))
         .filter((j): j is PipelineJob => j !== null && !manifestJobIds.has(j.jobId))
+      intakeExtras.push(...bucketJobs)
     }
 
-    const jobs = [...manifestJobs, ...pendingJobs]
+    const jobs = [...manifestJobs, ...intakeExtras]
       .sort((a, b) => compareJobIdDesc(a.jobId, b.jobId))
 
     const activeJob = jobs.find((j) => !TERMINAL_STATUSES.includes(j.status)) || null

@@ -6,22 +6,38 @@ import { PipelineData, PipelineStage } from "@/lib/parsers/types"
 import Link from "next/link"
 import { STATUS_COLORS } from "@/lib/pipeline-constants"
 
-function MiniSegmentBar({ stages }: { stages: PipelineStage[] }) {
+function MiniSegmentBar({ stages, terminalStatus }: { stages: PipelineStage[]; terminalStatus?: string }) {
+  const terminalColor = terminalStatus === "killed"
+    ? { bg: "linear-gradient(90deg, #EF4444, rgba(239, 68, 68, 0.35))", glow: "rgba(239, 68, 68, 0.25)" }
+    : terminalStatus === "redo"
+      ? { bg: "linear-gradient(90deg, #F59E0B, rgba(245, 158, 11, 0.35))", glow: "rgba(245, 158, 11, 0.25)" }
+      : null
+  const hasActive = stages.some((s) => s.status === "active")
+
   return (
     <div className="flex gap-[2px] h-1">
       {stages.map((stage, i) => {
         const isHeyGen = stage.name === "heygen_submitted"
-        if (stage.status === "completed") {
+        const isTerminalMarker = !!terminalColor && !hasActive && i === stages.length - 1
+        const effectiveStatus: PipelineStage["status"] = isTerminalMarker ? "active" : stage.status
+
+        if (effectiveStatus === "completed") {
           return <div key={i} className={`bg-[#10B981] rounded-sm ${isHeyGen ? "flex-[2]" : "flex-1"}`} />
         }
-        if (stage.status === "active") {
+        if (effectiveStatus === "active") {
+          const activeBg = isTerminalMarker
+            ? terminalColor!.bg
+            : "linear-gradient(90deg, #00D4AA, rgba(0, 212, 170, 0.33))"
+          const glow = isTerminalMarker
+            ? terminalColor!.glow
+            : "rgba(0, 212, 170, 0.25)"
           return (
             <div
               key={i}
               className={`rounded-sm glow-bar ${isHeyGen ? "flex-[2]" : "flex-1"}`}
               style={{
-                background: "linear-gradient(90deg, #00D4AA, rgba(0, 212, 170, 0.33))",
-                ["--glow-color" as string]: "rgba(0, 212, 170, 0.25)",
+                background: activeBg,
+                ["--glow-color" as string]: glow,
               }}
             />
           )
@@ -70,7 +86,7 @@ export function PipelineWidget({ delay = 0 }: { delay?: number }) {
                   {activeJob.status}
                 </span>
               </div>
-              <MiniSegmentBar stages={activeJob.stages} />
+              <MiniSegmentBar stages={activeJob.stages} terminalStatus={activeJob.status} />
               <div className="mt-1 text-[10px] text-[#94A3B8] truncate">
                 Topic: {activeJob.topic || "—"}
               </div>
@@ -87,7 +103,7 @@ export function PipelineWidget({ delay = 0 }: { delay?: number }) {
                 </span>
               </div>
               <div className="opacity-40">
-                <MiniSegmentBar stages={lastJob.stages} />
+                <MiniSegmentBar stages={lastJob.stages} terminalStatus={lastJob.status} />
               </div>
               <div className="mt-1 text-[10px] text-[#94A3B8] truncate opacity-70">
                 Topic: {lastJob.topic || "—"}
