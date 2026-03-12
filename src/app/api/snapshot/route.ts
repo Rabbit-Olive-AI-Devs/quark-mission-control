@@ -12,6 +12,8 @@ import { getSystemInfo } from "@/lib/parsers/system";
 import { listMemoryFilesWithContent } from "@/lib/parsers/memory";
 import { listKnowledgeFilesWithContent } from "@/lib/parsers/knowledge";
 import { parseCommandCenter } from "@/lib/parsers/command-center";
+import { parsePipelineData } from "@/lib/parsers/pipeline";
+import { computeWorkspaceHash } from "@/lib/hash";
 
 export const dynamic = "force-dynamic";
 
@@ -62,13 +64,17 @@ export async function GET(request: Request) {
       hookLibrary: parseHookLibrary(),
     },
     system: getSystemInfo(),
+    pipeline: parsePipelineData(),
     memory: { files: listMemoryFilesWithContent() },
     knowledge: { files: listKnowledgeFilesWithContent() },
   };
 
-  return NextResponse.json(snapshot, {
+  const hash = await computeWorkspaceHash();
+  const snapshotWithHash = { ...snapshot, hash };
+
+  return NextResponse.json(snapshotWithHash, {
     headers: {
-      "Cache-Control": "public, max-age=60, stale-while-revalidate=300",
+      "Cache-Control": "no-store",
     },
   });
 }
