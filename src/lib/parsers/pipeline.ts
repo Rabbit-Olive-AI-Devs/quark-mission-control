@@ -159,6 +159,11 @@ function parseIntakeAsJob(filePath: string, status: string): PipelineJob | null 
       status === "quarantined" ? "quarantined" :
       "intake_pending"
 
+    const stageSeedStatus =
+      status === "rejected" || status === "quarantined"
+        ? "gate_passed"
+        : normalizedStatus
+
     return {
       jobId,
       status: normalizedStatus,
@@ -170,7 +175,7 @@ function parseIntakeAsJob(filePath: string, status: string): PipelineJob | null 
       createdAt,
       elapsed: Math.max(0, elapsed),
       publishTargets: [],
-      stages: deriveStages({ status: normalizedStatus }),
+      stages: deriveStages({ status: stageSeedStatus }),
       killedReason: raw.rejection_reason || raw.reject_reason,
     }
   } catch {

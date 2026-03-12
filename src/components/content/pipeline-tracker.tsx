@@ -29,11 +29,11 @@ function SegmentBar({ stages, terminalStatus }: { stages: PipelineStage[]; termi
           else if (effectiveStatus === "pending") bg = "bg-[#1a1f2e]"
 
           if (effectiveStatus === "active") {
-            const activeBg = isTerminalMarker
-              ? terminalColor!.bg
+            const activeBg = terminalColor
+              ? terminalColor.bg
               : "linear-gradient(90deg, #00D4AA, rgba(0, 212, 170, 0.33))"
-            const glow = isTerminalMarker
-              ? terminalColor!.glow
+            const glow = terminalColor
+              ? terminalColor.glow
               : "rgba(0, 212, 170, 0.3)"
 
             return (

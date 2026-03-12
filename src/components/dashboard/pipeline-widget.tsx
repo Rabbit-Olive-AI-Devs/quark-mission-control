@@ -25,11 +25,11 @@ function MiniSegmentBar({ stages, terminalStatus }: { stages: PipelineStage[]; t
           return <div key={i} className={`bg-[#10B981] rounded-sm ${isHeyGen ? "flex-[2]" : "flex-1"}`} />
         }
         if (effectiveStatus === "active") {
-          const activeBg = isTerminalMarker
-            ? terminalColor!.bg
+          const activeBg = terminalColor
+            ? terminalColor.bg
             : "linear-gradient(90deg, #00D4AA, rgba(0, 212, 170, 0.33))"
-          const glow = isTerminalMarker
-            ? terminalColor!.glow
+          const glow = terminalColor
+            ? terminalColor.glow
             : "rgba(0, 212, 170, 0.25)"
           return (
             <div
