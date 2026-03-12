@@ -74,7 +74,7 @@ function ExecutionTimeline({ jobs }: { jobs: CronJob[] }) {
 export default function CronPage() {
   const { data, loading, refetch } = useApi<{ jobs: CronJob[]; summary: { total: number; ok: number; failed: number } }>(
     "/api/cron",
-    ["heartbeat"]
+    { snapshotKey: "cron", refreshOn: ["heartbeat"] }
   );
 
   const jobs = data?.jobs || [];

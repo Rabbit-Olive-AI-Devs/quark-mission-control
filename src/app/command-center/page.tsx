@@ -24,7 +24,7 @@ function severityClasses(severity: "info" | "warning" | "critical") {
 }
 
 export default function CommandCenterPage() {
-  const { data, loading } = useApi<CommandCenterData>("/api/command-center", ["metrics", "cron"]);
+  const { data, loading } = useApi<CommandCenterData>("/api/command-center", { snapshotKey: "commandCenter", refreshOn: ["metrics", "cron"] });
 
   return (
     <AppShell>

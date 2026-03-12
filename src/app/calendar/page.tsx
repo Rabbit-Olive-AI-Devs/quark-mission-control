@@ -58,7 +58,7 @@ function timeToSlotIndex(hour: number, minute: number): number {
 const JOB_COLORS = ["#00D4AA", "#7C3AED", "#F59E0B", "#3B82F6", "#EF4444", "#10B981", "#EC4899", "#06B6D4", "#8B5CF6", "#F97316", "#14B8A6", "#E879F9", "#22D3EE", "#FB923C"];
 
 export default function CalendarPage() {
-  const { data, loading } = useApi<{ jobs: CronJob[] }>("/api/cron", ["heartbeat"]);
+  const { data, loading } = useApi<{ jobs: CronJob[] }>("/api/cron", { snapshotKey: "cron", refreshOn: ["heartbeat"] });
 
   const jobs = data?.jobs || [];
 
