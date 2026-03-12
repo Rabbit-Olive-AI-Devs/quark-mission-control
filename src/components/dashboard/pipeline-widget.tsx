@@ -71,6 +71,9 @@ export function PipelineWidget({ delay = 0 }: { delay?: number }) {
                 </span>
               </div>
               <MiniSegmentBar stages={activeJob.stages} />
+              <div className="mt-1 text-[10px] text-[#94A3B8] truncate">
+                Topic: {activeJob.topic || "—"}
+              </div>
             </>
           ) : lastJob ? (
             <>
@@ -85,6 +88,9 @@ export function PipelineWidget({ delay = 0 }: { delay?: number }) {
               </div>
               <div className="opacity-40">
                 <MiniSegmentBar stages={lastJob.stages} />
+              </div>
+              <div className="mt-1 text-[10px] text-[#94A3B8] truncate opacity-70">
+                Topic: {lastJob.topic || "—"}
               </div>
             </>
           ) : (

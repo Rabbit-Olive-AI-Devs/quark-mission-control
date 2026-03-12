@@ -6,6 +6,7 @@ const WORKSPACE = process.env.QUARK_WORKSPACE || path.join(process.env.HOME || "
 const RENDERS_DIR = path.join(WORKSPACE, "content-engine/renders")
 const INTAKE_DIR = path.join(WORKSPACE, "content-engine/intake/approved")
 const INTAKE_PENDING_DIR = path.join(WORKSPACE, "content-engine/intake/pending")
+const INTAKE_BUCKETS = ["approved", "rejected", "quarantined", "pending"] as const
 const STATE_DIR = path.join(WORKSPACE, "content-engine/state")
 
 const TERMINAL_STATUSES = ["published", "killed", "stale"]
@@ -67,6 +68,25 @@ function deriveStages(manifest: Record<string, unknown>): PipelineStage[] {
   })
 }
 
+function resolveIntakePath(jobId: string, sourceJob?: string): string | null {
+  const candidates: string[] = []
+
+  if (sourceJob) {
+    candidates.push(path.isAbsolute(sourceJob) ? sourceJob : path.join(WORKSPACE, sourceJob))
+  }
+
+  candidates.push(path.join(INTAKE_DIR, `${jobId}.json`))
+  for (const bucket of INTAKE_BUCKETS) {
+    candidates.push(path.join(WORKSPACE, `content-engine/intake/${bucket}/${jobId}.json`))
+  }
+
+  return candidates.find((p) => fs.existsSync(p)) || null
+}
+
+function compareJobIdDesc(a: string, b: string): number {
+  return b.localeCompare(a)
+}
+
 function parseManifest(filePath: string): PipelineJob | null {
   try {
     const raw = JSON.parse(fs.readFileSync(filePath, "utf-8"))
@@ -80,11 +100,11 @@ function parseManifest(filePath: string): PipelineJob | null {
     let viralitySource = raw.virality_source || ""
     let publishTargets: string[] = []
 
-    const intakePath = path.join(INTAKE_DIR, `${jobId}.json`)
-    if (fs.existsSync(intakePath)) {
+    const intakePath = resolveIntakePath(jobId, raw.source_job)
+    if (intakePath) {
       try {
         const intake = JSON.parse(fs.readFileSync(intakePath, "utf-8"))
-        topic = intake.topic || topic
+        topic = intake.topic || intake.title || topic
         contentType = intake.content_type || contentType
         lane = intake.lane || lane
         viralityScore = intake.virality_score || viralityScore
@@ -203,7 +223,7 @@ export function parsePipelineData(): PipelineData {
     }
 
     const jobs = [...manifestJobs, ...pendingJobs]
-      .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""))
+      .sort((a, b) => compareJobIdDesc(a.jobId, b.jobId))
 
     const activeJob = jobs.find((j) => !TERMINAL_STATUSES.includes(j.status)) || null
 

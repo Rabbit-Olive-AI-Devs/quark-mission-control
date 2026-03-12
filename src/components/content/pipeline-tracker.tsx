@@ -173,7 +173,11 @@ export function PipelineTracker({ job, lastJob }: { job: PipelineJob | null; las
       <SegmentBar stages={job.stages} />
 
       {/* Detail cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 mt-4">
+      <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-2.5 mt-4">
+        <div className="text-[9px] text-[#94A3B8] uppercase tracking-wider mb-1">Topic</div>
+        <div className="text-[12px] text-[#F1F5F9] truncate">{job.topic || "—"}</div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 mt-2.5">
         <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-2.5">
           <div className="text-[9px] text-[#94A3B8] uppercase tracking-wider mb-1">Content Type</div>
           <div className="flex items-center gap-2">
