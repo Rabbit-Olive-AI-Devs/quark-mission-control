@@ -7,7 +7,7 @@ import { useApi } from "@/hooks/use-api";
 import type { PendingActions } from "@/lib/parsers/types";
 
 export function PendingBadge() {
-  const { data, loading, error, lastUpdated, refetch } = useApi<PendingActions>("/api/pending", ["pending"]);
+  const { data, loading, error, lastUpdated, refetch } = useApi<PendingActions>("/api/pending", { snapshotKey: "pending", refreshOn: ["pending"] });
 
   const dm = data?.dmDrafts.length || 0;
   const x = data?.xDrafts.length || 0;

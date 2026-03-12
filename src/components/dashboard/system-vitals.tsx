@@ -8,7 +8,7 @@ import { useApi } from "@/hooks/use-api";
 import type { SystemInfo } from "@/lib/parsers/types";
 
 export function SystemVitals() {
-  const { data, loading, error, lastUpdated, refetch } = useApi<SystemInfo>("/api/system", ["heartbeat"]);
+  const { data, loading, error, lastUpdated, refetch } = useApi<SystemInfo>("/api/system", { snapshotKey: "system", refreshOn: ["heartbeat"] });
 
   if (loading) {
     return (

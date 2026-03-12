@@ -8,7 +8,7 @@ import { useApi } from "@/hooks/use-api";
 import type { MetricsData } from "@/lib/parsers/types";
 
 export function CodexQuota() {
-  const { data, error, lastUpdated, refetch } = useApi<MetricsData>("/api/metrics", ["metrics"]);
+  const { data, error, lastUpdated, refetch } = useApi<MetricsData>("/api/metrics", { snapshotKey: "metrics", refreshOn: ["metrics"] });
 
   const quota = data?.codexQuota;
   const daily = quota?.dailyRemaining ?? 0;

@@ -8,7 +8,7 @@ import { formatRelativeTime } from "@/lib/utils";
 import type { HeartbeatState } from "@/lib/parsers/types";
 
 export function HeartbeatCard() {
-  const { data, loading, error, lastUpdated, refetch } = useApi<HeartbeatState>("/api/heartbeat", ["heartbeat"]);
+  const { data, loading, error, lastUpdated, refetch } = useApi<HeartbeatState>("/api/heartbeat", { snapshotKey: "heartbeat", refreshOn: ["heartbeat"] });
 
   if (loading) {
     return (

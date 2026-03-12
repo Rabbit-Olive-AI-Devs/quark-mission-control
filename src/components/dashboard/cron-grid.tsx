@@ -10,7 +10,7 @@ import type { CronJob } from "@/lib/parsers/types";
 export function CronGrid() {
   const { data, loading, error, lastUpdated, refetch } = useApi<{ jobs: CronJob[]; summary: { total: number; ok: number; failed: number } }>(
     "/api/cron",
-    ["heartbeat"]
+    { snapshotKey: "cron", refreshOn: ["heartbeat"] }
   );
 
   if (loading) {
