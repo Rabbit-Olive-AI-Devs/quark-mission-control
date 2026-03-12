@@ -9,7 +9,7 @@ import { PipelineData } from "@/lib/parsers/types"
 import { Clapperboard } from "lucide-react"
 
 export default function ContentPage() {
-  const { data } = useApi<PipelineData>("/api/pipeline", ["pipeline"])
+  const { data } = useApi<PipelineData>("/api/pipeline", { snapshotKey: "pipeline", refreshOn: ["pipeline"] })
 
   return (
     <AppShell>

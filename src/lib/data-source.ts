@@ -6,7 +6,7 @@ const SNAPSHOT_URL = process.env.SNAPSHOT_URL; // e.g. https://macbook-pro-14-tb
 const SNAPSHOT_API_KEY = process.env.SNAPSHOT_API_KEY;
 
 let cachedSnapshot: { data: Record<string, unknown>; fetchedAt: number } | null = null;
-const CACHE_TTL_MS = 30_000; // 30 seconds
+const CACHE_TTL_MS = 2_000; // 2 seconds
 
 type SourceMeta = {
   mode: "local" | "remote";
@@ -71,14 +71,16 @@ export async function getSnapshot(): Promise<Record<string, unknown> | null> {
 
     const res = await fetch(SNAPSHOT_URL, {
       headers,
-      next: { revalidate: 30 },
+      cache: "no-store",
     });
 
     if (!res.ok) {
       const err = `snapshot fetch failed: HTTP ${res.status}`;
       console.error(err);
       sourceMeta = { ...sourceMeta, healthy: false, lastError: err };
-      return cachedSnapshot?.data || null;
+      return cachedSnapshot?.data
+        ? { ...cachedSnapshot.data, _stale: true, _cachedAt: new Date(cachedSnapshot.fetchedAt).toISOString() }
+        : null;
     }
 
     const data = await res.json();
@@ -86,7 +88,9 @@ export async function getSnapshot(): Promise<Record<string, unknown> | null> {
       const err = "snapshot payload invalid/misconfigured (expected /api/snapshot shape)";
       console.error(err);
       sourceMeta = { ...sourceMeta, healthy: false, lastError: err };
-      return cachedSnapshot?.data || null;
+      return cachedSnapshot?.data
+        ? { ...cachedSnapshot.data, _stale: true, _cachedAt: new Date(cachedSnapshot.fetchedAt).toISOString() }
+        : null;
     }
 
     cachedSnapshot = { data, fetchedAt: Date.now() };
@@ -96,7 +100,9 @@ export async function getSnapshot(): Promise<Record<string, unknown> | null> {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("Snapshot fetch error:", err);
     sourceMeta = { ...sourceMeta, healthy: false, lastError: msg };
-    return cachedSnapshot?.data || null;
+    return cachedSnapshot?.data
+      ? { ...cachedSnapshot.data, _stale: true, _cachedAt: new Date(cachedSnapshot.fetchedAt).toISOString() }
+      : null;
   }
 }
 

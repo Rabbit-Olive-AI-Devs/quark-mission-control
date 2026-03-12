@@ -65,7 +65,7 @@ function gaugeColor(pct: number) {
 }
 
 export default function MetricsPage() {
-  const { data, loading } = useApi<MetricsData>("/api/metrics", ["metrics"]);
+  const { data, loading } = useApi<MetricsData>("/api/metrics", { snapshotKey: "metrics", refreshOn: ["metrics"] });
   const quota = data?.codexQuota;
 
   return (

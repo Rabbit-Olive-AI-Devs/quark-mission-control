@@ -5,7 +5,7 @@ import { AlertTriangle, Shield } from "lucide-react";
 import type { MetricsData } from "@/lib/parsers/types";
 
 export function DegradationBanner() {
-  const { data } = useApi<MetricsData>("/api/metrics", ["metrics"]);
+  const { data } = useApi<MetricsData>("/api/metrics", { snapshotKey: "metrics", refreshOn: ["metrics"] });
 
   if (!data || data.degradationStatus === "NORMAL") return null;
 

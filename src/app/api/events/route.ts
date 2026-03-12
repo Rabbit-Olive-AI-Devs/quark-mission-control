@@ -25,6 +25,7 @@ export async function GET() {
         `${WORKSPACE_PATH}/content-engine/renders`,
         `${WORKSPACE_PATH}/content-engine/state`,
         `${WORKSPACE_PATH}/content-engine/intake/pending`,
+        `${WORKSPACE_PATH}/content-engine/intake/approved`,
       ];
 
       const watcher = chokidar.watch(watchPaths, {
@@ -42,7 +43,8 @@ export async function GET() {
         }
       }, 30000);
 
-      watcher.on("change", (filePath: string) => {
+      watcher.on("all", (eventName: string, filePath: string) => {
+        if (!["change", "add", "unlink"].includes(eventName)) return;
         const relative = filePath.replace(WORKSPACE_PATH + "/", "");
         let eventType = "update";
 

@@ -7,7 +7,7 @@ import { useApi } from "@/hooks/use-api";
 import type { DigestEntry } from "@/lib/parsers/types";
 
 export function ActivityTicker() {
-  const { data, loading, error, lastUpdated, refetch } = useApi<{ sections: DigestEntry[] }>("/api/digest", ["digest"]);
+  const { data, loading, error, lastUpdated, refetch } = useApi<{ sections: DigestEntry[] }>("/api/digest", { snapshotKey: "digest", refreshOn: ["digest"] });
 
   if (loading) {
     return (

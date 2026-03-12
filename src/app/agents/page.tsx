@@ -58,7 +58,7 @@ function AgentDetail({ agentName }: { agentName: string }) {
 function AgentsContent() {
   const { data, loading } = useApi<{ agents: AgentStatus[]; broadcast: BroadcastStatus }>(
     "/api/agents",
-    ["comms"]
+    { snapshotKey: "agents", refreshOn: ["comms"] }
   );
   const searchParams = useSearchParams();
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);

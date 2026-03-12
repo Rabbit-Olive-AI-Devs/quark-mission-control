@@ -15,8 +15,8 @@ function formatUptime(seconds: number): string {
 }
 
 export default function SettingsPage() {
-  const { data: system } = useApi<SystemInfo>("/api/system", ["heartbeat"]);
-  const { data: cc } = useApi<CommandCenterData>("/api/command-center", ["metrics"]);
+  const { data: system } = useApi<SystemInfo>("/api/system", { snapshotKey: "system", refreshOn: ["heartbeat"] });
+  const { data: cc } = useApi<CommandCenterData>("/api/command-center", { snapshotKey: "commandCenter", refreshOn: ["metrics"] });
 
   const modelChain = cc
     ? [{ name: cc.primaryModel, role: "Primary" }, ...cc.fallbackChain.map((m, i) => ({ name: m, role: `Fallback ${i + 1}` }))]
