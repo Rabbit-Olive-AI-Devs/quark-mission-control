@@ -5,6 +5,16 @@ import { PipelineJob } from "@/lib/parsers/types"
 import { useState } from "react"
 import { STATUS_COLORS, TYPE_COLORS, formatElapsed } from "@/lib/pipeline-constants"
 
+function stageDotColor(jobStatus: string, stageStatus: string, isTerminalMarker: boolean): string {
+  if ((jobStatus === "killed" || jobStatus === "rejected") && (stageStatus === "active" || isTerminalMarker)) {
+    return "#EF4444"
+  }
+  if (jobStatus === "redo" && (stageStatus === "active" || isTerminalMarker)) {
+    return "#F59E0B"
+  }
+  return stageStatus === "active" ? "#00D4AA" : "#10B981"
+}
+
 function formatDate(iso: string): string {
   if (!iso) return "—"
   const d = new Date(iso)
@@ -53,20 +63,27 @@ function JobRow({ job }: { job: PipelineJob }) {
             <div className="bg-white/[0.02] border border-white/[0.04] rounded-lg p-3 mt-1">
               <div className="text-[9px] text-[#94A3B8] uppercase tracking-wider mb-2">Stage Log</div>
               <div className="flex flex-col gap-1">
-                {job.stages.filter((s) => s.status !== "pending").map((stage, i) => (
-                  <div key={i} className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-1.5 h-1.5 rounded-full"
-                        style={{ background: stage.status === "active" ? "#00D4AA" : "#10B981" }}
-                      />
-                      <span className="text-[10px] font-mono text-[#94A3B8]">{stage.name}</span>
-                    </div>
-                    {stage.duration !== undefined && (
-                      <span className="text-[9px] font-mono text-[#4B5563]">{formatElapsed(stage.duration)}</span>
-                    )}
-                  </div>
-                ))}
+                {(() => {
+                  const visibleStages = job.stages.filter((s) => s.status !== "pending")
+                  const hasActive = visibleStages.some((s) => s.status === "active")
+                  return visibleStages.map((stage, i) => {
+                    const isTerminalMarker = !hasActive && i === visibleStages.length - 1
+                    return (
+                      <div key={i} className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-1.5 h-1.5 rounded-full"
+                            style={{ background: stageDotColor(job.status, stage.status, isTerminalMarker) }}
+                          />
+                          <span className="text-[10px] font-mono text-[#94A3B8]">{stage.name}</span>
+                        </div>
+                        {stage.duration !== undefined && (
+                          <span className="text-[9px] font-mono text-[#4B5563]">{formatElapsed(stage.duration)}</span>
+                        )}
+                      </div>
+                    )
+                  })
+                })()}
               </div>
               {job.killedReason && (
                 <div className="mt-2 text-[10px] text-[#EF4444]">
@@ -105,17 +122,24 @@ function JobCard({ job }: { job: PipelineJob }) {
       {expanded && (
         <div className="mt-2 pt-2 border-t border-white/[0.06]">
           <div className="flex flex-col gap-1">
-            {job.stages.filter((s) => s.status !== "pending").map((stage, i) => (
-              <div key={i} className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-1.5 h-1.5 rounded-full"
-                    style={{ background: stage.status === "active" ? "#00D4AA" : "#10B981" }}
-                  />
-                  <span className="text-[9px] font-mono text-[#94A3B8]">{stage.name}</span>
-                </div>
-              </div>
-            ))}
+            {(() => {
+              const visibleStages = job.stages.filter((s) => s.status !== "pending")
+              const hasActive = visibleStages.some((s) => s.status === "active")
+              return visibleStages.map((stage, i) => {
+                const isTerminalMarker = !hasActive && i === visibleStages.length - 1
+                return (
+                  <div key={i} className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-1.5 h-1.5 rounded-full"
+                        style={{ background: stageDotColor(job.status, stage.status, isTerminalMarker) }}
+                      />
+                      <span className="text-[9px] font-mono text-[#94A3B8]">{stage.name}</span>
+                    </div>
+                  </div>
+                )
+              })
+            })()}
           </div>
           {job.killedReason && (
             <div className="mt-2 text-[9px] text-[#EF4444]">Kill: {job.killedReason}</div>
