@@ -4,7 +4,7 @@ import { createHash } from "crypto";
 const AUTH_COOKIE_NAME = "qmc_auth";
 // Only the login page and the auth endpoint are truly public.
 // The snapshot endpoint uses its own bearer-token auth.
-const PUBLIC_PATHS = ["/login", "/api/auth"];
+const PUBLIC_PATHS = ["/login", "/api/auth", "/api/snapshot", "/api/hash"];
 
 function isValidToken(token: string): boolean {
   // Token must be a 64-char hex string (sha256 output)
