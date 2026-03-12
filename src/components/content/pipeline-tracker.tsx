@@ -7,24 +7,42 @@ import { STATUS_COLORS, TYPE_COLORS, formatElapsed } from "@/lib/pipeline-consta
 
 const SEGMENT_LABELS = ["Gate", "Proof", "Shot", "Script", "Spec", "HeyGen", "Asm", "Preview", "Publish"]
 
-function SegmentBar({ stages }: { stages: PipelineStage[] }) {
+function SegmentBar({ stages, terminalStatus }: { stages: PipelineStage[]; terminalStatus?: string }) {
+  const terminalColor = terminalStatus === "killed"
+    ? { bg: "linear-gradient(90deg, #EF4444, rgba(239, 68, 68, 0.35))", glow: "rgba(239, 68, 68, 0.35)" }
+    : terminalStatus === "redo"
+      ? { bg: "linear-gradient(90deg, #F59E0B, rgba(245, 158, 11, 0.35))", glow: "rgba(245, 158, 11, 0.35)" }
+      : null
+
+  const hasActive = stages.some((s) => s.status === "active")
+
   return (
     <div>
       <div className="flex gap-[3px] h-2 mb-1">
         {stages.map((stage, i) => {
           const isHeyGen = stage.name === "heygen_submitted"
-          let bg = ""
-          if (stage.status === "completed") bg = "bg-[#10B981]"
-          else if (stage.status === "pending") bg = "bg-[#1a1f2e]"
+          const isTerminalMarker = !!terminalColor && !hasActive && i === stages.length - 1
+          const effectiveStatus: PipelineStage["status"] = isTerminalMarker ? "active" : stage.status
 
-          if (stage.status === "active") {
+          let bg = ""
+          if (effectiveStatus === "completed") bg = "bg-[#10B981]"
+          else if (effectiveStatus === "pending") bg = "bg-[#1a1f2e]"
+
+          if (effectiveStatus === "active") {
+            const activeBg = isTerminalMarker
+              ? terminalColor!.bg
+              : "linear-gradient(90deg, #00D4AA, rgba(0, 212, 170, 0.33))"
+            const glow = isTerminalMarker
+              ? terminalColor!.glow
+              : "rgba(0, 212, 170, 0.3)"
+
             return (
               <div
                 key={i}
                 className={`rounded-[3px] glow-bar ${isHeyGen ? "flex-[2]" : "flex-1"}`}
                 style={{
-                  background: "linear-gradient(90deg, #00D4AA, rgba(0, 212, 170, 0.33))",
-                  ["--glow-color" as string]: "rgba(0, 212, 170, 0.3)",
+                  background: activeBg,
+                  ["--glow-color" as string]: glow,
                 }}
               />
             )
@@ -124,7 +142,8 @@ export function PipelineTracker({ job, lastJob }: { job: PipelineJob | null; las
                 Last: {lastJob.jobId} — {lastJob.status} {formatTimeAgo(lastJob.createdAt)}
               </span>
             </div>
-            <SegmentBar stages={lastJob.stages} />
+            <SegmentBar stages={lastJob.stages} terminalStatus={lastJob.status} />
+            <div className="mt-2 text-[11px] text-[#94A3B8] truncate">Topic: {lastJob.topic || "—"}</div>
           </div>
         ) : (
           <div className="flex items-center gap-3 mb-4">
@@ -170,7 +189,7 @@ export function PipelineTracker({ job, lastJob }: { job: PipelineJob | null; las
       </div>
 
       {/* Segmented bar */}
-      <SegmentBar stages={job.stages} />
+      <SegmentBar stages={job.stages} terminalStatus={job.status} />
 
       {/* Detail cards */}
       <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-2.5 mt-4">
