@@ -231,6 +231,84 @@ export interface PipelineData {
   weights: Record<string, number>
 }
 
+// --- Cognitive Dashboard ---
+
+// Note: `current` in CognitiveData is nullable (diverges from spec's non-nullable CognitiveDay).
+// This is intentional — handles the no-data/empty-directory case gracefully.
+// All downstream consumers must handle data.current === null.
+
+export interface CognitiveMemoryHealth {
+  kbFileCount: number;
+  kbUpdatedToday: number;
+  userMdLastModified: string | null;
+  userMdStaleDays: number;
+  identityMdLastModified: string | null;
+  identityMdStaleDays: number;
+  journalWordCount: number;
+  journalReflectiveMarkers: number;
+  journalReflective: boolean;
+  memoryMdLineCount: number;
+  captureQueuePromoted: number;
+}
+
+export interface CognitiveProactivity {
+  surpriseMeSent: number;
+  curiosityQuestions: number;
+  socialEngagements: number;
+  commentReplies: number;
+  proactiveTotal: number;
+  reactiveTotal: number;
+  ratio: number;
+}
+
+export interface CognitiveEngagement {
+  xReplies: number;
+  tiktokReplies: number;
+  youtubeReplies: number;
+  instagramReplies: number;
+  substackReplies: number;
+  totalReceived: number;
+  totalReplied: number;
+  replyRate: number;
+}
+
+export interface CognitiveIdentityEvolution {
+  kbDiffCreated: number;
+  kbDiffUpdated: number;
+  userMdChanged: boolean;
+  journalReflectivePct: number;
+  identityMdStaleDays: number;
+}
+
+export interface CognitiveDay {
+  date: string;
+  collectedAt: string;
+  memoryHealth: CognitiveMemoryHealth;
+  proactivity: CognitiveProactivity;
+  engagement: CognitiveEngagement;
+  degradationFlags: string[];
+  tier1FileSizes: Record<string, number>;
+  identityEvolution?: CognitiveIdentityEvolution;
+}
+
+export interface WeeklyRollup {
+  weekLabel: string;
+  avgJournalWords: number;
+  avgProactivityRatio: number;
+  totalSocialEngagements: number;
+  avgReplyRate: number;
+  kbFilesAdded: number;
+  degradationDays: number;
+  identityEvolution?: CognitiveIdentityEvolution;
+}
+
+export interface CognitiveData {
+  current: CognitiveDay | null;
+  history: CognitiveDay[];
+  weeklyRollups: WeeklyRollup[];
+  activeDegradation: string[];
+}
+
 // System
 export interface SystemInfo {
   cpuPercent: number;
