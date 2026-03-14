@@ -26,7 +26,7 @@ export function StatusDot({ status, size = "md", pulse = false }: StatusDotProps
   return (
     <span className="relative inline-flex">
       <span className={cn("rounded-full", colors[status], sizes[size])} />
-      {pulse && (status === "ok" || status === "active") && (
+      {pulse && (
         <span
           className={cn(
             "absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping",
