@@ -11,6 +11,7 @@ import { DegradationBanner } from "@/components/dashboard/degradation-banner";
 import { HeartbeatCard } from "@/components/dashboard/heartbeat-card";
 import { PipelineWidget } from "@/components/dashboard/pipeline-widget";
 import { CodexQuota } from "@/components/dashboard/codex-quota";
+import { CognitiveWidget } from "@/components/dashboard/cognitive-widget";
 
 export default function DashboardPage() {
   return (
@@ -42,9 +43,10 @@ export default function DashboardPage() {
           <ErrorBoundary><AgentBar /></ErrorBoundary>
         </div>
 
-        {/* Codex Quota + Pipeline Widget */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+        {/* Codex Quota + Cognitive + Pipeline Widget */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-4">
           <ErrorBoundary><CodexQuota /></ErrorBoundary>
+          <ErrorBoundary><CognitiveWidget delay={0.05} /></ErrorBoundary>
           <div className="lg:col-span-2">
             <ErrorBoundary><PipelineWidget delay={0} /></ErrorBoundary>
           </div>
