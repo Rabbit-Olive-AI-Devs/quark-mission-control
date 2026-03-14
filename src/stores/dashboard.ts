@@ -16,6 +16,10 @@ interface DashboardState {
   lastHashCheck: number | null;
   hashHealthy: boolean;
 
+  // Cognitive
+  cognitiveDegradation: string[];
+  setCognitiveDegradation: (flags: string[]) => void;
+
   // Actions
   triggerRefresh: () => void;
   setConnected: (connected: boolean) => void;
@@ -35,6 +39,8 @@ export const useDashboardStore = create<DashboardState>((set) => ({
   snapshotFetchedAt: null,
   lastHashCheck: null,
   hashHealthy: true,
+  cognitiveDegradation: [],
+  setCognitiveDegradation: (flags) => set({ cognitiveDegradation: flags }),
 
   triggerRefresh: () => set((state) => ({ refreshKey: state.refreshKey + 1 })),
   setConnected: (connected) => set({ connected }),
