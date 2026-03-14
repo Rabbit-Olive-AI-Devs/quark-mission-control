@@ -3,7 +3,7 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Gauge } from "@/components/ui/gauge";
-import { BarChart3, CheckCircle, AlertTriangle, XCircle, Cpu, TimerReset } from "lucide-react";
+import { BarChart3, CheckCircle, AlertTriangle, XCircle, Cpu } from "lucide-react";
 import { useApi } from "@/hooks/use-api";
 import type { MetricsData, MetricRow } from "@/lib/parsers/types";
 
@@ -12,40 +12,20 @@ function parsePercent(value: string): number | null {
   return match ? Number(match[1]) : null;
 }
 
-function parseInteger(value: string): number | null {
-  const match = value.match(/-?\d+/);
-  return match ? Number(match[0]) : null;
-}
 
 function evaluateRow(row: MetricRow): "good" | "warn" | "bad" | "unknown" {
-  const metric = row.metric.toLowerCase();
+  // Primary: use the markdown Status emoji (set by metrics writer)
+  const status = row.status.trim();
+  if (status.includes("✅")) return "good";
+  if (status.includes("⚠️")) return "warn";
+  if (status.includes("❌")) return "bad";
+
+  // Fallback: heuristic evaluation when no emoji is present
   const value = row.value.toLowerCase();
-
-  if (metric.includes("cron reliability")) {
-    const actual = parsePercent(row.value);
-    const targetPct = parsePercent(row.target);
-    if (actual == null || targetPct == null) return "unknown";
-    return actual >= targetPct ? "good" : "bad";
-  }
-
-  if (metric.includes("codex oauth") || metric.includes("oauth")) {
-    if (/\bok\b/.test(value) && !/expired|invalid|fail/.test(value)) return "good";
-    if (/expired|invalid|fail/.test(value)) return "bad";
-    return "unknown";
-  }
-
-  if (metric.includes("suspicious runs") || metric.includes("fallback freq")) {
-    const actual = parseInteger(row.value);
-    const targetNum = parseInteger(row.target);
-    if (actual == null || targetNum == null) return "unknown";
-    if (actual === targetNum) return "good";
-    return actual > targetNum ? "bad" : "warn";
-  }
-
   if (/n\/a|unknown/.test(value)) return "unknown";
-  if (/ok|healthy|normal/.test(value)) return "good";
-  if (/warn|degraded|attention/.test(value)) return "warn";
-  if (/error|fail|expired|invalid/.test(value)) return "bad";
+  if (/✅|ok\b|healthy|normal|available/.test(value)) return "good";
+  if (/⚠️|warn|degraded|attention/.test(value)) return "warn";
+  if (/❌|error|fail|expired|invalid/.test(value)) return "bad";
 
   return "unknown";
 }
@@ -94,7 +74,15 @@ export default function MetricsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
               <GlassCard>
                 <div className="text-xs text-[#94A3B8] mb-1">Cron Reliability</div>
-                <div className="text-2xl font-bold text-[#00D4AA]">{data?.cronReliability || "N/A"}</div>
+                <div className={`text-2xl font-bold ${
+                  !data?.cronReliability || data.cronReliability === "N/A"
+                    ? "text-[#94A3B8]"
+                    : parsePercent(data.cronReliability) !== null && parsePercent(data.cronReliability)! >= 98
+                      ? "text-[#10B981]"
+                      : parsePercent(data.cronReliability) !== null && parsePercent(data.cronReliability)! >= 90
+                        ? "text-[#F59E0B]"
+                        : "text-[#EF4444]"
+                }`}>{data?.cronReliability || "N/A"}</div>
               </GlassCard>
 
               <GlassCard delay={0.05}>
