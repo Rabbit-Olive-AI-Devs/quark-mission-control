@@ -13,6 +13,7 @@ import { listMemoryFilesWithContent } from "@/lib/parsers/memory";
 import { listKnowledgeFilesWithContent } from "@/lib/parsers/knowledge";
 import { parseCommandCenter } from "@/lib/parsers/command-center";
 import { parsePipelineData } from "@/lib/parsers/pipeline";
+import { parseCognitive } from "@/lib/parsers/cognitive";
 import { computeWorkspaceHash } from "@/lib/hash";
 import { corsHeaders } from "@/lib/cors";
 
@@ -72,6 +73,7 @@ export async function GET(request: Request) {
     },
     system: getSystemInfo(),
     pipeline: parsePipelineData(),
+    cognitive: parseCognitive(),
     memory: { files: listMemoryFilesWithContent() },
     knowledge: { files: listKnowledgeFilesWithContent() },
   };
