@@ -50,15 +50,15 @@ function TrendRadar({ data }: { data: IntelReport }) {
   const categories: Record<string, number> = {};
 
   for (const t of allTrends) {
-    // Extract category from title keywords
     const title = t.title.toLowerCase();
     let cat = "Other";
-    if (title.includes("ai") || title.includes("agent") || title.includes("model")) cat = "AI/Agents";
-    else if (title.includes("security") || title.includes("trust")) cat = "Security";
-    else if (title.includes("github") || title.includes("dev") || title.includes("cli")) cat = "Dev Tools";
-    else if (title.includes("content") || title.includes("product hunt")) cat = "Content";
-    else if (title.includes("local") || title.includes("qwen")) cat = "Local Models";
-    else if (title.includes("openclaw")) cat = "OpenClaw";
+    if (/\bopenclaw\b/.test(title)) cat = "OpenClaw";
+    else if (/\bai\b|artificial intelligence|\bagent[s]?\b|\bmodel[s]?\b|\bllm\b|\bgpt\b|\bclaude\b|\bsora\b|\bxai\b|\bopenai\b/.test(title)) cat = "AI/Agents";
+    else if (/\bsecurity\b|\btrust\b|\bgovernance\b/.test(title)) cat = "Security";
+    else if (/\bgithub\b|\bdev\b|\bcli\b|\binfra\b|\bframework\b/.test(title)) cat = "Dev Tools";
+    else if (/\bcontent\b|\bproduct hunt\b|\btiktok\b|\bcreator\b|\bvideo\b/.test(title)) cat = "Content";
+    else if (/\blocal\b|\bqwen\b|\bon-device\b/.test(title)) cat = "Local Models";
+    else if (/\bhn\b|\bhacker news\b|\breddit\b/.test(title)) cat = "Community";
 
     categories[cat] = Math.max(categories[cat] || 0, t.virality);
   }
