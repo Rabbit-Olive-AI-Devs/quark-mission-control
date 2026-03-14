@@ -97,7 +97,9 @@ Chandler sets `degradation_flags` array entries when ANY of:
 - `"zero_proactive_3d"` — zero proactive actions for 3+ consecutive days
 - `"tier1_oversize"` — any Tier 1 file exceeds 18,000 chars (with file name in flag: `"tier1_oversize:HEARTBEAT.md"`)
 
-Chandler determines consecutive-day counts by reading the previous day's JSON: `cat metrics/cognitive/$(date -v-1d +%Y-%m-%d).json`.
+For `tier1_file_sizes`: Chandler checks each file with `wc -c`. If a file doesn't exist, omit it from the object (don't write 0 or error — absence means the file doesn't exist). The expected files are: HEARTBEAT.md, AGENTS.md, SOUL.md, USER.md, MEMORY.md, IDENTITY.md, TOOLS.md.
+
+Chandler determines consecutive-day counts by reading the previous day's JSON: `cat metrics/cognitive/$(date -v-1d +%Y-%m-%d).json`. If the previous day's file doesn't exist (first run, or gap), treat all flags as non-persistent (Tier 1 only).
 
 ---
 
@@ -206,7 +208,7 @@ Parser implementation follows existing patterns:
 - `fs.readFileSync()` for each JSON file
 - `JSON.parse()` with try/catch fallback per file
 - Live staleness: `fs.statSync()` on USER.md, IDENTITY.md for real-time stale-days when today's JSON doesn't exist yet
-- Weekly rollups: group `history` by ISO week, compute averages/totals
+- Weekly rollups: group `history` by ISO week, compute averages/totals. ISO week number requires a helper function (`getISOWeek(date)`) since `Date` doesn't provide it natively — add to `src/lib/utils.ts`
 - Return type: `CognitiveData`
 
 ### API Route: `src/app/api/cognitive/route.ts`
@@ -265,7 +267,7 @@ Each segment shows:
 
 - Click anywhere → navigates to `/cognitive`
 - When `activeDegradation` is non-empty, card gets a subtle red border glow (matches DegradationBanner alert aesthetic)
-- Uses `useApi<CognitiveData>("/api/cognitive", { snapshotKey: "cognitive", refreshOn: ["cognitive"] })`
+- Uses `useApi<CognitiveData>("/api/cognitive", { snapshotKey: "cognitive", refreshOn: ["metrics"] })` — piggybacks on the existing `metrics` SSE event type (cognitive data refreshes at the same cadence as ops metrics)
 
 ---
 
@@ -289,7 +291,13 @@ When cognitive flags are present, a second line appears below ops flags:
 
 ### Data Source
 
-The banner already receives snapshot data. Add `cognitive?.activeDegradation` to its props/data flow.
+The banner currently fetches its own data via `useApi<MetricsData>("/api/metrics", { snapshotKey: "metrics", refreshOn: ["metrics"] })`. Add a second `useApi` call for cognitive data:
+
+```typescript
+const { data: cogData } = useApi<CognitiveData>("/api/cognitive", { snapshotKey: "cognitive", refreshOn: ["metrics"] });
+```
+
+Render the cognitive line when `cogData?.activeDegradation?.length > 0`. The banner shows if EITHER ops degradation OR cognitive degradation is active.
 
 ---
 
@@ -321,7 +329,7 @@ Three GlassCards in a responsive row (3-col on desktop, stacked on mobile):
 - Curiosity questions count
 - Social engagements count
 - Comment replies count
-- Proactive/reactive ratio as a Gauge component (reuse existing `src/components/ui/gauge.tsx`)
+- Proactive/reactive ratio as a Gauge component (reuse existing `src/components/ui/gauge.tsx` — accepts `value`, `max`, `label`, `color`, `size` props; for ratio display, pass `value={ratio * 100}` and `max={100}`)
 
 **Engagement Card:**
 - Overall reply rate as a Gauge component
@@ -401,13 +409,22 @@ After writing the JSON sidecar:
 
 ## 8. Sidebar Navigation
 
-### Component: `src/components/layout/app-shell.tsx` (modify existing)
+### Component: `src/components/ui/sidebar.tsx` (modify existing)
 
-Add `/cognitive` to the sidebar navigation:
-- **Icon:** 🧠 (brain emoji, consistent with the cognitive line in DegradationBanner)
-- **Label:** "Cognitive"
-- **Position:** after Metrics, before Knowledge
-- **Warning dot:** when `cognitive.activeDegradation` is non-empty, show a small amber dot on the sidebar item (same pattern as PendingBadge for pending actions)
+The sidebar navigation is defined in `sidebar.tsx` (not `app-shell.tsx`). The `navItems` array defines all nav items with Lucide React icons.
+
+Add to `navItems` array, after the Metrics entry (`BarChart3`):
+
+```typescript
+{ href: "/cognitive", label: "Cognitive", icon: Brain },
+```
+
+Import `Brain` from `lucide-react` (the codebase already imports `BrainCircuit` for Command Center — `Brain` is the simpler variant appropriate for cognitive health).
+
+**Warning dot for active degradation:** The sidebar currently has no data-fetching capability — it only reads `connected` from `useDashboardStore`. To show a degradation dot:
+- Add `cognitiveDegradation: string[]` to the dashboard store (populated by the dashboard home page or snapshot polling)
+- In `Sidebar`, read `cognitiveDegradation` from the store
+- Render a small amber `StatusDot` (already imported) next to the "Cognitive" label when the array is non-empty
 
 ---
 
@@ -431,10 +448,11 @@ Add `/cognitive` to the sidebar navigation:
 | File | Change |
 |------|--------|
 | `src/app/api/snapshot/route.ts` | Add `cognitive` to snapshot bundle |
-| `src/components/dashboard/degradation-banner.tsx` | Add cognitive flags line |
-| `src/components/layout/app-shell.tsx` | Add sidebar nav item + warning dot |
+| `src/components/dashboard/degradation-banner.tsx` | Add second `useApi` call for cognitive data, render cognitive flags line |
+| `src/components/ui/sidebar.tsx` | Add Cognitive nav item with `Brain` icon + degradation warning dot |
 | `src/app/page.tsx` | Add CognitiveWidget to dashboard grid |
-| `src/lib/parsers/types.ts` | Add cognitive type definitions |
+| `src/lib/parsers/types.ts` | Add cognitive type definitions (canonical location — parser imports from here) |
+| `src/stores/dashboard.ts` | Add `cognitiveDegradation` state for sidebar warning dot |
 
 ### New Files (Workspace)
 
