@@ -75,8 +75,8 @@ export function TrendCharts({ history }: TrendChartsProps) {
             <YAxis yAxisId="words" tick={{ fill: "#94A3B8", fontSize: 10 }} axisLine={false} width={35} />
             <YAxis yAxisId="ratio" orientation="right" domain={[0, 1]} tick={{ fill: "#94A3B8", fontSize: 10 }} axisLine={false} width={35} />
             <Tooltip content={<CustomTooltip />} />
-            <ReferenceLine yAxisId="words" y={200} stroke={CHART_COLORS.threshold} strokeDasharray="4 4" strokeWidth={1} />
-            <ReferenceLine yAxisId="ratio" y={0.2} stroke={CHART_COLORS.threshold} strokeDasharray="4 4" strokeWidth={1} />
+            <ReferenceLine yAxisId="words" y={200} stroke={CHART_COLORS.journalWords} strokeDasharray="4 4" strokeWidth={1} strokeOpacity={0.4} />
+            <ReferenceLine yAxisId="ratio" y={0.2} stroke={CHART_COLORS.proactivityRatio} strokeDasharray="4 4" strokeWidth={1} strokeOpacity={0.4} />
             <Line
               yAxisId="words"
               type="monotone"
@@ -107,8 +107,12 @@ export function TrendCharts({ history }: TrendChartsProps) {
             Ratio
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-3 h-0 border-t border-dashed" style={{ borderColor: CHART_COLORS.threshold }} />
-            Threshold
+            <div className="w-3 h-0 border-t border-dashed" style={{ borderColor: CHART_COLORS.journalWords, opacity: 0.4 }} />
+            Min 200w
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-0 border-t border-dashed" style={{ borderColor: CHART_COLORS.proactivityRatio, opacity: 0.4 }} />
+            Min 0.2 ratio
           </div>
         </div>
       </GlassCard>
