@@ -16,6 +16,10 @@ export const metadata: Metadata = {
   title: "Quark Mission Control",
   description: "AI Operations Dashboard",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/favicon-32.png",
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({
