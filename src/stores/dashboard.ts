@@ -20,6 +20,10 @@ interface DashboardState {
   cognitiveDegradation: string[];
   setCognitiveDegradation: (flags: string[]) => void;
 
+  // Engagement
+  engagementUnanswered: number;
+  setEngagementUnanswered: (count: number) => void;
+
   // Actions
   triggerRefresh: () => void;
   setConnected: (connected: boolean) => void;
@@ -41,6 +45,8 @@ export const useDashboardStore = create<DashboardState>((set) => ({
   hashHealthy: true,
   cognitiveDegradation: [],
   setCognitiveDegradation: (flags) => set({ cognitiveDegradation: flags }),
+  engagementUnanswered: 0,
+  setEngagementUnanswered: (count) => set({ engagementUnanswered: count }),
 
   triggerRefresh: () => set((state) => ({ refreshKey: state.refreshKey + 1 })),
   setConnected: (connected) => set({ connected }),
