@@ -42,7 +42,15 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 }
 
 export function TrendCharts({ trends }: Props) {
-  if (trends.length < 2) return null;
+  if (trends.length < 2) {
+    return (
+      <GlassCard className="mb-6">
+        <p className="text-sm text-[#94A3B8] text-center py-6">
+          Not enough data for trends — needs 2+ days of engagement activity.
+        </p>
+      </GlassCard>
+    );
+  }
 
   const allPlatforms = new Set<string>();
   const allActions = new Set<string>();

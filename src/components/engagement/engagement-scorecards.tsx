@@ -45,10 +45,8 @@ export function EngagementScorecards({ data }: Props) {
     inboundGap.replyRate >= 0.5 ? "#10B981" : inboundGap.replyRate >= 0.3 ? "#F59E0B" : "#EF4444";
 
   const activePlatforms = Object.keys(today.byPlatform);
-  const todayBlocks = guardrailBlocks.filter((b) => {
-    const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
-    return b.timestamp.startsWith(todayStr);
-  }).length;
+  const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
+  const todayBlocks = guardrailBlocks.filter((b) => b.timestamp.startsWith(todayStr)).length;
 
   const actionBreakdown = Object.entries(today.byAction)
     .map(([k, v]) => `${v} ${k}${v !== 1 ? "s" : ""}`)
