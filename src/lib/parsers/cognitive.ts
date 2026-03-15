@@ -30,7 +30,12 @@ function parseCognitiveFile(filePath: string): CognitiveDay | null {
       identityMdStaleDays: mh.identity_md_stale_days ?? 0,
       journalWordCount: mh.journal_word_count ?? 0,
       journalReflectiveMarkers: mh.journal_reflective_markers ?? 0,
-      journalReflective: mh.journal_reflective ?? false,
+      // Defensive: derive from data if Chandler wrote it wrong
+      // Rule: reflective when word_count >= 200 AND markers >= 1
+      journalReflective:
+        (mh.journal_word_count ?? 0) >= 200 && (mh.journal_reflective_markers ?? 0) >= 1
+          ? true
+          : (mh.journal_reflective ?? false),
       memoryMdLineCount: mh.memory_md_line_count ?? 0,
       captureQueuePromoted: mh.capture_queue_promoted ?? 0,
     };
