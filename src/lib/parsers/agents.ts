@@ -1,3 +1,4 @@
+import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import { WORKSPACE_PATH } from "../config";
@@ -10,7 +11,7 @@ const OPENCLAW_JSON_PATH = path.join(
   ".openclaw/openclaw.json"
 );
 
-/** Read actual models from openclaw.json cron jobs (keyed by agentId) + default model */
+/** Read actual models from openclaw cron list + openclaw.json default model */
 function getActualModels(): { defaultModel: string; agentModels: Record<string, string> } {
   try {
     const raw = JSON.parse(fs.readFileSync(OPENCLAW_JSON_PATH, "utf-8"));
@@ -18,16 +19,25 @@ function getActualModels(): { defaultModel: string; agentModels: Record<string, 
       raw?.agents?.defaults?.model?.primary || "unknown";
     const agentModels: Record<string, string> = {};
 
-    const jobs = raw?.cron?.jobs || [];
-    for (const job of jobs) {
-      const agentId = job.agentId || job.payload?.agentId || "";
-      const model = job.model || job.payload?.model || "";
-      if (agentId && model && model !== "DEFAULT") {
-        // Use the first cron job's model for each agent
-        if (!agentModels[agentId]) {
-          agentModels[agentId] = model;
+    // Cron data lives outside openclaw.json — use CLI to fetch it
+    try {
+      const cronJson = execSync("openclaw cron list --json 2>/dev/null", {
+        timeout: 5000,
+        encoding: "utf-8",
+      });
+      const cronData = JSON.parse(cronJson);
+      const jobs = cronData?.jobs || [];
+      for (const job of jobs) {
+        const agentId = job.agentId || "";
+        const model = job.payload?.model || "";
+        if (agentId && model && model !== "DEFAULT") {
+          if (!agentModels[agentId]) {
+            agentModels[agentId] = model;
+          }
         }
       }
+    } catch {
+      // CLI unavailable — fall back to default model for all agents
     }
 
     return { defaultModel, agentModels };
