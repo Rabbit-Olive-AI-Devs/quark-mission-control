@@ -108,9 +108,23 @@ function FilterPill({ label, active, color, onClick }: { label: string; active: 
   );
 }
 
+function getTargetUrl(platform: string, targetId: string): string | null {
+  if (!targetId) return null;
+  if (platform === "x") return `https://x.com/i/status/${targetId}`;
+  if (platform === "youtube") return `https://youtube.com/watch?v=${targetId}`;
+  return null;
+}
+
 function ActionRow({ action: a }: { action: EngagementAction }) {
   const [expanded, setExpanded] = useState(false);
-  const target = a.targetAuthor || (a.targetId ? a.targetId.slice(0, 12) + "..." : "");
+  const targetUrl = getTargetUrl(a.platform, a.targetId);
+  const targetLabel = a.targetAuthor
+    ? `@${a.targetAuthor.replace(/^@/, "")}`
+    : targetUrl
+      ? "View post ↗"
+      : a.targetId
+        ? a.targetId.slice(0, 12) + "..."
+        : "";
 
   return (
     <div
@@ -124,9 +138,23 @@ function ActionRow({ action: a }: { action: EngagementAction }) {
       <span className="px-1.5 py-0.5 rounded text-[9px] font-medium shrink-0" style={{ backgroundColor: `${getActionColor(a.action)}15`, color: getActionColor(a.action) }}>
         {a.action}
       </span>
-      <span className="text-[#94A3B8] truncate flex-1">{target}</span>
+      {targetUrl ? (
+        <a
+          href={targetUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[#00D4AA] hover:underline truncate flex-1"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {targetLabel}
+        </a>
+      ) : (
+        <span className="text-[#94A3B8] truncate flex-1">{targetLabel}</span>
+      )}
       {a.text && !expanded && (
-        <span className="text-[#94A3B8]/50 truncate max-w-[200px] hidden md:block">{a.text.slice(0, 60)}...</span>
+        <span className="text-[#94A3B8]/50 truncate max-w-[200px] hidden md:block">
+          {a.text.length > 60 ? a.text.slice(0, 60) + "..." : a.text}
+        </span>
       )}
       {a.guardrailResult !== "pass" && (
         <span className="px-1.5 py-0.5 rounded text-[9px] bg-[#EF4444]/10 text-[#EF4444] shrink-0">blocked</span>
