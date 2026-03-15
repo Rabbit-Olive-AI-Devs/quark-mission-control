@@ -30,7 +30,7 @@ export function CardFooter({ lastUpdated, error, onRefresh }: CardFooterProps) {
         </div>
       ) : lastUpdated ? (
         <span className="text-[9px] text-[#94A3B8]/60">
-          Updated {new Date(lastUpdated).toLocaleTimeString()}
+          Updated {new Date(lastUpdated).toLocaleTimeString("en-US", { timeZone: "America/Chicago" })}
         </span>
       ) : (
         <span />

@@ -18,7 +18,7 @@ function stageDotColor(jobStatus: string, stageStatus: string, isTerminalMarker:
 function formatDate(iso: string): string {
   if (!iso) return "—"
   const d = new Date(iso)
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Chicago" })
 }
 
 function StatusBadge({ status }: { status: string }) {
