@@ -25,26 +25,39 @@ Add a `/engagement` page to Mission Control with an alert-first layout: unanswer
   "platform": "x",
   "action": "like",
   "target_id": "2032888849190297757",
-  "target_author": "@yusufhgmail",
-  "text": "",
+  "target_author": "",
   "autonomous": true,
   "guardrail_result": "pass",
-  "source": "deep_work"
+  "source": "manual"
 }
 ```
 
+**Field notes:**
+- `target_author` — may be empty string for some actions (likes without context). Display `target_id` as fallback.
+- `text` — only present on reply/comment actions. Absent on likes/follows/retweets. Parser treats missing field as empty string.
+- `guardrail_result` — `"pass"` for allowed actions. For blocked actions, the value IS the reason: `"sensitive_topic"`, `"rate_limit"`, `"blocked_handle"`, `"length_limit"`. Parser extracts blocks by filtering `guardrail_result !== "pass"`.
+
 Actions: like, unlike, reply, retweet, unretweet, follow, unfollow, delete, bookmark, comment, subscribe.
 Platforms: x, youtube, instagram, tiktok, substack.
+Unmapped actions (unlike, unretweet, unfollow, delete) use the fallback "other" color (#94A3B8).
 
 ### Secondary Data Sources
 
 - **`engagement-mode.json`** — current mode (autonomous / approval_required)
-- **`engagement-guardrails.json`** — current guardrail config (sensitive topics count, rate limits, blocked handles)
 - **`metrics/cognitive/*.json`** — Chandler's daily summaries with per-platform `totalReceived`, `totalReplied`, `replyRate` for inbound gap tracking
 
 ### Inbound Gap Data
 
-Chandler's daily cognitive JSON already tracks received vs replied per platform. The engagement dashboard reads the latest cognitive file for inbound gap data. This refreshes daily (when Chandler runs), not real-time. The outbound action feed from `engagement-audit.jsonl` is real-time.
+Chandler's daily cognitive JSON tracks received vs replied per platform. The engagement dashboard reads the **most recent** cognitive file for inbound gap data.
+
+**Computation:**
+- `unansweredCount = totalReceived - totalReplied` (derived, not a stored field)
+- `replyRate = totalReplied / totalReceived` (already in cognitive JSON)
+- `byPlatform` — per-platform received/replied from cognitive JSON engagement breakdown
+
+**Staleness handling:** If no cognitive file exists for today, use the most recent file. Show a staleness indicator in Zone 1: "Data from Mar 13" next to the gap count. The outbound action feed from `engagement-audit.jsonl` is always real-time.
+
+**`oldestUnansweredAge`:** Dropped from the interface — this requires per-mention tracking that doesn't exist in the cognitive aggregates. The unanswered count is sufficient for the alert.
 
 ### API Route
 
@@ -65,8 +78,8 @@ interface EngagementData {
     totalReplied: number;
     replyRate: number;
     byPlatform: Record<string, { received: number; replied: number }>;
-    unansweredCount: number;
-    oldestUnansweredAge?: string;     // "6h ago", "2d ago"
+    unansweredCount: number;          // totalReceived - totalReplied
+    dataDate: string;                  // date of cognitive file used (staleness indicator)
   };
   mode: "autonomous" | "approval_required";
 }
@@ -100,7 +113,9 @@ interface GuardrailBlock {
 }
 ```
 
-**Snapshot integration:** `snapshotKey: "engagement"` for Vercel remote mode. Added to `/api/snapshot` response.
+**Snapshot integration:** `snapshotKey: "engagement"` for Vercel remote mode. Import `parseEngagement` in `/api/snapshot/route.ts` and add `engagement: parseEngagement()` to the snapshot object.
+
+**Hook usage:** `useApi<EngagementData>("/api/engagement", { snapshotKey: "engagement", refreshOn: ["engagement"] })`
 
 ### Parser
 
@@ -112,8 +127,8 @@ interface GuardrailBlock {
 
 Amber banner — only renders when `inboundGap.unansweredCount > 0`. Shows:
 - Total unanswered count
-- Platform breakdown with gaps (e.g., "@yusufhgmail (2) - TikTok (1)")
-- Oldest unanswered age
+- Per-platform breakdown (e.g., "X: 2 unanswered · TikTok: 1 unanswered")
+- Staleness indicator if data is not from today (e.g., "Data from Mar 13")
 
 Same visual pattern as `DegradationAlert` in the Cognitive page — amber background, warning icon, border. Not dismissable (persists until resolved).
 
@@ -165,9 +180,9 @@ GlassCard with:
 GlassCard with:
 - **Header:** "Action Feed" with activity icon
 - **Filter pills:** All | X | TikTok | YouTube | Instagram | Substack (horizontal, scrollable on mobile). Plus action type filter: All | Likes | Replies | Retweets | Follows
-- **Table columns:** Time (relative, e.g., "2m ago"), Platform (icon + color dot), Action (badge), Target (@handle or truncated ID), Text (for replies — truncated with expand), Result (pass/blocked badge)
+- **Table columns:** Time (relative, e.g., "2m ago"), Platform (icon + color dot), Action (badge), Target (@handle if available, otherwise truncated target_id), Text (for replies/comments only — truncated with expand), Result (pass/blocked badge)
 - **Sort:** Newest first
-- **Pagination:** Show 50 items, "Load more" button (not infinite scroll — keeps DOM manageable)
+- **Pagination:** Client-side — API returns up to 200 entries, UI shows 50 at a time with "Load more" button (not infinite scroll — keeps DOM manageable)
 
 ## Dashboard Widget
 
