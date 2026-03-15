@@ -43,8 +43,9 @@ function AgentDetail({ agentName }: { agentName: string }) {
                   : "bg-[#00D4AA]/10 border-l-2 border-[#00D4AA]"
               }`}
             >
-              <div className="text-[10px] text-[#94A3B8] mb-1">
-                {msg.direction === "inbound" ? `${agentName} → Quark` : `Quark → ${agentName}`}
+              <div className="text-[10px] text-[#94A3B8] mb-1 flex justify-between">
+                <span>{msg.direction === "inbound" ? `${agentName} → Quark` : `Quark → ${agentName}`}</span>
+                {msg.timestamp && <span className="font-mono">{msg.timestamp}</span>}
               </div>
               <p className="text-[#F1F5F9]">{msg.content}</p>
             </div>
@@ -141,7 +142,12 @@ function AgentsContent() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-[#94A3B8]">Latest</span>
-                      <span className="text-[#F1F5F9] truncate ml-4 max-w-[45vw] md:max-w-48">{agent.latestComms}</span>
+                      <span className="text-[#F1F5F9] truncate ml-4 max-w-[45vw] md:max-w-48">
+                        {agent.latestComms}
+                        {agent.latestTimestamp && (
+                          <span className="text-[#94A3B8] font-mono text-[9px] ml-1">({agent.latestTimestamp})</span>
+                        )}
+                      </span>
                     </div>
                   </div>
                 </div>

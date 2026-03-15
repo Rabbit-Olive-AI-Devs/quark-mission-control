@@ -14,10 +14,11 @@ function ensureMse6(payload: { agents?: AgentStatus[]; broadcast?: BroadcastStat
       config: {
         name: "MSE-6",
         description: "Service droid — monitor-only infrastructure health, hygiene, and drift detection on Mac host",
-        model: "openai-codex/gpt-5.3-codex",
+        model: "unknown",
         timeoutSeconds: 300,
       },
       latestComms: "No recent activity",
+      latestTimestamp: null,
       hasInbound: false,
       hasOutbound: false,
     });

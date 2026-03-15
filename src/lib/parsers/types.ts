@@ -135,6 +135,7 @@ export interface AgentConfig {
 export interface AgentStatus {
   config: AgentConfig;
   latestComms: string;
+  latestTimestamp: string | null;
   hasInbound: boolean;
   hasOutbound: boolean;
 }
@@ -143,6 +144,7 @@ export interface AgentStatus {
 export interface CommsMessage {
   content: string;
   direction: "inbound" | "outbound";
+  timestamp: string | null;
 }
 
 // Broadcast
