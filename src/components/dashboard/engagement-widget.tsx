@@ -24,9 +24,9 @@ export function EngagementWidget({ delay = 0 }: { delay?: number }) {
     }
   }, [data?.inboundGap, setEngagementUnanswered]);
 
-  const hasUnanswered = (data?.inboundGap.unansweredCount ?? 0) > 0;
+  const hasUnanswered = (data?.inboundGap?.unansweredCount ?? 0) > 0;
 
-  const replyRate = data?.inboundGap.replyRate ?? 0;
+  const replyRate = data?.inboundGap?.replyRate ?? 0;
   const replyStatus: "active" | "warning" | "error" =
     replyRate >= 0.5 ? "active" : replyRate >= 0.3 ? "warning" : "error";
 
