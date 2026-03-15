@@ -159,10 +159,15 @@ export interface CronJob {
   id: string;
   name: string;
   schedule: string;
+  scheduleHuman: string;
+  timezone: string;
   model: string;
   status: string;
   lastRun: string | null;
   nextRun: string | null;
+  lastRunMs: number | null;
+  nextRunMs: number | null;
+  agentId: string | null;
   enabled: boolean;
 }
 

@@ -8,41 +8,76 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import { useApi } from "@/hooks/use-api";
 import type { CronJob } from "@/lib/parsers/types";
 
+const TZ = "America/Chicago";
+
+function formatRelativeClient(ms: number | null): string {
+  if (!ms) return "—";
+  const diff = ms - Date.now();
+  const absDiff = Math.abs(diff);
+  const hours = Math.floor(absDiff / 3600000);
+  const mins = Math.floor((absDiff % 3600000) / 60000);
+
+  if (diff > 0) {
+    if (hours > 24) return `in ${Math.floor(hours / 24)}d`;
+    if (hours > 0) return `in ${hours}h ${mins}m`;
+    return `in ${mins}m`;
+  } else {
+    if (hours > 24) return `${Math.floor(hours / 24)}d ago`;
+    if (hours > 0) return `${hours}h ${mins}m ago`;
+    return `${mins}m ago`;
+  }
+}
+
+function formatTimestamp(ms: number | null): string {
+  if (!ms) return "";
+  return new Date(ms).toLocaleString("en-US", {
+    timeZone: TZ,
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
 function ExecutionTimeline({ jobs }: { jobs: CronJob[] }) {
-  // Build 24h timeline showing which jobs have nextRun values
   const hours = Array.from({ length: 24 }, (_, i) => ({
     hour: `${i.toString().padStart(2, "0")}:00`,
-    jobs: 0,
+    upcoming: 0,
+    recent: 0,
     names: [] as string[],
   }));
 
   for (const job of jobs) {
-    if (job.nextRun) {
-      // Parse relative "in Xh" format
-      const match = job.nextRun.match(/in (\d+)h/);
-      if (match) {
-        const hoursFromNow = parseInt(match[1]);
-        const targetHour = (new Date().getHours() + hoursFromNow) % 24;
-        hours[targetHour].jobs++;
-        hours[targetHour].names.push(job.name);
+    // Use raw timestamps for accurate placement
+    if (job.nextRunMs) {
+      const d = new Date(job.nextRunMs);
+      const h = parseInt(d.toLocaleString("en-US", { timeZone: TZ, hour: "numeric", hour12: false }));
+      if (h >= 0 && h < 24) {
+        hours[h].upcoming++;
+        hours[h].names.push(job.name);
       }
     }
-    // Also check lastRun for recent executions
-    if (job.lastRun) {
-      const match = job.lastRun.match(/(\d+)([hm]) ago/);
-      if (match) {
-        const ago = match[2] === "h" ? parseInt(match[1]) : 0;
-        const targetHour = (new Date().getHours() - ago + 24) % 24;
-        hours[targetHour].jobs = Math.max(hours[targetHour].jobs, 0.5); // half-height for past runs
+    if (job.lastRunMs) {
+      const elapsed = Date.now() - job.lastRunMs;
+      if (elapsed < 24 * 3600000) {
+        const d = new Date(job.lastRunMs);
+        const h = parseInt(d.toLocaleString("en-US", { timeZone: TZ, hour: "numeric", hour12: false }));
+        if (h >= 0 && h < 24 && hours[h].upcoming === 0) {
+          hours[h].recent = Math.max(hours[h].recent, 0.5);
+          if (!hours[h].names.includes(job.name)) hours[h].names.push(job.name);
+        }
       }
     }
   }
+
+  const nowHour = parseInt(new Date().toLocaleString("en-US", { timeZone: TZ, hour: "numeric", hour12: false }));
 
   return (
     <GlassCard delay={0.2}>
       <div className="flex items-center gap-2 mb-4">
         <BarChart2 size={16} className="text-[#7C3AED]" />
-        <h3 className="text-sm font-medium">24h Execution Timeline</h3>
+        <h3 className="text-sm font-medium">24h Timeline (CT)</h3>
       </div>
       <ResponsiveContainer width="100%" height={140}>
         <BarChart data={hours}>
@@ -57,16 +92,28 @@ function ExecutionTimeline({ jobs }: { jobs: CronJob[] }) {
           <Tooltip
             contentStyle={{ background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 11, color: "#F1F5F9" }}
             labelStyle={{ color: "#F1F5F9" }}
-            itemStyle={{ color: "#00D4AA" }}
-            formatter={(value) => [`${Math.ceil(value as number)} job(s)`, "Scheduled"]}
+            formatter={(_: unknown, __: unknown, props: { payload?: { names?: string[] } }) => {
+              const names = props?.payload?.names || [];
+              return [names.join(", ") || "—", "Jobs"];
+            }}
           />
-          <Bar dataKey="jobs" radius={[3, 3, 0, 0]}>
+          <Bar dataKey="upcoming" stackId="a" radius={[3, 3, 0, 0]}>
             {hours.map((h, i) => (
-              <Cell key={i} fill={h.jobs > 0 ? "#00D4AA" : "rgba(255,255,255,0.03)"} />
+              <Cell key={i} fill={i === nowHour ? "#7C3AED" : h.upcoming > 0 ? "#00D4AA" : "rgba(255,255,255,0.03)"} />
+            ))}
+          </Bar>
+          <Bar dataKey="recent" stackId="a" radius={[3, 3, 0, 0]}>
+            {hours.map((h, i) => (
+              <Cell key={i} fill={h.recent > 0 ? "rgba(0,212,170,0.3)" : "transparent"} />
             ))}
           </Bar>
         </BarChart>
       </ResponsiveContainer>
+      <div className="flex gap-4 mt-2 text-[9px] text-[#94A3B8]">
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-[#00D4AA] inline-block" /> Upcoming</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-[#00D4AA]/30 inline-block" /> Recent</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-[#7C3AED] inline-block" /> Now</span>
+      </div>
     </GlassCard>
   );
 }
@@ -79,10 +126,6 @@ export default function CronPage() {
 
   const jobs = data?.jobs || [];
   const summary = data?.summary || { total: 0, ok: 0, failed: 0 };
-
-  // Separate active/idle
-  const activeJobs = jobs.filter((j) => j.status === "ok");
-  const idleJobs = jobs.filter((j) => j.status !== "ok");
 
   return (
     <AppShell>
@@ -116,7 +159,9 @@ export default function CronPage() {
             <div className="text-xs text-[#94A3B8] mt-1">Healthy</div>
           </GlassCard>
           <GlassCard className="text-center" delay={0.1}>
-            <div className="text-3xl font-bold text-[#94A3B8]">{idleJobs.length}</div>
+            <div className="text-3xl font-bold text-[#94A3B8]">
+              {jobs.filter((j) => j.status === "idle" || j.status === "disabled").length}
+            </div>
             <div className="text-xs text-[#94A3B8] mt-1">Idle</div>
           </GlassCard>
           <GlassCard className="text-center" delay={0.15}>
@@ -148,11 +193,11 @@ export default function CronPage() {
                   <tr className="text-left text-[#94A3B8] text-xs border-b border-white/5">
                     <th className="pb-3 font-medium">Status</th>
                     <th className="pb-3 font-medium">Name</th>
-                    <th className="pb-3 font-medium">Schedule</th>
+                    <th className="pb-3 font-medium">Schedule (CT)</th>
                     <th className="pb-3 font-medium">Last Run</th>
                     <th className="pb-3 font-medium">Next Run</th>
                     <th className="pb-3 font-medium">Model</th>
-                    <th className="pb-3 font-medium">ID</th>
+                    <th className="pb-3 font-medium">Agent</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -160,17 +205,31 @@ export default function CronPage() {
                     <tr key={job.id} className="hover:bg-white/[0.02] transition-colors">
                       <td className="py-3 pr-3">
                         <StatusDot
-                          status={job.status === "ok" ? "ok" : job.status === "idle" ? "idle" : "error"}
+                          status={job.status === "ok" ? "ok" : job.status === "error" ? "error" : "idle"}
                           size="md"
                           pulse={job.status === "ok"}
                         />
                       </td>
                       <td className="py-3 text-[#F1F5F9] font-medium">{job.name}</td>
-                      <td className="py-3 text-[#94A3B8] font-mono text-xs max-w-40 truncate">{job.schedule}</td>
-                      <td className="py-3 text-[#94A3B8] text-xs">{job.lastRun || "—"}</td>
-                      <td className="py-3 text-[#94A3B8] text-xs">{job.nextRun || "—"}</td>
-                      <td className="py-3 text-[#94A3B8] text-xs truncate max-w-28">{job.model}</td>
-                      <td className="py-3 text-[#94A3B8] font-mono text-xs">{job.id}</td>
+                      <td className="py-3 text-[#94A3B8] text-xs">
+                        <span className="text-[#F1F5F9]">{job.scheduleHuman}</span>
+                      </td>
+                      <td className="py-3 text-xs">
+                        <span className="text-[#F1F5F9]">{formatRelativeClient(job.lastRunMs)}</span>
+                        {job.lastRunMs && (
+                          <span className="text-[#94A3B8] block text-[10px] font-mono">{formatTimestamp(job.lastRunMs)}</span>
+                        )}
+                      </td>
+                      <td className="py-3 text-xs">
+                        <span className="text-[#F1F5F9]">{formatRelativeClient(job.nextRunMs)}</span>
+                        {job.nextRunMs && (
+                          <span className="text-[#94A3B8] block text-[10px] font-mono">{formatTimestamp(job.nextRunMs)}</span>
+                        )}
+                      </td>
+                      <td className="py-3 text-[#94A3B8] font-mono text-[10px] truncate max-w-28">
+                        {job.model.split("/").pop()}
+                      </td>
+                      <td className="py-3 text-[#94A3B8] text-xs">{job.agentId || "—"}</td>
                     </tr>
                   ))}
                 </tbody>

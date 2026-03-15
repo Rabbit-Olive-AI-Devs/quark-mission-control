@@ -7,8 +7,35 @@ interface CronJobJSON {
   enabled: boolean;
   schedule: { kind: string; expr: string; tz?: string };
   sessionTarget: string;
-  payload?: { model?: string; timeoutSeconds?: number };
+  payload?: { model?: string; timeoutSeconds?: number; agentId?: string };
   state?: { nextRunAtMs?: number; lastRunAtMs?: number; lastRunStatus?: string };
+}
+
+/** Convert cron expression to human-readable schedule in the job's timezone */
+function cronToHuman(expr: string): string {
+  const parts = expr.trim().split(/\s+/);
+  if (parts.length < 5) return expr;
+
+  const [minute, hour, , , dayOfWeek] = parts;
+
+  // Format hours
+  const formatHour = (h: number): string => {
+    const ampm = h >= 12 ? "PM" : "AM";
+    const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    return `${h12}:${minute.padStart(2, "0")} ${ampm}`;
+  };
+
+  const hours = hour.split(",").map(Number);
+  const timeStr = hours.map(formatHour).join(", ");
+
+  // Day of week
+  const dayMap: Record<string, string> = { "0": "Sun", "1": "Mon", "2": "Tue", "3": "Wed", "4": "Thu", "5": "Fri", "6": "Sat" };
+  if (dayOfWeek !== "*") {
+    const days = dayOfWeek.split(",").map((d) => dayMap[d] || d).join(", ");
+    return `${days} ${timeStr}`;
+  }
+
+  return timeStr;
 }
 
 function formatRelative(ms: number | undefined): string | null {
@@ -20,11 +47,11 @@ function formatRelative(ms: number | undefined): string | null {
 
   if (diff > 0) {
     if (hours > 24) return `in ${Math.floor(hours / 24)}d`;
-    if (hours > 0) return `in ${hours}h`;
+    if (hours > 0) return `in ${hours}h ${mins}m`;
     return `in ${mins}m`;
   } else {
     if (hours > 24) return `${Math.floor(hours / 24)}d ago`;
-    if (hours > 0) return `${hours}h ago`;
+    if (hours > 0) return `${hours}h ${mins}m ago`;
     return `${mins}m ago`;
   }
 }
@@ -33,7 +60,6 @@ function findOpenclawBin(): string {
   const envPath = process.env.OPENCLAW_BIN;
   if (envPath) return envPath;
 
-  // Try common locations
   const candidates = [
     "/opt/homebrew/bin/openclaw",
     "/usr/local/bin/openclaw",
@@ -48,11 +74,10 @@ function findOpenclawBin(): string {
     }
   }
 
-  // Fallback: try PATH
   try {
     return execSync("which openclaw 2>/dev/null", { encoding: "utf-8", timeout: 3000 }).trim();
   } catch {
-    return "openclaw"; // last resort, let it fail naturally
+    return "openclaw";
   }
 }
 
@@ -70,11 +95,16 @@ export function parseCronList(): CronJob[] {
     return jobs.map((job) => ({
       id: job.id.slice(0, 8),
       name: job.name,
-      schedule: `cron ${job.schedule.expr}`,
+      schedule: job.schedule.expr,
+      scheduleHuman: cronToHuman(job.schedule.expr),
+      timezone: job.schedule.tz || "UTC",
       model: job.payload?.model || "default",
       status: job.state?.lastRunStatus || (job.enabled ? "idle" : "disabled"),
       lastRun: formatRelative(job.state?.lastRunAtMs),
       nextRun: formatRelative(job.state?.nextRunAtMs),
+      lastRunMs: job.state?.lastRunAtMs || null,
+      nextRunMs: job.state?.nextRunAtMs || null,
+      agentId: job.payload?.agentId || null,
       enabled: job.enabled,
     }));
   } catch {

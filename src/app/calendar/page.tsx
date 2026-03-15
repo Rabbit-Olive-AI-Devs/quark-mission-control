@@ -14,12 +14,12 @@ const SLOTS = Array.from({ length: 48 }, (_, i) => ({
 }));
 
 // Parse cron schedule string to extract exact time slots
-// Format: "cron M H * * *" or "cron M H1,H2,H3 * * *"
+// Format: "M H * * *" or "M H1,H2,H3 * * *" (also supports legacy "cron M H ..." prefix)
 function parseCronSchedule(schedule: string): { hour: number; minute: number }[] {
   const slots: { hour: number; minute: number }[] = [];
 
-  // Match "cron <minute> <hour> ..."
-  const match = schedule.match(/cron\s+(\d+)\s+([\d,*\/]+)/);
+  // Match "<minute> <hour> ..." with optional "cron " prefix
+  const match = schedule.match(/(?:cron\s+)?(\d+)\s+([\d,*\/]+)/);
   if (!match) return slots;
 
   const minute = parseInt(match[1]);
@@ -175,7 +175,7 @@ export default function CalendarPage() {
               <div key={job.id} className="flex items-center gap-1.5 text-[10px]">
                 <div className="w-2.5 h-2.5 rounded-full" style={{ background: JOB_COLORS[i % JOB_COLORS.length] }} />
                 <span className="text-[#F1F5F9]">{job.name}</span>
-                <span className="text-[#94A3B8]/50 font-mono">{job.schedule.replace("cron ", "")}</span>
+                <span className="text-[#94A3B8]/50 font-mono">{job.scheduleHuman}</span>
               </div>
             ))}
           </div>
