@@ -20,6 +20,7 @@ import {
   X,
   Brain,
   BrainCircuit,
+  MessageCircle,
 } from "lucide-react";
 import { StatusDot } from "./status-dot";
 import { useDashboardStore } from "@/stores/dashboard";
@@ -36,6 +37,7 @@ const navItems = [
   { href: "/command-center", label: "Command Center", icon: BrainCircuit },
   { href: "/metrics-page", label: "Metrics", icon: BarChart3 },
   { href: "/cognitive", label: "Cognitive", icon: Brain },
+  { href: "/engagement", label: "Engagement", icon: MessageCircle },
   { href: "/calendar", label: "Cron Schedule", icon: Calendar },
   { href: "/settings", label: "System Info", icon: Settings },
 ];
@@ -44,6 +46,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const connected = useDashboardStore((s) => s.connected);
   const cognitiveDegradation = useDashboardStore((s) => s.cognitiveDegradation);
+  const engagementUnanswered = useDashboardStore((s) => s.engagementUnanswered);
   const [open, setOpen] = useState(false);
 
   // Close sidebar on route change (mobile)
@@ -131,6 +134,11 @@ export function Sidebar() {
                 <Icon size={18} />
                 <span>{item.label}</span>
                 {item.href === "/cognitive" && cognitiveDegradation.length > 0 && (
+                  <span className="ml-auto">
+                    <StatusDot status="warning" size="sm" pulse />
+                  </span>
+                )}
+                {item.href === "/engagement" && engagementUnanswered > 0 && (
                   <span className="ml-auto">
                     <StatusDot status="warning" size="sm" pulse />
                   </span>

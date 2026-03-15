@@ -318,3 +318,55 @@ export interface SystemInfo {
   diskTotalGb: number;
   uptime: number;
 }
+
+// --- Social Engagement Dashboard ---
+
+export interface EngagementAction {
+  timestamp: string;
+  platform: string;
+  action: string;
+  targetId: string;
+  targetAuthor: string;
+  text: string;
+  autonomous: boolean;
+  guardrailResult: string;
+  source: string;
+}
+
+export interface DailyAggregate {
+  date: string;
+  total: number;
+  byPlatform: Record<string, number>;
+  byAction: Record<string, number>;
+  blocks: number;
+}
+
+export interface GuardrailBlock {
+  timestamp: string;
+  platform: string;
+  action: string;
+  reason: string;
+  targetAuthor?: string;
+}
+
+export interface InboundGap {
+  totalReceived: number;
+  totalReplied: number;
+  replyRate: number;
+  byPlatform: Record<string, { received: number; replied: number }>;
+  unansweredCount: number;
+  dataDate: string;
+}
+
+export interface EngagementData {
+  actions: EngagementAction[];
+  today: {
+    total: number;
+    byAction: Record<string, number>;
+    byPlatform: Record<string, number>;
+  };
+  trends: DailyAggregate[];
+  guardrailBlocks: GuardrailBlock[];
+  inboundGap: InboundGap;
+  mode: "autonomous" | "approval_required";
+}

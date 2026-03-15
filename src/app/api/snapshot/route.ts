@@ -14,6 +14,7 @@ import { listKnowledgeFilesWithContent } from "@/lib/parsers/knowledge";
 import { parseCommandCenter } from "@/lib/parsers/command-center";
 import { parsePipelineData } from "@/lib/parsers/pipeline";
 import { parseCognitive } from "@/lib/parsers/cognitive";
+import { parseEngagement } from "@/lib/parsers/engagement";
 import { computeWorkspaceHash } from "@/lib/hash";
 import { corsHeaders } from "@/lib/cors";
 
@@ -74,6 +75,7 @@ export async function GET(request: Request) {
     system: getSystemInfo(),
     pipeline: parsePipelineData(),
     cognitive: parseCognitive(),
+    engagement: parseEngagement(),
     memory: { files: listMemoryFilesWithContent() },
     knowledge: { files: listKnowledgeFilesWithContent() },
   };
