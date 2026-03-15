@@ -65,14 +65,27 @@ export function CognitiveScorecards({ current }: ScorecardsProps) {
           <span className="text-[10px] text-[#94A3B8]">{mh.kbUpdatedToday} today</span>
         } />
         <MetricRow label="Journal" value={`${mh.journalWordCount} words`} extra={
-          <span className={`text-[10px] ${mh.journalReflective ? "text-[#10B981]" : "text-[#F59E0B]"}`}>
-            {mh.journalReflective ? "✓ reflective" : "⚠ operational"}
+          <span className="flex items-center gap-1">
+            <span className={`text-[10px] ${mh.journalReflective ? "text-[#10B981]" : "text-[#F59E0B]"}`}>
+              {mh.journalReflective ? "✓ reflective" : "⚠ operational"}
+            </span>
+            {current._journalFromDate && (
+              <span className="text-[9px] text-[#94A3B8]/60">
+                ({new Date(current._journalFromDate + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Chicago" })})
+              </span>
+            )}
           </span>
         } />
         <MetricRow label="USER.md" value={<StaleBadge days={mh.userMdStaleDays} warnAt={5} badAt={7} />} />
         <MetricRow label="IDENTITY.md" value={<StaleBadge days={mh.identityMdStaleDays} warnAt={5} badAt={7} />} />
         <MetricRow label="MEMORY.md" value={`${mh.memoryMdLineCount} lines`} />
-        <MetricRow label="Promoted" value={mh.captureQueuePromoted} />
+        <MetricRow label="Promoted" value={mh.captureQueuePromoted} extra={
+          current._journalFromDate ? (
+            <span className="text-[9px] text-[#94A3B8]/60">
+              ({new Date(current._journalFromDate + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Chicago" })})
+            </span>
+          ) : undefined
+        } />
 
         <div className="mt-3 pt-2 border-t border-white/5">
           <div className="text-[10px] text-[#94A3B8] mb-1">Tier 1 File Sizes</div>

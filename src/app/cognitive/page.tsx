@@ -35,7 +35,11 @@ export default function CognitivePage() {
           </h1>
           <p className="text-sm text-[#94A3B8] mt-1">
             {data?.current
-              ? `Last collected: ${new Date(data.current.collectedAt).toLocaleString("en-US", { timeZone: "America/Chicago", dateStyle: "medium", timeStyle: "short" })}`
+              ? `Last collected: ${(() => {
+                  // Strip UTC offset — Chandler writes local Chicago time with wrong offset during DST
+                  const raw = data.current.collectedAt.replace(/[+-]\d{2}:\d{2}$/, "");
+                  return new Date(raw).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
+                })()}`
               : "Loading..."}
           </p>
         </div>

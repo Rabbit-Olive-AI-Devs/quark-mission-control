@@ -189,6 +189,19 @@ export function parseCognitive(): CognitiveData {
     current.memoryHealth.identityMdStaleDays = live.identityMdStaleDays;
   }
 
+  // Journal and promotion are evening-routine outputs — if today's values are 0
+  // and we have yesterday's data, use yesterday's as the "last valid" values
+  if (current.memoryHealth.journalWordCount === 0 && history.length > 1) {
+    const yesterday = history[1];
+    if (yesterday.memoryHealth.journalWordCount > 0) {
+      current.memoryHealth.journalWordCount = yesterday.memoryHealth.journalWordCount;
+      current.memoryHealth.journalReflective = yesterday.memoryHealth.journalReflective;
+      current.memoryHealth.journalReflectiveMarkers = yesterday.memoryHealth.journalReflectiveMarkers;
+      current.memoryHealth.captureQueuePromoted = yesterday.memoryHealth.captureQueuePromoted;
+      current._journalFromDate = yesterday.date;
+    }
+  }
+
   const weeklyRollups = computeWeeklyRollups(history);
   const activeDegradation = current.degradationFlags;
 

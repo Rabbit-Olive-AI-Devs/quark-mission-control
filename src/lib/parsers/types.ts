@@ -289,6 +289,7 @@ export interface CognitiveDay {
   degradationFlags: string[];
   tier1FileSizes: Record<string, number>;
   identityEvolution?: CognitiveIdentityEvolution;
+  _journalFromDate?: string;
 }
 
 export interface WeeklyRollup {
