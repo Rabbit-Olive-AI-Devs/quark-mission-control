@@ -297,6 +297,7 @@ export interface CognitiveDay {
   tier1FileSizes: Record<string, number>;
   identityEvolution?: CognitiveIdentityEvolution;
   _journalFromDate?: string;
+  _engagementSource?: "chandler" | "live";
 }
 
 export interface WeeklyRollup {

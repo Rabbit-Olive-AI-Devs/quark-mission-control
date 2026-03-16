@@ -207,6 +207,35 @@ export function parseCognitive(): CognitiveData {
     }
   }
 
+  // Overlay live engagement data if fresher than Chandler's snapshot
+  try {
+    const livePath = path.join(WORKSPACE_PATH, "metrics/engagement-live.json");
+    if (fs.existsSync(livePath)) {
+      const liveRaw = JSON.parse(fs.readFileSync(livePath, "utf-8"));
+      if (liveRaw.date === todayStr) {
+        const liveTs = new Date(liveRaw.updated_at).getTime();
+        const chandlerTs = current.collectedAt ? new Date(current.collectedAt).getTime() : 0;
+        if (liveTs > chandlerTs) {
+          const lp = liveRaw.platforms || {};
+          const la = liveRaw.actions || {};
+          current.engagement = {
+            ...current.engagement,
+            xReplies: lp.x ?? current.engagement.xReplies,
+            youtubeReplies: lp.youtube ?? current.engagement.youtubeReplies,
+            instagramReplies: lp.instagram ?? current.engagement.instagramReplies,
+            tiktokReplies: lp.tiktok ?? current.engagement.tiktokReplies,
+            substackReplies: lp.substack ?? current.engagement.substackReplies,
+            totalReplied: la.reply ?? current.engagement.totalReplied,
+            replyRate: liveRaw.reply_rate ?? current.engagement.replyRate,
+          };
+          current._engagementSource = "live";
+        }
+      }
+    }
+  } catch {
+    // engagement-live.json missing or malformed — use Chandler data as-is
+  }
+
   const weeklyRollups = computeWeeklyRollups(history);
   const activeDegradation = current.degradationFlags;
 
