@@ -44,9 +44,13 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check auth cookie — validate token format, not just existence
+  // Check auth: cookie OR bearer token (for server-to-server proxy from Vercel)
   const authCookie = request.cookies.get(AUTH_COOKIE_NAME);
-  if (!authCookie?.value || !isValidToken(authCookie.value)) {
+  const bearerToken = request.headers.get("authorization")?.replace("Bearer ", "");
+  const snapshotKey = process.env.SNAPSHOT_API_KEY;
+  const hasBearerAuth = snapshotKey && bearerToken === snapshotKey;
+
+  if (!hasBearerAuth && (!authCookie?.value || !isValidToken(authCookie.value))) {
     // For API routes, return 401 instead of redirect
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
