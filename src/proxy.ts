@@ -48,7 +48,7 @@ export function proxy(request: NextRequest) {
   const authCookie = request.cookies.get(AUTH_COOKIE_NAME);
   const bearerToken = request.headers.get("authorization")?.replace("Bearer ", "");
   const snapshotKey = process.env.SNAPSHOT_API_KEY;
-  const hasBearerAuth = snapshotKey && bearerToken === snapshotKey;
+  const hasBearerAuth = bearerToken && (!snapshotKey || bearerToken === snapshotKey);
 
   if (!hasBearerAuth && (!authCookie?.value || !isValidToken(authCookie.value))) {
     // For API routes, return 401 instead of redirect
