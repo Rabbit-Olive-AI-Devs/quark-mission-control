@@ -446,6 +446,35 @@ export interface InboundGap {
   dataDate: string;
 }
 
+export interface EngagementUnifiedKpis {
+  visibility: {
+    impressions: number;
+    reach: number;
+  };
+  engagement: {
+    totalInteractions: number;
+    engagementRate: number;
+  };
+  responsiveness: {
+    repliesSent: number;
+    unansweredCount: number;
+    replyRate: number;
+  };
+  growth: {
+    followerDelta: number;
+  };
+  conversion: {
+    linkClicks: number;
+    ctr: number;
+  };
+}
+
+export interface EngagementSourceCoverage {
+  chandler: boolean;
+  genviral: boolean;
+  engagementAudit: boolean;
+}
+
 export interface EngagementData {
   actions: EngagementAction[];
   today: {
@@ -457,4 +486,6 @@ export interface EngagementData {
   guardrailBlocks: GuardrailBlock[];
   inboundGap: InboundGap;
   mode: "autonomous" | "approval_required";
+  unifiedKpis: EngagementUnifiedKpis;
+  sourceCoverage: EngagementSourceCoverage;
 }
