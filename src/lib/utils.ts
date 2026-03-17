@@ -27,6 +27,46 @@ export function formatTime(date: Date): string {
   });
 }
 
+const TZ = "America/Chicago";
+
+/** Format any date-like input in America/Chicago timezone with custom Intl options. */
+export function formatChicago(
+  input: string | number | Date,
+  options?: Intl.DateTimeFormatOptions,
+): string {
+  const date = input instanceof Date ? input : new Date(input);
+  return date.toLocaleString("en-US", { timeZone: TZ, ...options });
+}
+
+/** Relative time string ("2h ago", "just now") from any date-like input. */
+export function formatTimeAgo(input: string | number | Date): string {
+  const then = input instanceof Date ? input.getTime() : new Date(input).getTime();
+  const diffMs = Date.now() - then;
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return "just now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.floor(diffHr / 24);
+  return `${diffDay}d ago`;
+}
+
+/** Short time in Chicago: "3:45 PM" */
+export function formatTimeShort(input: string | number | Date): string {
+  return formatChicago(input, { hour: "numeric", minute: "2-digit", hour12: true });
+}
+
+/** Date + time in Chicago: "Mar 16, 3:45 PM" */
+export function formatDateTime(input: string | number | Date): string {
+  return formatChicago(input, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
 export function todayDateString(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
 }
