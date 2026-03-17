@@ -1,5 +1,5 @@
 import { createHash } from "crypto";
-import { stat, readdir } from "fs/promises";
+import { stat } from "fs/promises";
 import path from "path";
 import { WORKSPACE_PATH } from "./config";
 
@@ -28,34 +28,16 @@ async function safeStat(filePath: string): Promise<number> {
   }
 }
 
-async function dirMtimes(dirPath: string): Promise<number[]> {
-  const mtimes: number[] = [];
-  try {
-    const dirStat = await stat(dirPath);
-    mtimes.push(dirStat.mtimeMs);
-    const entries = await readdir(dirPath, { withFileTypes: true });
-    for (const entry of entries) {
-      const entryPath = path.join(dirPath, entry.name);
-      const s = await stat(entryPath);
-      mtimes.push(s.mtimeMs);
-    }
-  } catch {
-    mtimes.push(0);
-  }
-  return mtimes;
-}
-
 export async function computeWorkspaceHash(): Promise<string> {
-  const allMtimes: number[] = [];
+  // Stat all watched files and directories in parallel.
+  // For directories, we only stat the directory itself — its mtime updates
+  // when files are added, removed, or renamed inside it.
+  const allPaths = [
+    ...WATCHED_FILES.map((f) => path.join(WORKSPACE_PATH, f)),
+    ...WATCHED_DIRS.map((d) => path.join(WORKSPACE_PATH, d)),
+  ];
 
-  for (const file of WATCHED_FILES) {
-    allMtimes.push(await safeStat(path.join(WORKSPACE_PATH, file)));
-  }
-
-  for (const dir of WATCHED_DIRS) {
-    const mtimes = await dirMtimes(path.join(WORKSPACE_PATH, dir));
-    allMtimes.push(...mtimes);
-  }
+  const allMtimes = await Promise.all(allPaths.map(safeStat));
 
   const input = allMtimes.sort((a, b) => a - b).join(",");
   return createHash("md5").update(input).digest("hex").slice(0, 12);

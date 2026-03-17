@@ -1,5 +1,6 @@
 import { execSync } from "child_process";
 import os from "os";
+import { cachedSync } from "../async-cache";
 import type { SystemInfo } from "./types";
 
 export function getSystemInfo(): SystemInfo {
@@ -17,26 +18,29 @@ export function getSystemInfo(): SystemInfo {
     cpuPercent = 0;
   }
 
-  // Disk usage — try macOS format first, then Linux
-  let diskUsedGb = 0;
-  let diskTotalGb = 0;
-  try {
-    // macOS: df -g outputs in GB blocks
-    const df = execSync("df -g / 2>/dev/null", { encoding: "utf-8" });
-    const parts = df.split("\n")[1]?.split(/\s+/) || [];
-    diskTotalGb = parseFloat(parts[1] || "0");
-    diskUsedGb = parseFloat(parts[2] || "0");
-  } catch {
+  // Disk usage — cached for 30s (spawns df)
+  const { diskUsedGb, diskTotalGb } = cachedSync("disk-info", 30_000, () => {
+    let used = 0;
+    let total = 0;
     try {
-      // Linux: df -BG outputs in GB blocks with "G" suffix
-      const df = execSync("df -BG / 2>/dev/null", { encoding: "utf-8" });
+      // macOS: df -g outputs in GB blocks
+      const df = execSync("df -g / 2>/dev/null", { encoding: "utf-8" });
       const parts = df.split("\n")[1]?.split(/\s+/) || [];
-      diskTotalGb = parseFloat((parts[1] || "0").replace("G", ""));
-      diskUsedGb = parseFloat((parts[2] || "0").replace("G", ""));
+      total = parseFloat(parts[1] || "0");
+      used = parseFloat(parts[2] || "0");
     } catch {
-      // Defaults
+      try {
+        // Linux: df -BG outputs in GB blocks with "G" suffix
+        const df = execSync("df -BG / 2>/dev/null", { encoding: "utf-8" });
+        const parts = df.split("\n")[1]?.split(/\s+/) || [];
+        total = parseFloat((parts[1] || "0").replace("G", ""));
+        used = parseFloat((parts[2] || "0").replace("G", ""));
+      } catch {
+        // Defaults
+      }
     }
-  }
+    return { diskUsedGb: used, diskTotalGb: total };
+  });
 
   return {
     cpuPercent: Math.round(cpuPercent * 10) / 10,

@@ -9,8 +9,8 @@ import { parseCronList } from "@/lib/parsers/cron";
 import { parseSessionLog } from "@/lib/parsers/session-log";
 import { parseContentLog, parseHookTracker, parseContentCalendar, parseHookLibrary } from "@/lib/parsers/content";
 import { getSystemInfo } from "@/lib/parsers/system";
-import { listMemoryFilesWithContent } from "@/lib/parsers/memory";
-import { listKnowledgeFilesWithContent } from "@/lib/parsers/knowledge";
+import { listMemoryFiles } from "@/lib/parsers/memory";
+import { listKnowledgeFiles } from "@/lib/parsers/knowledge";
 import { parseCommandCenter } from "@/lib/parsers/command-center";
 import { parsePipelineData } from "@/lib/parsers/pipeline";
 import { parseCognitive } from "@/lib/parsers/cognitive";
@@ -37,10 +37,56 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: cors });
   }
 
-  const jobs = parseCronList();
+  // Run all parsers in parallel — each group resolves independently
+  const [
+    jobs,
+    heartbeat,
+    digestSections,
+    pending,
+    intel,
+    metrics,
+    commandCenter,
+    agents,
+    broadcast,
+    sessionLogEntries,
+    contentLog,
+    hookCategories,
+    contentCalendar,
+    hookLibrary,
+    system,
+    pipeline,
+    cognitive,
+    engagement,
+    memoryFiles,
+    knowledgeFiles,
+    hash,
+  ] = await Promise.all([
+    Promise.resolve(parseCronList()),
+    Promise.resolve(parseHeartbeat()),
+    Promise.resolve(parseDigest()),
+    Promise.resolve(parsePending()),
+    Promise.resolve(parseIntel()),
+    Promise.resolve(parseMetrics()),
+    Promise.resolve(parseCommandCenter()),
+    Promise.resolve(parseAgents()),
+    Promise.resolve(parseBroadcast()),
+    Promise.resolve(parseSessionLog()),
+    Promise.resolve(parseContentLog()),
+    Promise.resolve(parseHookTracker()),
+    Promise.resolve(parseContentCalendar()),
+    Promise.resolve(parseHookLibrary()),
+    Promise.resolve(getSystemInfo()),
+    Promise.resolve(parsePipelineData()),
+    Promise.resolve(parseCognitive()),
+    Promise.resolve(parseEngagement()),
+    Promise.resolve(listMemoryFiles()),
+    Promise.resolve(listKnowledgeFiles()),
+    computeWorkspaceHash(),
+  ]);
 
   const snapshot = {
     timestamp: new Date().toISOString(),
+    hash,
     cron: {
       jobs,
       summary: {
@@ -49,15 +95,15 @@ export async function GET(request: Request) {
         failed: jobs.filter((j) => j.status !== "ok" && j.status !== "idle" && j.status !== "disabled" && j.status !== "unknown").length,
       },
     },
-    heartbeat: parseHeartbeat(),
-    digest: { sections: parseDigest() },
-    pending: parsePending(),
-    intel: parseIntel(),
-    metrics: parseMetrics(),
-    commandCenter: parseCommandCenter(),
+    heartbeat,
+    digest: { sections: digestSections },
+    pending,
+    intel,
+    metrics,
+    commandCenter,
     agents: {
-      agents: parseAgents(),
-      broadcast: parseBroadcast(),
+      agents,
+      broadcast,
       comms: {
         neo: parseComms("neo"),
         fulcrum: parseComms("fulcrum"),
@@ -65,25 +111,22 @@ export async function GET(request: Request) {
         chandler: parseComms("chandler"),
       },
     },
-    sessionLog: { entries: parseSessionLog() },
+    sessionLog: { entries: sessionLogEntries },
     content: {
-      posts: parseContentLog(),
-      hookCategories: parseHookTracker(),
-      calendar: parseContentCalendar(),
-      hookLibrary: parseHookLibrary(),
+      posts: contentLog,
+      hookCategories,
+      calendar: contentCalendar,
+      hookLibrary,
     },
-    system: getSystemInfo(),
-    pipeline: parsePipelineData(),
-    cognitive: parseCognitive(),
-    engagement: parseEngagement(),
-    memory: { files: listMemoryFilesWithContent() },
-    knowledge: { files: listKnowledgeFilesWithContent() },
+    system,
+    pipeline,
+    cognitive,
+    engagement,
+    memory: { files: memoryFiles },
+    knowledge: { files: knowledgeFiles },
   };
 
-  const hash = await computeWorkspaceHash();
-  const snapshotWithHash = { ...snapshot, hash };
-
-  return NextResponse.json(snapshotWithHash, {
+  return NextResponse.json(snapshot, {
     headers: {
       ...cors,
       "Cache-Control": "no-store",

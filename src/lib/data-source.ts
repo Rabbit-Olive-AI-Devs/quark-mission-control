@@ -6,7 +6,7 @@ const SNAPSHOT_URL = process.env.SNAPSHOT_URL; // e.g. https://macbook-pro-14-tb
 const SNAPSHOT_API_KEY = process.env.SNAPSHOT_API_KEY;
 
 let cachedSnapshot: { data: Record<string, unknown>; fetchedAt: number } | null = null;
-const CACHE_TTL_MS = 2_000; // 2 seconds
+const CACHE_TTL_MS = 10_000; // 10 seconds
 
 type SourceMeta = {
   mode: "local" | "remote";

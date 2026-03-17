@@ -1,4 +1,5 @@
 import { execSync } from "child_process";
+import { cachedSync } from "../async-cache";
 import type { CronJob } from "./types";
 
 interface CronJobJSON {
@@ -82,32 +83,34 @@ function findOpenclawBin(): string {
 }
 
 export function parseCronList(): CronJob[] {
-  try {
-    const bin = findOpenclawBin();
-    const output = execSync(`${bin} cron list --json 2>/dev/null`, {
-      timeout: 10000,
-      encoding: "utf-8",
-    });
+  return cachedSync("cron-list", 60_000, () => {
+    try {
+      const bin = findOpenclawBin();
+      const output = execSync(`${bin} cron list --json 2>/dev/null`, {
+        timeout: 10000,
+        encoding: "utf-8",
+      });
 
-    const data = JSON.parse(output);
-    const jobs: CronJobJSON[] = data.jobs || [];
+      const data = JSON.parse(output);
+      const jobs: CronJobJSON[] = data.jobs || [];
 
-    return jobs.map((job) => ({
-      id: job.id.slice(0, 8),
-      name: job.name,
-      schedule: job.schedule.expr,
-      scheduleHuman: cronToHuman(job.schedule.expr),
-      timezone: job.schedule.tz || "UTC",
-      model: job.payload?.model || "default",
-      status: job.state?.lastRunStatus || (job.enabled ? "idle" : "disabled"),
-      lastRun: formatRelative(job.state?.lastRunAtMs),
-      nextRun: formatRelative(job.state?.nextRunAtMs),
-      lastRunMs: job.state?.lastRunAtMs || null,
-      nextRunMs: job.state?.nextRunAtMs || null,
-      agentId: job.payload?.agentId || null,
-      enabled: job.enabled,
-    }));
-  } catch {
-    return [];
-  }
+      return jobs.map((job) => ({
+        id: job.id.slice(0, 8),
+        name: job.name,
+        schedule: job.schedule.expr,
+        scheduleHuman: cronToHuman(job.schedule.expr),
+        timezone: job.schedule.tz || "UTC",
+        model: job.payload?.model || "default",
+        status: job.state?.lastRunStatus || (job.enabled ? "idle" : "disabled"),
+        lastRun: formatRelative(job.state?.lastRunAtMs),
+        nextRun: formatRelative(job.state?.nextRunAtMs),
+        lastRunMs: job.state?.lastRunAtMs || null,
+        nextRunMs: job.state?.nextRunAtMs || null,
+        agentId: job.payload?.agentId || null,
+        enabled: job.enabled,
+      }));
+    } catch {
+      return [];
+    }
+  });
 }
