@@ -1,10 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { AppShell } from "@/components/layout/app-shell";
 import { GlassCard } from "@/components/ui/glass-card";
-import { Database, FileText, FolderOpen, ChevronRight } from "lucide-react";
+import { BookOpen } from "lucide-react";
 import { useApi } from "@/hooks/use-api";
+import { TabBar, type KnowledgeTab } from "@/components/knowledge/tab-bar";
+import { FileList } from "@/components/knowledge/file-list";
+import { ReaderPane } from "@/components/knowledge/reader-pane";
+
+interface MemoryFile {
+  name: string;
+  path: string;
+  size: number;
+  modified: string;
+  type: "session" | "research" | "journal" | "digest" | "other";
+}
 
 interface KnowledgeFile {
   name: string;
@@ -14,153 +25,137 @@ interface KnowledgeFile {
   category: string;
 }
 
-const categoryColors: Record<string, string> = {
-  general: "#00D4AA",
-  "memory-architecture": "#7C3AED",
-  openclaw: "#3B82F6",
-  "quark-evolution": "#F59E0B",
-};
-
 export default function KnowledgePage() {
-  const { data, loading } = useApi<{ files: KnowledgeFile[] }>("/api/knowledge");
-  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const { data: memData, loading: memLoading } = useApi<{ files: MemoryFile[] }>("/api/memory");
+  const { data: kbData, loading: kbLoading } = useApi<{ files: KnowledgeFile[] }>("/api/knowledge");
+
+  const [tab, setTab] = useState<KnowledgeTab>("journals");
+  const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState<string | null>(null);
   const [loadingContent, setLoadingContent] = useState(false);
-  const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [expanded, setExpanded] = useState(false);
+  // Mobile: when a file is selected, show reader full-screen
+  const [mobileReaderOpen, setMobileReaderOpen] = useState(false);
 
-  const files = data?.files || [];
-  const filtered = filterCategory === "all"
-    ? files
-    : files.filter((f) => f.category === filterCategory);
+  const memoryFiles = memData?.files || [];
+  const kbFiles = kbData?.files || [];
 
-  const categories = [...new Set(files.map((f) => f.category))];
+  // Counts for tab badges
+  const journalCount = memoryFiles.filter(
+    (f) => f.type === "session" || f.type === "journal"
+  ).length;
 
-  const loadFile = async (filePath: string) => {
-    setSelectedFile(filePath);
+  const loadFile = useCallback(async (filePath: string) => {
+    setSelectedPath(filePath);
     setLoadingContent(true);
+    setMobileReaderOpen(true);
+
     try {
-      const res = await fetch(`/api/knowledge?slug=${encodeURIComponent(filePath)}`);
-      const json = await res.json();
-      setFileContent(json.content || "No content");
+      // KB files have paths like "knowledge-base/..." — need "shared/" prefix for the catch-all route.
+      // Memory files have paths like "memory/..." — already valid for the catch-all route.
+      const apiPath = filePath.startsWith("knowledge-base/")
+        ? `shared/${filePath}`
+        : filePath;
+      const res = await fetch(
+        `/api/knowledge/${apiPath.split("/").map(encodeURIComponent).join("/")}`
+      );
+      if (!res.ok) {
+        // Fallback: try memory slug route (for legacy compat)
+        const fallback = await fetch(
+          `/api/memory?slug=${encodeURIComponent(filePath)}`
+        );
+        const json = await fallback.json();
+        setFileContent(json.content || "No content");
+      } else {
+        const json = await res.json();
+        setFileContent(json.content || "No content");
+      }
     } catch {
       setFileContent("Error loading file");
     } finally {
       setLoadingContent(false);
     }
+  }, []);
+
+  const handleBack = () => {
+    setMobileReaderOpen(false);
   };
+
+  const handleToggleExpand = () => {
+    setExpanded((prev) => !prev);
+  };
+
+  const handleTabChange = (newTab: KnowledgeTab) => {
+    setTab(newTab);
+    // Don't clear selection on tab change so reader stays populated
+  };
+
+  const isListLoading = tab === "knowledge-base" ? kbLoading : memLoading;
+  const totalFiles = memoryFiles.length + kbFiles.length;
 
   return (
     <AppShell>
       <div className="max-w-7xl mx-auto">
-        <div className="mb-6">
+        {/* Header */}
+        <div className="mb-5">
           <h1 className="text-2xl font-semibold flex items-center gap-3">
-            <Database size={24} className="text-[#00D4AA]" />
-            Knowledge Base
+            <BookOpen size={24} className="text-[#00D4AA]" />
+            Knowledge
           </h1>
-          <p className="text-sm text-[#94A3B8] mt-1">{files.length} documents indexed</p>
+          <p className="text-sm text-[#94A3B8] mt-1">
+            {totalFiles} files across memory and knowledge base
+          </p>
         </div>
 
-        {/* Category filter pills */}
-        <div className="flex gap-2 mb-4">
-          <button
-            onClick={() => setFilterCategory("all")}
-            className={`px-3 py-1.5 rounded-lg text-xs transition-colors ${
-              filterCategory === "all"
-                ? "bg-[#00D4AA]/15 text-[#00D4AA] border border-[#00D4AA]/30"
-                : "bg-white/5 text-[#94A3B8] hover:bg-white/10 border border-transparent"
-            }`}
-          >
-            All
-          </button>
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setFilterCategory(cat)}
-              className={`px-3 py-1.5 rounded-lg text-xs transition-colors ${
-                filterCategory === cat
-                  ? "bg-[#00D4AA]/15 text-[#00D4AA] border border-[#00D4AA]/30"
-                  : "bg-white/5 text-[#94A3B8] hover:bg-white/10 border border-transparent"
+        {/* Tabs */}
+        <div className="mb-4">
+          <TabBar
+            active={tab}
+            onChange={handleTabChange}
+            counts={{
+              journals: journalCount,
+              memory: memoryFiles.length,
+              kb: kbFiles.length,
+            }}
+          />
+        </div>
+
+        {/* Split view */}
+        <div className="flex gap-4">
+          {/* File list — hidden on mobile when reader is open, or when expanded */}
+          {!expanded && (
+            <div
+              className={`w-[300px] shrink-0 ${
+                mobileReaderOpen ? "hidden md:block" : "block"
               }`}
             >
-              <span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ background: categoryColors[cat] || "#94A3B8" }} />
-              {cat}
-              <span className="ml-1 opacity-60">{files.filter((f) => f.category === cat).length}</span>
-            </button>
-          ))}
-        </div>
+              <GlassCard className="max-h-[75vh] overflow-y-auto">
+                <FileList
+                  tab={tab}
+                  memoryFiles={memoryFiles}
+                  kbFiles={kbFiles}
+                  loading={isListLoading}
+                  selectedPath={selectedPath}
+                  onSelect={loadFile}
+                />
+              </GlassCard>
+            </div>
+          )}
 
-        <div className="grid grid-cols-12 gap-4">
-          {/* File list */}
-          <div className="col-span-4">
-            <GlassCard className="max-h-[75vh] overflow-y-auto">
-              {loading ? (
-                <div className="animate-pulse space-y-2">
-                  {[1, 2, 3, 4, 5].map((i) => <div key={i} className="h-12 bg-white/5 rounded" />)}
-                </div>
-              ) : filtered.length === 0 ? (
-                <p className="text-xs text-[#94A3B8] text-center py-8">No documents found</p>
-              ) : (
-                <div className="space-y-0.5">
-                  {filtered.map((file) => {
-                    const isSelected = selectedFile === file.path;
-                    const color = categoryColors[file.category] || "#94A3B8";
-
-                    return (
-                      <button
-                        key={file.path}
-                        onClick={() => loadFile(file.path)}
-                        className={`w-full flex items-start gap-2.5 px-3 py-2.5 rounded-lg text-left transition-colors ${
-                          isSelected ? "bg-[#00D4AA]/10" : "hover:bg-white/5"
-                        }`}
-                      >
-                        <FileText size={14} style={{ color }} className="shrink-0 mt-0.5" />
-                        <div className="min-w-0 flex-1">
-                          <div className={`text-xs truncate ${isSelected ? "text-[#00D4AA]" : "text-[#F1F5F9]"}`}>
-                            {file.name.replace(".md", "")}
-                          </div>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[9px] text-[#94A3B8]">
-                              <FolderOpen size={8} className="inline mr-0.5" />
-                              {file.category}
-                            </span>
-                            <span className="text-[9px] text-[#94A3B8]">
-                              {Math.round(file.size / 1024)}KB
-                            </span>
-                          </div>
-                        </div>
-                        <ChevronRight size={12} className="text-[#94A3B8]/30 shrink-0 mt-1" />
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </GlassCard>
-          </div>
-
-          {/* Content viewer */}
-          <div className="col-span-8">
-            <GlassCard className="min-h-[75vh]">
-              {!selectedFile ? (
-                <div className="flex flex-col items-center justify-center py-20 text-[#94A3B8]">
-                  <Database size={32} className="mb-3 opacity-30" />
-                  <p className="text-sm">Select a document to view</p>
-                </div>
-              ) : loadingContent ? (
-                <div className="animate-pulse space-y-2">
-                  {[1, 2, 3, 4].map((i) => <div key={i} className="h-4 bg-white/5 rounded" />)}
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2 mb-4 pb-3 border-b border-white/5">
-                    <FileText size={14} className="text-[#00D4AA]" />
-                    <span className="text-xs font-mono text-[#00D4AA]">{selectedFile}</span>
-                  </div>
-                  <pre className="text-xs text-[#F1F5F9] whitespace-pre-wrap font-mono leading-relaxed overflow-auto max-h-[60vh]">
-                    {fileContent}
-                  </pre>
-                </>
-              )}
-            </GlassCard>
+          {/* Reader pane */}
+          <div
+            className={`flex-1 min-w-0 ${
+              !mobileReaderOpen && !selectedPath ? "hidden md:block" : "block"
+            }`}
+          >
+            <ReaderPane
+              filePath={selectedPath}
+              content={fileContent}
+              loading={loadingContent}
+              expanded={expanded}
+              onToggleExpand={handleToggleExpand}
+              onBack={mobileReaderOpen ? handleBack : undefined}
+            />
           </div>
         </div>
       </div>
