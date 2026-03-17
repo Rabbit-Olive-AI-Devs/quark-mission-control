@@ -3,49 +3,30 @@
 import { useState } from "react";
 import { AppShell } from "@/components/layout/app-shell";
 import { GlassCard } from "@/components/ui/glass-card";
-import { Radio, TrendingUp, Flame, Eye, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
-import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
+import { TrendCard } from "@/components/intel/trend-card";
+import {
+  Radio,
+  TrendingUp,
+  Eye,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  Lightbulb,
+  Flame,
+  Zap,
+  Radar,
+} from "lucide-react";
+import {
+  RadarChart,
+  Radar as RechartsRadar,
+  PolarGrid,
+  PolarAngleAxis,
+  ResponsiveContainer,
+} from "recharts";
 import { useApi } from "@/hooks/use-api";
 import type { IntelReport, IntelTrend } from "@/lib/parsers/types";
 
-function TrendCard({ trend, index }: { trend: IntelTrend; index: number }) {
-  const viralityColor =
-    trend.virality >= 8 ? "#EF4444" : trend.virality >= 6 ? "#F59E0B" : "#10B981";
-
-  return (
-    <GlassCard delay={index * 0.05} hover>
-      <div className="flex items-start justify-between mb-2">
-        <h3 className="text-sm font-medium text-[#F1F5F9] flex-1 pr-3">{trend.title}</h3>
-        <div className="flex items-center gap-1 shrink-0">
-          <Flame size={12} style={{ color: viralityColor }} />
-          <span className="text-xs font-semibold" style={{ color: viralityColor }}>
-            {trend.virality}/10
-          </span>
-        </div>
-      </div>
-
-      <p className="text-xs text-[#94A3B8] mb-3 line-clamp-2">{trend.angle}</p>
-
-      <div className="flex items-center gap-3 text-[10px] text-[#94A3B8]">
-        <span className="flex items-center gap-1">
-          <Eye size={10} />
-          {trend.confidence}
-        </span>
-        <span>Expires: {trend.expiry}</span>
-      </div>
-
-      <div className="mt-3 h-1.5 bg-white/5 rounded-full overflow-hidden">
-        <div
-          className="h-full rounded-full transition-all duration-500"
-          style={{ width: `${trend.virality * 10}%`, background: viralityColor }}
-        />
-      </div>
-    </GlassCard>
-  );
-}
-
 function TrendRadar({ data }: { data: IntelReport }) {
-  // Build radar from trend categories
   const allTrends = [...data.highSignal, ...data.rising, ...data.nicheSignals];
   const categories: Record<string, number> = {};
 
@@ -53,12 +34,28 @@ function TrendRadar({ data }: { data: IntelReport }) {
     const title = t.title.toLowerCase();
     let cat = "Other";
     if (/\bopenclaw\b/.test(title)) cat = "OpenClaw";
-    else if (/\bai\b|artificial intelligence|\bagent[s]?\b|\bmodel[s]?\b|\bllm\b|\bgpt\b|\bclaude\b|\bsora\b|\bxai\b|\bopenai\b/.test(title)) cat = "AI/Agents";
-    else if (/\bsecurity\b|\btrust\b|\bgovernance\b/.test(title)) cat = "Security";
-    else if (/\bgithub\b|\bdev\b|\bcli\b|\binfra\b|\bframework\b/.test(title)) cat = "Dev Tools";
-    else if (/\bcontent\b|\bproduct hunt\b|\btiktok\b|\bcreator\b|\bvideo\b/.test(title)) cat = "Content";
-    else if (/\blocal\b|\bqwen\b|\bon-device\b/.test(title)) cat = "Local Models";
-    else if (/\bhn\b|\bhacker news\b|\breddit\b/.test(title)) cat = "Community";
+    else if (
+      /\bai\b|artificial intelligence|\bagent[s]?\b|\bmodel[s]?\b|\bllm\b|\bgpt\b|\bclaude\b|\bsora\b|\bxai\b|\bopenai\b/.test(
+        title,
+      )
+    )
+      cat = "AI/Agents";
+    else if (/\bsecurity\b|\btrust\b|\bgovernance\b/.test(title))
+      cat = "Security";
+    else if (
+      /\bgithub\b|\bdev\b|\bcli\b|\binfra\b|\bframework\b/.test(title)
+    )
+      cat = "Dev Tools";
+    else if (
+      /\bcontent\b|\bproduct hunt\b|\btiktok\b|\bcreator\b|\bvideo\b/.test(
+        title,
+      )
+    )
+      cat = "Content";
+    else if (/\blocal\b|\bqwen\b|\bon-device\b/.test(title))
+      cat = "Local Models";
+    else if (/\bhn\b|\bhacker news\b|\breddit\b/.test(title))
+      cat = "Community";
 
     categories[cat] = Math.max(categories[cat] || 0, t.virality);
   }
@@ -72,21 +69,24 @@ function TrendRadar({ data }: { data: IntelReport }) {
   if (radarData.length < 3) return null;
 
   return (
-    <GlassCard delay={0.15}>
-      <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
-        <Radio size={14} className="text-[#00D4AA]" />
-        Trend Radar
+    <GlassCard delay={0.1}>
+      <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+        <Radar size={14} className="text-[#00D4AA]" />
+        Signal Radar
       </h3>
-      <ResponsiveContainer width="100%" height={250}>
+      <ResponsiveContainer width="100%" height={220}>
         <RadarChart data={radarData}>
-          <PolarGrid stroke="rgba(255,255,255,0.08)" />
-          <PolarAngleAxis dataKey="category" tick={{ fill: "#94A3B8", fontSize: 10 }} />
-          <Radar
+          <PolarGrid stroke="rgba(255,255,255,0.06)" />
+          <PolarAngleAxis
+            dataKey="category"
+            tick={{ fill: "#94A3B8", fontSize: 10 }}
+          />
+          <RechartsRadar
             name="Virality"
             dataKey="virality"
             stroke="#00D4AA"
             fill="#00D4AA"
-            fillOpacity={0.15}
+            fillOpacity={0.12}
             strokeWidth={2}
           />
         </RadarChart>
@@ -95,48 +95,132 @@ function TrendRadar({ data }: { data: IntelReport }) {
   );
 }
 
-function ViralityDistribution({ data }: { data: IntelReport }) {
+function SignalSummary({ data }: { data: IntelReport }) {
   const allTrends = [...data.highSignal, ...data.rising, ...data.nicheSignals];
-  const distribution = [
-    { name: "High (8-10)", value: allTrends.filter((t) => t.virality >= 8).length, color: "#EF4444" },
-    { name: "Medium (5-7)", value: allTrends.filter((t) => t.virality >= 5 && t.virality < 8).length, color: "#F59E0B" },
-    { name: "Low (1-4)", value: allTrends.filter((t) => t.virality < 5).length, color: "#10B981" },
-  ].filter((d) => d.value > 0);
+  const avgVirality =
+    allTrends.length > 0
+      ? (allTrends.reduce((s, t) => s + t.virality, 0) / allTrends.length).toFixed(1)
+      : "0";
+  const topSource = (() => {
+    const counts: Record<string, number> = {};
+    for (const t of allTrends) {
+      const k = t.source.toLowerCase();
+      counts[k] = (counts[k] || 0) + 1;
+    }
+    let best = "";
+    let max = 0;
+    for (const [k, v] of Object.entries(counts)) {
+      if (v > max) {
+        max = v;
+        best = k;
+      }
+    }
+    return best || "—";
+  })();
+
+  const stats = [
+    {
+      label: "Total Signals",
+      value: allTrends.length,
+      color: "#00D4AA",
+    },
+    {
+      label: "High-Signal",
+      value: data.highSignal.length,
+      color: "#EF4444",
+    },
+    {
+      label: "Avg Virality",
+      value: avgVirality,
+      color: "#F59E0B",
+    },
+    {
+      label: "Top Source",
+      value: topSource.charAt(0).toUpperCase() + topSource.slice(1),
+      color: "#7C3AED",
+    },
+  ];
 
   return (
-    <GlassCard delay={0.2}>
-      <h3 className="text-sm font-medium mb-2">Virality Distribution</h3>
-      <div className="flex flex-col items-center gap-3">
-        <ResponsiveContainer width="100%" height={180}>
-          <PieChart>
-            <Pie data={distribution} dataKey="value" cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={3}>
-              {distribution.map((d) => (
-                <Cell key={d.name} fill={d.color} />
-              ))}
-            </Pie>
-            <Tooltip
-              contentStyle={{ background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 11, color: "#F1F5F9" }}
-            />
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="flex gap-4 justify-center">
-          {distribution.map((d) => (
-            <div key={d.name} className="flex items-center gap-2 text-xs">
-              <div className="w-2.5 h-2.5 rounded-full" style={{ background: d.color }} />
-              <span className="text-[#F1F5F9]">{d.name}</span>
-              <span className="text-[#94A3B8] ml-1">{d.value}</span>
+    <GlassCard delay={0.05}>
+      <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+        <Zap size={14} className="text-[#00D4AA]" />
+        Signal Summary
+      </h3>
+      <div className="grid grid-cols-2 gap-3">
+        {stats.map((s) => (
+          <div key={s.label} className="text-center">
+            <div
+              className="text-xl font-bold tabular-nums"
+              style={{ color: s.color }}
+            >
+              {s.value}
             </div>
-          ))}
-        </div>
+            <div className="text-[10px] text-[#64748B] uppercase tracking-wider mt-0.5">
+              {s.label}
+            </div>
+          </div>
+        ))}
       </div>
     </GlassCard>
   );
 }
 
+function TrendSection({
+  title,
+  icon,
+  color,
+  trends,
+  baseIndex,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  color: string;
+  trends: IntelTrend[];
+  baseIndex: number;
+}) {
+  if (trends.length === 0) return null;
+
+  return (
+    <div className="mb-8">
+      <div className="flex items-center gap-2.5 mb-4">
+        <div
+          className="w-1 h-5 rounded-full"
+          style={{ backgroundColor: color }}
+        />
+        <h2
+          className="text-sm font-semibold uppercase tracking-wider flex items-center gap-2"
+          style={{ color }}
+        >
+          {icon}
+          {title}
+          <span className="text-[#64748B] font-normal normal-case tracking-normal text-xs">
+            ({trends.length})
+          </span>
+        </h2>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {trends.map((trend, i) => (
+          <TrendCard
+            key={trend.title || i}
+            trend={trend}
+            index={baseIndex + i}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function IntelPage() {
-  const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
+  const today = new Date().toLocaleDateString("en-CA", {
+    timeZone: "America/Chicago",
+  });
   const [archiveDate, setArchiveDate] = useState(today);
-  const { data, loading } = useApi<IntelReport>(`/api/intel?date=${archiveDate}`, ["intel"]);
+  const { data, loading } = useApi<IntelReport>(
+    `/api/intel?date=${archiveDate}`,
+    ["intel"],
+  );
 
   const navigateDate = (delta: number) => {
     const d = new Date(archiveDate + "T12:00:00");
@@ -147,21 +231,25 @@ export default function IntelPage() {
   return (
     <AppShell>
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-2xl font-semibold flex items-center gap-3">
               <Radio size={24} className="text-[#00D4AA]" />
               Intel Feed
             </h1>
-            <p className="text-sm text-[#94A3B8] mt-1">
+            <p className="text-sm text-[#64748B] mt-1">
               {data?.date || "Loading..."} — {data?.compiled || ""}
             </p>
           </div>
 
-          {/* Archive date nav */}
+          {/* Date navigation */}
           <div className="flex items-center gap-2">
-            <Calendar size={14} className="text-[#94A3B8]" />
-            <button onClick={() => navigateDate(-1)} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
+            <Calendar size={14} className="text-[#64748B]" />
+            <button
+              onClick={() => navigateDate(-1)}
+              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+            >
               <ChevronLeft size={14} className="text-[#94A3B8]" />
             </button>
             <input
@@ -181,30 +269,42 @@ export default function IntelPage() {
         </div>
 
         {loading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <GlassCard key={i}><div className="animate-pulse h-20 bg-white/5 rounded" /></GlassCard>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <GlassCard key={i}>
+                <div className="animate-pulse space-y-3">
+                  <div className="h-3 bg-white/5 rounded w-16" />
+                  <div className="h-4 bg-white/5 rounded w-3/4" />
+                  <div className="h-3 bg-white/5 rounded w-full" />
+                  <div className="h-1.5 bg-white/5 rounded-full w-full" />
+                </div>
+              </GlassCard>
             ))}
           </div>
         ) : data ? (
           <>
-            {/* Charts row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            {/* Summary + Radar row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+              <SignalSummary data={data} />
               <TrendRadar data={data} />
-              <ViralityDistribution data={data} />
             </div>
 
-            {/* Content Suggestions — prominent position */}
+            {/* Content Suggestions */}
             {data.suggestions.length > 0 && (
-              <GlassCard delay={0.1} className="mb-6 !border-[#00D4AA]/20 !bg-[#00D4AA]/[0.03]">
-                <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
-                  <TrendingUp size={14} className="text-[#00D4AA]" />
-                  Content Suggestions
+              <GlassCard
+                delay={0.12}
+                className="mb-8 !border-[#00D4AA]/20 !bg-[#00D4AA]/[0.03]"
+              >
+                <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  <Lightbulb size={14} className="text-[#00D4AA]" />
+                  <span className="text-[#00D4AA]">Content Suggestions</span>
                 </h3>
                 <div className="space-y-2">
                   {data.suggestions.map((s, i) => (
                     <div key={`suggestion-${i}`} className="flex gap-2 text-xs">
-                      <span className="text-[#00D4AA] font-semibold shrink-0">{i + 1}.</span>
+                      <span className="text-[#00D4AA] font-semibold shrink-0">
+                        {i + 1}.
+                      </span>
                       <span className="text-[#F1F5F9]">{s}</span>
                     </div>
                   ))}
@@ -212,55 +312,36 @@ export default function IntelPage() {
               </GlassCard>
             )}
 
-            {/* High Signal */}
-            {data.highSignal.length > 0 && (
-              <div className="mb-6">
-                <h2 className="text-sm font-medium text-[#EF4444] flex items-center gap-2 mb-3">
-                  <TrendingUp size={14} />
-                  High-Signal Trends ({data.highSignal.length})
-                </h2>
-                <div className="grid grid-cols-1 gap-3">
-                  {data.highSignal.map((trend, i) => (
-                    <TrendCard key={trend.title || i} trend={trend} index={i} />
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* Trend Sections */}
+            <TrendSection
+              title="High-Signal"
+              icon={<Flame size={14} />}
+              color="#EF4444"
+              trends={data.highSignal}
+              baseIndex={0}
+            />
 
-            {/* Rising */}
-            {data.rising.length > 0 && (
-              <div className="mb-6">
-                <h2 className="text-sm font-medium text-[#F59E0B] flex items-center gap-2 mb-3">
-                  <TrendingUp size={14} />
-                  Rising Topics ({data.rising.length})
-                </h2>
-                <div className="grid grid-cols-1 gap-3">
-                  {data.rising.map((trend, i) => (
-                    <TrendCard key={trend.title || i} trend={trend} index={i} />
-                  ))}
-                </div>
-              </div>
-            )}
+            <TrendSection
+              title="Rising"
+              icon={<TrendingUp size={14} />}
+              color="#F59E0B"
+              trends={data.rising}
+              baseIndex={data.highSignal.length}
+            />
 
-            {/* Niche */}
-            {data.nicheSignals.length > 0 && (
-              <div className="mb-6">
-                <h2 className="text-sm font-medium text-[#10B981] flex items-center gap-2 mb-3">
-                  <Eye size={14} />
-                  Niche Signals ({data.nicheSignals.length})
-                </h2>
-                <div className="grid grid-cols-1 gap-3">
-                  {data.nicheSignals.map((trend, i) => (
-                    <TrendCard key={trend.title || i} trend={trend} index={i} />
-                  ))}
-                </div>
-              </div>
-            )}
-
+            <TrendSection
+              title="Niche Signals"
+              icon={<Eye size={14} />}
+              color="#10B981"
+              trends={data.nicheSignals}
+              baseIndex={data.highSignal.length + data.rising.length}
+            />
           </>
         ) : (
           <GlassCard>
-            <p className="text-center text-[#94A3B8] py-12">No intel data available</p>
+            <p className="text-center text-[#94A3B8] py-12">
+              No intel data available
+            </p>
           </GlassCard>
         )}
       </div>
