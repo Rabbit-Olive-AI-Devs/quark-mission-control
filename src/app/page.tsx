@@ -2,7 +2,6 @@
 
 import { AppShell } from "@/components/layout/app-shell";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
-import { DegradationBanner } from "@/components/dashboard/degradation-banner";
 import { SystemPulse } from "@/components/dashboard/system-pulse";
 import { CodexQuota } from "@/components/dashboard/codex-quota";
 import { PipelineWidget } from "@/components/dashboard/pipeline-widget";
@@ -14,8 +13,6 @@ export default function DashboardPage() {
   return (
     <AppShell>
       <div className="max-w-7xl mx-auto">
-        <ErrorBoundary><DegradationBanner /></ErrorBoundary>
-
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-semibold">Mission Control</h1>
