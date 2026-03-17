@@ -60,6 +60,10 @@ export async function GET(request: Request) {
     memoryFiles,
     knowledgeFiles,
     hash,
+    commsNeo,
+    commsFulcrum,
+    commsCassian,
+    commsChandler,
   ] = await Promise.all([
     Promise.resolve(parseCronList()),
     Promise.resolve(parseHeartbeat()),
@@ -82,6 +86,10 @@ export async function GET(request: Request) {
     Promise.resolve(listMemoryFiles()),
     Promise.resolve(listKnowledgeFiles()),
     computeWorkspaceHash(),
+    Promise.resolve(parseComms("neo")),
+    Promise.resolve(parseComms("fulcrum")),
+    Promise.resolve(parseComms("cassian")),
+    Promise.resolve(parseComms("chandler")),
   ]);
 
   const snapshot = {
@@ -105,10 +113,10 @@ export async function GET(request: Request) {
       agents,
       broadcast,
       comms: {
-        neo: parseComms("neo"),
-        fulcrum: parseComms("fulcrum"),
-        cassian: parseComms("cassian"),
-        chandler: parseComms("chandler"),
+        neo: commsNeo,
+        fulcrum: commsFulcrum,
+        cassian: commsCassian,
+        chandler: commsChandler,
       },
     },
     sessionLog: { entries: sessionLogEntries },
