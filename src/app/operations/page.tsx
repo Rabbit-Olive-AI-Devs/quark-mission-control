@@ -70,7 +70,7 @@ export default function OperationsPage() {
 
             {/* Zone 4: Content Performance */}
             <ErrorBoundary>
-              <ContentPerformance platforms={data.platforms} />
+              <ContentPerformance platforms={data.platforms} contentPerformance={data.contentPerformance} />
             </ErrorBoundary>
 
             {/* Zone 5: Reliability */}

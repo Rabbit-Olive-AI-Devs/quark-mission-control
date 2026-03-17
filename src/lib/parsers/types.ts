@@ -347,6 +347,37 @@ export interface OperationsCronReliability {
   recentFailures: { name: string; lastRun: string | null; status: string }[];
 }
 
+export interface ContentPerformanceXMetrics {
+  postsToday: number;
+  impressions: number;
+  likes: number;
+  replies: number;
+  retweets: number;
+  bookmarks: number;
+}
+
+export interface ContentPerformancePipeline {
+  published: number;
+  killed: number;
+  stale: number;
+  pendingPreview: number;
+  contentTypes: Record<string, number>;
+}
+
+export interface ContentPerformanceEngagement {
+  actionsByPlatform: Record<string, Record<string, number>>;
+  guardrailBlocks: number;
+  engagementMode: string;
+}
+
+export interface ContentPerformanceData {
+  reportDate: string;
+  x: ContentPerformanceXMetrics;
+  tiktokPostsToday: number;
+  pipeline: ContentPerformancePipeline;
+  engagement: ContentPerformanceEngagement;
+}
+
 export interface OperationsData {
   generatedAt: string;
   activeModel: string;
@@ -361,6 +392,7 @@ export interface OperationsData {
   };
   cronReliability: OperationsCronReliability;
   platforms: string[];
+  contentPerformance: ContentPerformanceData | null;
 }
 
 // System

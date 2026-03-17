@@ -2,12 +2,17 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { parseCronList } from "./cron";
+import { WORKSPACE_PATH } from "@/lib/config";
 import type {
   OperationsData,
   OperationsQuota,
   OperationsFallbackNode,
   OperationsDailyUsage,
   OperationsCronReliability,
+  ContentPerformanceData,
+  ContentPerformanceXMetrics,
+  ContentPerformancePipeline,
+  ContentPerformanceEngagement,
 } from "./types";
 
 const CODEXBAR_SNAPSHOT_PATH = path.join(
@@ -156,6 +161,125 @@ function buildCronReliability(): OperationsCronReliability {
   };
 }
 
+function parseContentPerformance(): ContentPerformanceData | null {
+  const dailyDir = path.join(WORKSPACE_PATH, "metrics/daily");
+  try {
+    const files = fs.readdirSync(dailyDir).filter((f) => f.endsWith(".md")).sort();
+    if (files.length === 0) return null;
+    const latest = files[files.length - 1];
+    const content = fs.readFileSync(path.join(dailyDir, latest), "utf-8");
+    const reportDate = latest.replace(".md", "");
+
+    // --- X metrics ---
+    const x: ContentPerformanceXMetrics = {
+      postsToday: 0,
+      impressions: 0,
+      likes: 0,
+      replies: 0,
+      retweets: 0,
+      bookmarks: 0,
+    };
+
+    const xPostsMatch = content.match(/\*\*X posts today:\*\*\s*(\d+)/);
+    if (xPostsMatch) x.postsToday = parseInt(xPostsMatch[1], 10);
+
+    // Match both "RTs" and "retweets" variants
+    const xEngMatch = content.match(
+      /\*\*X engagement:\*\*\s*(\d+)\s*impressions?,\s*(\d+)\s*likes?,\s*(\d+)\s*replies?,\s*(\d+)\s*(?:RTs?|retweets?),\s*(\d+)\s*bookmarks?/
+    );
+    if (xEngMatch) {
+      x.impressions = parseInt(xEngMatch[1], 10);
+      x.likes = parseInt(xEngMatch[2], 10);
+      x.replies = parseInt(xEngMatch[3], 10);
+      x.retweets = parseInt(xEngMatch[4], 10);
+      x.bookmarks = parseInt(xEngMatch[5], 10);
+    }
+
+    // --- TikTok ---
+    let tiktokPostsToday = 0;
+    const tiktokMatch = content.match(/\*\*TikTok posts today:\*\*\s*(\d+)/);
+    if (tiktokMatch) tiktokPostsToday = parseInt(tiktokMatch[1], 10);
+
+    // --- Pipeline throughput ---
+    const pipeline: ContentPerformancePipeline = {
+      published: 0,
+      killed: 0,
+      stale: 0,
+      pendingPreview: 0,
+      contentTypes: {},
+    };
+
+    const jobsMatch = content.match(
+      /\*\*Jobs today:\*\*\s*(\d+)\s*published,\s*(\d+)\s*killed,\s*(\d+)\s*stale(?:,\s*(\d+)\s*pending(?:\s*preview)?)?/
+    );
+    if (jobsMatch) {
+      pipeline.published = parseInt(jobsMatch[1], 10);
+      pipeline.killed = parseInt(jobsMatch[2], 10);
+      pipeline.stale = parseInt(jobsMatch[3], 10);
+      pipeline.pendingPreview = jobsMatch[4] ? parseInt(jobsMatch[4], 10) : 0;
+    }
+
+    const typesMatch = content.match(/\*\*Content types:\*\*\s*(.+)/);
+    if (typesMatch && typesMatch[1] !== "N/A") {
+      const pairs = typesMatch[1].match(/(\w+)=(\d+)/g);
+      if (pairs) {
+        for (const pair of pairs) {
+          const [key, val] = pair.split("=");
+          pipeline.contentTypes[key] = parseInt(val, 10);
+        }
+      }
+    }
+
+    // --- Engagement metrics ---
+    const engagement: ContentPerformanceEngagement = {
+      actionsByPlatform: {},
+      guardrailBlocks: 0,
+      engagementMode: "unknown",
+    };
+
+    // Parse "- x: like=11, reply=2" style lines
+    const engagementSection = content.match(
+      /### Engagement Metrics\n([\s\S]*?)(?=\n###|\n---|\n$)/
+    );
+    if (engagementSection) {
+      const sectionText = engagementSection[1];
+      const platformLines = sectionText.matchAll(
+        /^- (\w+):\s*(.+)$/gm
+      );
+      for (const match of platformLines) {
+        const platform = match[1];
+        // Skip lines that start with ** (those are label lines, not platform lines)
+        if (platform.startsWith("**") || match[2].startsWith("**")) continue;
+        const actions: Record<string, number> = {};
+        const actionPairs = match[2].match(/(\w+)=(\d+)/g);
+        if (actionPairs) {
+          for (const pair of actionPairs) {
+            const [key, val] = pair.split("=");
+            actions[key] = parseInt(val, 10);
+          }
+          engagement.actionsByPlatform[platform] = actions;
+        }
+      }
+
+      const blocksMatch = sectionText.match(/\*\*Guardrail blocks:\*\*\s*(\d+)/);
+      if (blocksMatch) engagement.guardrailBlocks = parseInt(blocksMatch[1], 10);
+
+      const modeMatch = sectionText.match(/\*\*Engagement mode:\*\*\s*(\w+)/);
+      if (modeMatch) engagement.engagementMode = modeMatch[1];
+    }
+
+    return {
+      reportDate,
+      x,
+      tiktokPostsToday,
+      pipeline,
+      engagement,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function parseOperations(): OperationsData {
   const { primaryModel, fallbackChain } = loadOpenClawConfig();
   const { quota, dailyUsage, tokenUsage } = loadCodexBarSnapshot();
@@ -171,5 +295,6 @@ export function parseOperations(): OperationsData {
     tokenUsage,
     cronReliability,
     platforms: ["x", "tiktok", "instagram", "youtube", "substack"],
+    contentPerformance: parseContentPerformance(),
   };
 }
