@@ -80,7 +80,7 @@ export function SystemPulse() {
 
   const getCpuColor = () => cpuPct > 80 ? "#EF4444" : cpuPct > 50 ? "#F59E0B" : "#00D4AA";
   const getMemColor = () => memPct > 85 ? "#EF4444" : memPct > 65 ? "#F59E0B" : "#7C3AED";
-  const getDiskColor = () => diskPct > 90 ? "#EF4444" : diskPct > 75 ? "#F59E0B" : "#F59E0B";
+  const getDiskColor = () => diskPct > 90 ? "#EF4444" : diskPct > 75 ? "#F59E0B" : "#00D4AA";
 
   return (
     <GlassCard delay={0.05}>
