@@ -1,8 +1,13 @@
 import fs from "fs";
 import path from "path";
-import { execSync } from "child_process";
+import os from "os";
 import { WORKSPACE_PATH } from "../config";
 import type { MetricsData, MetricRow, CodexQuota } from "./types";
+
+const CODEXBAR_SNAPSHOT_PATH = path.join(
+  os.homedir(),
+  "Library/Group Containers/group.com.steipete.codexbar/widget-snapshot.json"
+);
 
 function parseTable(text: string, headers: string[]): Record<string, string>[] {
   const rows: Record<string, string>[] = [];
@@ -22,49 +27,40 @@ function parseTable(text: string, headers: string[]): Record<string, string>[] {
   return rows;
 }
 
-function readOpenClawModelsOutput(): string {
-  try {
-    return execSync("openclaw models", {
-      encoding: "utf-8",
-      stdio: ["ignore", "pipe", "ignore"],
-      timeout: 15000,
-    });
-  } catch {
-    return "";
+function formatResetTime(resetsAt: string): string {
+  if (!resetsAt) return "";
+  const reset = new Date(resetsAt);
+  const now = new Date();
+  const diffMs = reset.getTime() - now.getTime();
+  if (diffMs <= 0) return "Resetting...";
+  const hours = Math.floor(diffMs / 3600000);
+  const mins = Math.floor((diffMs % 3600000) / 60000);
+  if (hours > 24) {
+    const days = Math.floor(hours / 24);
+    return `Resets in ${days}d ${hours % 24}h`;
   }
+  return hours > 0 ? `Resets in ${hours}h ${mins}m` : `Resets in ${mins}m`;
 }
 
-function parseCodexQuotaFromModels(output: string): CodexQuota | null {
-  const line = output.split("\n").find((l) => l.includes("openai-codex usage:"));
-  if (!line) return null;
+function parseCodexQuotaFromCodexBar(): CodexQuota | null {
+  try {
+    const raw = fs.readFileSync(CODEXBAR_SNAPSHOT_PATH, "utf-8");
+    const snapshot = JSON.parse(raw);
+    const codex = snapshot.entries?.find((e: { provider: string }) => e.provider === "codex");
+    if (!codex) return null;
 
-  const dailyMatch = line.match(/usage:\s*5h\s*(\d+)%\s*left\s*⏱([^·\n]+)/i);
-  const weeklyMatch = line.match(/Week\s*(\d+)%\s*left\s*⏱([^\n]+)/i);
+    const daily = codex.primary;
+    const weekly = codex.secondary;
 
-  if (!dailyMatch && !weeklyMatch) return null;
-
-  return {
-    dailyRemaining: dailyMatch ? parseInt(dailyMatch[1], 10) : 0,
-    dailyLabel: dailyMatch ? `Resets in ${dailyMatch[2].trim()}` : "Unavailable",
-    weeklyRemaining: weeklyMatch ? parseInt(weeklyMatch[1], 10) : 0,
-    weeklyLabel: weeklyMatch ? `Resets in ${weeklyMatch[2].trim()}` : "Unavailable",
-  };
-}
-
-function parseCodexUsageFromModels(output: string): string | null {
-  const line = output.split("\n").find((l) => l.includes("openai-codex usage:"));
-  if (!line) return null;
-  const compact = line.replace(/^\s*-\s*openai-codex\s+usage:\s*/i, "").trim();
-  return compact || null;
-}
-
-function parseCodexAuthStatusFromModels(output: string): string | null {
-  const line = output
-    .split("\n")
-    .find((l) => l.includes("openai-codex:default") && /\b(ok|expired|invalid)\b/i.test(l));
-  if (!line) return null;
-  const match = line.match(/openai-codex:default\s+(ok|expired|invalid)[^\n]*/i);
-  return match ? match[0].replace(/^openai-codex:default\s*/i, "") : line.trim();
+    return {
+      dailyRemaining: daily ? 100 - daily.usedPercent : 0,
+      dailyLabel: daily?.resetsAt ? formatResetTime(daily.resetsAt) : "Unavailable",
+      weeklyRemaining: weekly ? 100 - weekly.usedPercent : 0,
+      weeklyLabel: weekly?.resetsAt ? formatResetTime(weekly.resetsAt) : "Unavailable",
+    };
+  } catch {
+    return null;
+  }
 }
 
 export function parseMetrics(): MetricsData {
@@ -80,13 +76,8 @@ export function parseMetrics(): MetricsData {
   };
 
   try {
-    const modelsOutput = readOpenClawModelsOutput();
-    const liveQuota = parseCodexQuotaFromModels(modelsOutput);
-    const liveCodexUsage = parseCodexUsageFromModels(modelsOutput);
-    const liveCodexAuthStatus = parseCodexAuthStatusFromModels(modelsOutput);
-
+    const liveQuota = parseCodexQuotaFromCodexBar();
     if (liveQuota) result.codexQuota = liveQuota;
-    if (liveCodexUsage) result.codexUsage = liveCodexUsage;
 
     const content = fs.readFileSync(filePath, "utf-8");
 
@@ -136,7 +127,6 @@ export function parseMetrics(): MetricsData {
       }
       if (weeklyMatch) {
         result.codexQuota.weeklyRemaining = parseInt(weeklyMatch[1]);
-        // Check for parenthetical detail, otherwise compute days until weekly reset (Monday)
         const weeklyDetailMatch = content.match(/Codex weekly quota:\s*\*\*[^*]+\*\*\s*\(([^)]+)\)/);
         if (weeklyDetailMatch) {
           result.codexQuota.weeklyLabel = weeklyDetailMatch[1];
@@ -152,22 +142,6 @@ export function parseMetrics(): MetricsData {
         result.codexQuota.dailyLabel = "No live quota data in metrics source";
         result.codexQuota.weeklyLabel = "No live quota data in metrics source";
       }
-    }
-
-    if (liveCodexAuthStatus) {
-      result.opsHealth = result.opsHealth.map((row) =>
-        row.metric.toLowerCase().includes("codex")
-          ? {
-              ...row,
-              value: liveCodexAuthStatus,
-              status: /\bok\b/i.test(liveCodexAuthStatus) ? "✅" : "❌",
-            }
-          : row
-      );
-    }
-
-    if (liveCodexUsage && /\bexpired\/invalid\b/i.test(result.codexUsage)) {
-      result.degradationStatus = "ATTENTION";
     }
   } catch {
     // Return defaults
