@@ -64,7 +64,9 @@ Mission Control is Quark's operations dashboard — a Next.js 16 app deployed on
 
 2. **`CardFooter` enhancement** — add optional "last updated" relative timestamp. Reusable across all cards. Addresses engagement page feedback.
 
-3. **Sidebar nav update** — update `navItems` array for new page structure:
+3. **Timezone standardization** — all displayed dates and times must use `America/Chicago` (Thiago's timezone). Create a shared `formatDateTime()` utility that formats all timestamps in Chicago time. Apply consistently across all pages, cards, and feeds.
+
+4. **Sidebar nav update** — update `navItems` array for new page structure:
    - Remove: Activity, Memory Browser, Calendar, Metrics
    - Add: Schedule, Operations, Knowledge (replaces Memory Browser + Knowledge Base)
    - Rename: Command Center → (removed, merged into Operations)
