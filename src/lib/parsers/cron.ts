@@ -91,7 +91,11 @@ export function parseCronList(): CronJob[] {
         encoding: "utf-8",
       });
 
-      const data = JSON.parse(output);
+      // openclaw may emit plugin log lines to stdout before the JSON payload.
+      // Strip everything before the first '{' to get valid JSON.
+      const jsonStart = output.indexOf("{");
+      const jsonStr = jsonStart >= 0 ? output.slice(jsonStart) : output;
+      const data = JSON.parse(jsonStr);
       const jobs: CronJobJSON[] = data.jobs || [];
 
       return jobs.map((job) => ({

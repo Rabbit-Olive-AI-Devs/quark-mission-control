@@ -16,6 +16,7 @@ import {
   Zap,
   Radar,
 } from "lucide-react";
+import { getSourceLabel } from "@/components/intel/source-badge";
 import {
   RadarChart,
   Radar as RechartsRadar,
@@ -103,9 +104,14 @@ function SignalSummary({ data }: { data: IntelReport }) {
       : "0";
   const topSource = (() => {
     const counts: Record<string, number> = {};
+    const labelMap: Record<string, string> = {};
     for (const t of allTrends) {
-      const k = t.source.toLowerCase();
-      counts[k] = (counts[k] || 0) + 1;
+      const label = getSourceLabel(t.source);
+      // Group by primary label (first label if multi-source)
+      const primary = label.split(" + ")[0];
+      const key = primary.toLowerCase();
+      counts[key] = (counts[key] || 0) + 1;
+      labelMap[key] = primary;
     }
     let best = "";
     let max = 0;
@@ -115,7 +121,7 @@ function SignalSummary({ data }: { data: IntelReport }) {
         best = k;
       }
     }
-    return best || "—";
+    return best ? labelMap[best] : "—";
   })();
 
   const stats = [
@@ -136,7 +142,7 @@ function SignalSummary({ data }: { data: IntelReport }) {
     },
     {
       label: "Top Source",
-      value: topSource.charAt(0).toUpperCase() + topSource.slice(1),
+      value: topSource,
       color: "#7C3AED",
     },
   ];

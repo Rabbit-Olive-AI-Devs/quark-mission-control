@@ -136,7 +136,7 @@ function JournalsList({
   // Only journal-type (YYYY-MM-DD.md) and session files, sorted newest first
   const journals = files
     .filter((f) => f.type === "session" || f.type === "journal")
-    .sort((a, b) => b.name.localeCompare(a.name));
+    .sort((a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime());
 
   if (journals.length === 0) {
     return (
@@ -212,7 +212,7 @@ function MemoryList({
             </button>
             {!isCollapsed && (
               <div className="space-y-0.5 ml-2">
-                {group.map((f) => (
+                {[...group].sort((a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime()).map((f) => (
                   <FileRow
                     key={f.path}
                     name={f.name.replace(".md", "")}
@@ -287,7 +287,7 @@ function KBTreeView({
             </button>
             {!isCollapsed && (
               <div className="space-y-0.5 ml-2">
-                {catFiles.map((f) => (
+                {[...catFiles].sort((a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime()).map((f) => (
                   <FileRow
                     key={f.path}
                     name={f.name.replace(".md", "")}

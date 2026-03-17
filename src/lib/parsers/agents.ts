@@ -220,8 +220,21 @@ export function parseComms(agentName: string): CommsMessage[] {
   const inbound = readCommsFile(`${agentName}-to-quark.md`);
   const outbound = readCommsFile(`quark-to-${agentName}.md`);
 
-  return [
+  const all = [
     ...parseCommsContent(inbound, "inbound"),
     ...parseCommsContent(outbound, "outbound"),
   ];
+
+  // Sort newest first by timestamp (dates like "2026-03-17 09:00 CT")
+  all.sort((a, b) => {
+    if (!a.timestamp && !b.timestamp) return 0;
+    if (!a.timestamp) return 1;
+    if (!b.timestamp) return -1;
+    // Strip timezone suffix for comparison — lexicographic works for YYYY-MM-DD HH:MM
+    const ta = a.timestamp.replace(/\s*C[DS]?T$/, "");
+    const tb = b.timestamp.replace(/\s*C[DS]?T$/, "");
+    return tb.localeCompare(ta);
+  });
+
+  return all;
 }

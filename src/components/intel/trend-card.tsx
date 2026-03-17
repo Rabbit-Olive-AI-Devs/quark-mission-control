@@ -13,7 +13,6 @@ function viralityColor(v: number): string {
 }
 
 function expiryOpacity(expiry: string): number {
-  // Parse expiry like "24h", "48h", "12h" — lower remaining = more urgent = full opacity
   const match = expiry.match(/(\d+)/);
   if (!match) return 0.7;
   const hours = parseInt(match[1], 10);
@@ -38,6 +37,49 @@ function confidenceColor(confidence: string): string {
   return "#94A3B8";
 }
 
+const TAG_COLORS: Record<string, { bg: string; text: string }> = {
+  CONTENT: { bg: "#7C3AED20", text: "#A78BFA" },
+  QUARK: { bg: "#00D4AA20", text: "#00D4AA" },
+  BRIEF: { bg: "#F59E0B20", text: "#F59E0B" },
+  MACRO: { bg: "#EF444420", text: "#EF4444" },
+  COMMUNITY: { bg: "#3B82F620", text: "#60A5FA" },
+  NICHE: { bg: "#10B98120", text: "#10B981" },
+  BREAKING: { bg: "#EF444420", text: "#EF4444" },
+  HOT: { bg: "#F97316", text: "#FB923C" },
+};
+
+const DEFAULT_TAG = { bg: "#94A3B820", text: "#94A3B8" };
+
+/**
+ * Parse "[TAG1+TAG2] Title text" into { tags: string[], cleanTitle: string }
+ */
+function parseTitleTags(title: string): { tags: string[]; cleanTitle: string } {
+  const match = title.match(/^\[([^\]]+)\]\s*/);
+  if (!match) return { tags: [], cleanTitle: title };
+
+  const tagStr = match[1];
+  const tags = tagStr.split("+").map((t) => t.trim()).filter(Boolean);
+  const cleanTitle = title.slice(match[0].length);
+  return { tags, cleanTitle };
+}
+
+function TagPill({ tag }: { tag: string }) {
+  const key = tag.toUpperCase();
+  const colors = TAG_COLORS[key] ?? DEFAULT_TAG;
+
+  return (
+    <span
+      className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase"
+      style={{
+        backgroundColor: colors.bg,
+        color: colors.text,
+      }}
+    >
+      {tag}
+    </span>
+  );
+}
+
 interface TrendCardProps {
   trend: IntelTrend;
   index: number;
@@ -48,13 +90,19 @@ export function TrendCard({ trend, index }: TrendCardProps) {
   const opacity = expiryOpacity(trend.expiry);
   const confColor = confidenceColor(trend.confidence);
   const confLabel = confidenceIcon(trend.confidence);
+  const { tags, cleanTitle } = parseTitleTags(trend.title);
 
   return (
     <GlassCard delay={index * 0.04} hover>
       <div style={{ opacity }}>
-        {/* Top row: source badge */}
+        {/* Top row: source badge + tags + confidence */}
         <div className="flex items-center justify-between mb-2.5">
-          <SourceBadge source={trend.source} />
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <SourceBadge source={trend.source} />
+            {tags.map((tag) => (
+              <TagPill key={tag} tag={tag} />
+            ))}
+          </div>
           <div className="flex items-center gap-1.5">
             <div
               className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold"
@@ -66,9 +114,9 @@ export function TrendCard({ trend, index }: TrendCardProps) {
           </div>
         </div>
 
-        {/* Title */}
+        {/* Title (cleaned of tag prefix) */}
         <h3 className="text-sm font-semibold text-[#F1F5F9] mb-1.5 leading-snug">
-          {trend.title}
+          {cleanTitle}
         </h3>
 
         {/* Angle / summary */}
