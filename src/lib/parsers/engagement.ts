@@ -66,7 +66,8 @@ function computeTrends(actions: EngagementAction[]): DailyAggregate[] {
   const dayMap = new Map<string, EngagementAction[]>();
 
   for (const a of actions) {
-    const date = a.timestamp.slice(0, 10);
+    // Convert UTC timestamp to Chicago date to avoid date-shift (e.g., 10 PM CT = Mar 17 UTC)
+    const date = new Date(a.timestamp).toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
     if (!dayMap.has(date)) dayMap.set(date, []);
     dayMap.get(date)!.push(a);
   }
@@ -92,7 +93,7 @@ function computeTrends(actions: EngagementAction[]): DailyAggregate[] {
 
 function extractBlocks(actions: EngagementAction[]): GuardrailBlock[] {
   return actions
-    .filter((a) => a.guardrailResult !== "pass")
+    .filter((a) => a.guardrailResult !== "pass" && !a.guardrailResult.startsWith("pass:"))
     .map((a) => ({
       timestamp: a.timestamp,
       platform: a.platform,

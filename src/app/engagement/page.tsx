@@ -39,9 +39,16 @@ export default function EngagementPage() {
               </span>
             )}
           </div>
-          <p className="text-sm text-[#94A3B8] mt-1">
-            {data ? `${data.actions.length} actions tracked · ${data.mode} mode` : "Loading..."}
-          </p>
+          <div className="flex items-center gap-3 mt-1">
+            <p className="text-sm text-[#94A3B8]">
+              {data ? `${data.actions.length} actions tracked · ${data.mode} mode` : "Loading..."}
+            </p>
+            {lastUpdated && (
+              <span className="text-xs text-[#94A3B8]/50">
+                · Updated {new Date(lastUpdated).toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" })}
+              </span>
+            )}
+          </div>
         </div>
 
         {loading ? (
@@ -84,7 +91,9 @@ export default function EngagementPage() {
               <ActionFeed actions={data.actions} />
             </ErrorBoundary>
 
-            <CardFooter lastUpdated={lastUpdated} error={error} onRefresh={refetch} />
+            <div className="mt-4">
+              <CardFooter lastUpdated={lastUpdated} error={error} onRefresh={refetch} />
+            </div>
           </>
         )}
       </div>

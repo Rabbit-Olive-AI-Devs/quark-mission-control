@@ -144,15 +144,15 @@ function ActionRow({ action: a }: { action: EngagementAction }) {
           href={targetUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-[#00D4AA] hover:underline truncate flex-1 inline-flex items-center gap-1"
+          className="text-[#00D4AA] hover:underline hover:text-[#00FFD0] truncate flex-1 inline-flex items-center gap-1 cursor-pointer"
           onClick={(e) => e.stopPropagation()}
         >
           {targetLabel}
-          <ExternalLink size={10} className="shrink-0 opacity-50" />
+          <ExternalLink size={10} className="shrink-0" />
         </a>
-      ) : (
-        <span className="text-[#94A3B8] truncate flex-1">{targetLabel}</span>
-      )}
+      ) : targetLabel ? (
+        <span className="text-[#F1F5F9]/60 truncate flex-1">{targetLabel}</span>
+      ) : null}
       {a.text && !expanded && (
         <span className="text-[#94A3B8]/50 truncate max-w-[200px] hidden md:block">
           {a.text.length > 60 ? a.text.slice(0, 60) + "..." : a.text}
