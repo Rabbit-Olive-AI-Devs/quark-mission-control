@@ -371,6 +371,8 @@ export interface SystemInfo {
   diskUsedGb: number;
   diskTotalGb: number;
   uptime: number;
+  osVersion: string;
+  nodeVersion: string;
 }
 
 // --- Social Engagement Dashboard ---

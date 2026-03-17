@@ -49,5 +49,7 @@ export function getSystemInfo(): SystemInfo {
     diskUsedGb,
     diskTotalGb,
     uptime: os.uptime(),
+    osVersion: `${os.type()} ${os.release()}`,
+    nodeVersion: process.version,
   };
 }
