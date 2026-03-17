@@ -318,6 +318,51 @@ export interface CognitiveData {
   activeDegradation: string[];
 }
 
+// Operations
+export interface OperationsDailyUsage {
+  dayKey: string;
+  totalTokens: number;
+  costUSD: number;
+}
+
+export interface OperationsQuota {
+  dailyRemaining: number;
+  dailyLabel: string;
+  weeklyRemaining: number;
+  weeklyLabel: string;
+}
+
+export interface OperationsFallbackNode {
+  name: string;
+  provider: string;
+  status: "active" | "standby" | "error";
+}
+
+export interface OperationsCronReliability {
+  totalJobs: number;
+  okJobs: number;
+  failedJobs: number;
+  disabledJobs: number;
+  successRate: number;
+  recentFailures: { name: string; lastRun: string | null; status: string }[];
+}
+
+export interface OperationsData {
+  generatedAt: string;
+  activeModel: string;
+  quota: OperationsQuota;
+  fallbackChain: OperationsFallbackNode[];
+  dailyUsage: OperationsDailyUsage[];
+  tokenUsage: {
+    sessionTokens: number;
+    sessionCostUSD: number;
+    last30DaysTokens: number;
+    last30DaysCostUSD: number;
+  };
+  cronReliability: OperationsCronReliability;
+  platforms: string[];
+}
+
 // System
 export interface SystemInfo {
   cpuPercent: number;

@@ -15,6 +15,7 @@ import { parseCommandCenter } from "@/lib/parsers/command-center";
 import { parsePipelineData } from "@/lib/parsers/pipeline";
 import { parseCognitive } from "@/lib/parsers/cognitive";
 import { parseEngagement } from "@/lib/parsers/engagement";
+import { parseOperations } from "@/lib/parsers/operations";
 import { computeWorkspaceHash } from "@/lib/hash";
 import { corsHeaders } from "@/lib/cors";
 
@@ -57,6 +58,7 @@ export async function GET(request: Request) {
     pipeline,
     cognitive,
     engagement,
+    operations,
     memoryFiles,
     knowledgeFiles,
     hash,
@@ -83,6 +85,7 @@ export async function GET(request: Request) {
     Promise.resolve(parsePipelineData()),
     Promise.resolve(parseCognitive()),
     Promise.resolve(parseEngagement()),
+    Promise.resolve(parseOperations()),
     Promise.resolve(listMemoryFiles()),
     Promise.resolve(listKnowledgeFiles()),
     computeWorkspaceHash(),
@@ -130,6 +133,7 @@ export async function GET(request: Request) {
     pipeline,
     cognitive,
     engagement,
+    operations,
     memory: { files: memoryFiles },
     knowledge: { files: knowledgeFiles },
   };
