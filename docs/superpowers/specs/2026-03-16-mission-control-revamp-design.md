@@ -159,7 +159,7 @@ This decouples file content from the snapshot, so the snapshot stays small and f
 
 **Merges:** `/metrics-page` + `/command-center`
 
-**Layout:** 4-zone design
+**Layout:** 5-zone design
 
 **Zone 1 — Hero:** Codex quota gauges (from CodexBar snapshot) + active model indicator (gpt-5.3-codex)
 
@@ -167,9 +167,15 @@ This decouples file content from the snapshot, so the snapshot stays small and f
 
 **Zone 3 — Usage:** Daily/weekly token usage and cost from CodexBar snapshot `tokenUsage` and `dailyUsage` fields. Bar chart for last 7 days.
 
-**Zone 4 — Reliability:** Cron success rate gauge, recent failures list, model auth status
+**Zone 4 — Content Performance:** Chandler's inbound content metrics across all platforms:
+- **Top posts:** Highest-performing posts by impressions/likes (from `metrics/daily/*.md`)
+- **Platform cards:** X, TikTok, Instagram, YouTube, Substack — each showing daily totals (impressions, likes, replies/comments, shares/retweets)
+- **7-day sparkline:** Total engagement trend across platforms
+- **Data sources:** `metrics/daily/*.md` (parsed), `metrics/cognitive/*.json` engagement section, `content-engine/state/publish-audit.jsonl` for post URLs
 
-**Parser:** Reads CodexBar widget snapshot + existing command-center JSONL logs + cron stats. No `execSync` calls.
+**Zone 5 — Reliability:** Cron success rate gauge, recent failures list
+
+**Parser:** Reads CodexBar widget snapshot + existing command-center JSONL logs + cron stats + `metrics/daily/` reports + cognitive JSON engagement data. No `execSync` calls.
 
 ---
 
