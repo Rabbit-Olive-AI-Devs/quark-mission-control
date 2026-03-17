@@ -6,20 +6,16 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
-  Clock,
-  Activity,
   Users,
   FileText,
   Radio,
   BookOpen,
-  Database,
   BarChart3,
   Calendar,
   Settings,
   Menu,
   X,
   Brain,
-  BrainCircuit,
   MessageCircle,
 } from "lucide-react";
 import { StatusDot } from "./status-dot";
@@ -27,19 +23,15 @@ import { useDashboardStore } from "@/stores/dashboard";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/cron", label: "Cron Monitor", icon: Clock },
-  { href: "/activity", label: "Activity Feed", icon: Activity },
-  { href: "/agents", label: "Agent Network", icon: Users },
-  { href: "/content", label: "Content Pipeline", icon: FileText },
-  { href: "/intel", label: "Intel Feed", icon: Radio },
-  { href: "/memory-browser", label: "Memory Browser", icon: BookOpen },
-  { href: "/knowledge", label: "Knowledge Base", icon: Database },
-  { href: "/command-center", label: "Command Center", icon: BrainCircuit },
-  { href: "/metrics-page", label: "Metrics", icon: BarChart3 },
+  { href: "/content", label: "Pipeline", icon: FileText },
   { href: "/cognitive", label: "Cognitive", icon: Brain },
   { href: "/engagement", label: "Engagement", icon: MessageCircle },
-  { href: "/calendar", label: "Cron Schedule", icon: Calendar },
-  { href: "/settings", label: "System Info", icon: Settings },
+  { href: "/schedule", label: "Schedule", icon: Calendar },
+  { href: "/operations", label: "Operations", icon: BarChart3 },
+  { href: "/knowledge", label: "Knowledge", icon: BookOpen },
+  { href: "/intel", label: "Intel", icon: Radio },
+  { href: "/agents", label: "Agents", icon: Users },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function Sidebar() {
