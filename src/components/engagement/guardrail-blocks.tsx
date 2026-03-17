@@ -4,18 +4,12 @@ import { Shield, CheckCircle } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import type { GuardrailBlock, DailyAggregate } from "@/lib/parsers/types";
 import { getPlatformColor, PLATFORM_LABELS, formatTimeAgo } from "@/lib/engagement-constants";
+import { humanizeGuardrail } from "@/lib/guardrail-labels";
 
 interface Props {
   blocks: GuardrailBlock[];
   trends: DailyAggregate[];
 }
-
-const REASON_LABELS: Record<string, string> = {
-  sensitive_topic: "Sensitive Topic",
-  rate_limit: "Rate Limit",
-  blocked_handle: "Blocked Handle",
-  length_limit: "Length Limit",
-};
 
 function Sparkline({ data }: { data: number[] }) {
   if (data.length < 2) return null;
@@ -72,8 +66,9 @@ export function GuardrailBlocks({ blocks, trends }: Props) {
               <span
                 key={reason}
                 className="px-2 py-1 rounded-full text-[10px] font-medium bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/20"
+                title={reason}
               >
-                {REASON_LABELS[reason] ?? reason}: {count}
+                {humanizeGuardrail(reason)}: {count}
               </span>
             ))}
           </div>
@@ -91,8 +86,11 @@ export function GuardrailBlocks({ blocks, trends }: Props) {
                 />
                 <span className="text-[#F1F5F9] shrink-0">{PLATFORM_LABELS[b.platform] ?? b.platform}</span>
                 <span className="text-[#94A3B8]">{b.action}</span>
-                <span className="px-1.5 py-0.5 rounded text-[9px] bg-[#EF4444]/10 text-[#EF4444]">
-                  {REASON_LABELS[b.reason] ?? b.reason}
+                <span className="flex flex-col gap-0.5">
+                  <span className="px-1.5 py-0.5 rounded text-[9px] bg-[#EF4444]/10 text-[#EF4444]">
+                    {humanizeGuardrail(b.reason)}
+                  </span>
+                  <span className="text-[8px] text-[#94A3B8]/40 px-1.5">{b.reason}</span>
                 </span>
                 {b.targetAuthor && (
                   <span className="text-[#94A3B8] ml-auto hidden md:inline">{b.targetAuthor}</span>

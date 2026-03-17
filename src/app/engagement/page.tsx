@@ -5,6 +5,7 @@ import { MessageCircle } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { GlassCard } from "@/components/ui/glass-card";
+import { CardFooter } from "@/components/ui/card-footer";
 import { useApi } from "@/hooks/use-api";
 import { useDashboardStore } from "@/stores/dashboard";
 import { UnansweredAlert } from "@/components/engagement/unanswered-alert";
@@ -15,7 +16,7 @@ import { ActionFeed } from "@/components/engagement/action-feed";
 import type { EngagementData } from "@/lib/parsers/types";
 
 export default function EngagementPage() {
-  const { data, loading } = useApi<EngagementData>("/api/engagement", {
+  const { data, loading, error, lastUpdated, refetch } = useApi<EngagementData>("/api/engagement", {
     snapshotKey: "engagement",
     refreshOn: ["engagement"],
   });
@@ -82,6 +83,8 @@ export default function EngagementPage() {
             <ErrorBoundary>
               <ActionFeed actions={data.actions} />
             </ErrorBoundary>
+
+            <CardFooter lastUpdated={lastUpdated} error={error} onRefresh={refetch} />
           </>
         )}
       </div>

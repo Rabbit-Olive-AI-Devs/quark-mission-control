@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Activity } from "lucide-react";
+import { Activity, ExternalLink } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import type { EngagementAction } from "@/lib/parsers/types";
 import {
@@ -110,7 +110,8 @@ function FilterPill({ label, active, color, onClick }: { label: string; active: 
 
 function getTargetUrl(platform: string, targetId: string): string | null {
   if (!targetId) return null;
-  if (platform === "x") return `https://x.com/i/status/${targetId}`;
+  if (targetId.startsWith("http")) return targetId;
+  if (platform === "x" && /^\d+$/.test(targetId)) return `https://x.com/i/status/${targetId}`;
   if (platform === "youtube") return `https://youtube.com/watch?v=${targetId}`;
   return null;
 }
@@ -143,10 +144,11 @@ function ActionRow({ action: a }: { action: EngagementAction }) {
           href={targetUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-[#00D4AA] hover:underline truncate flex-1"
+          className="text-[#00D4AA] hover:underline truncate flex-1 inline-flex items-center gap-1"
           onClick={(e) => e.stopPropagation()}
         >
           {targetLabel}
+          <ExternalLink size={10} className="shrink-0 opacity-50" />
         </a>
       ) : (
         <span className="text-[#94A3B8] truncate flex-1">{targetLabel}</span>
