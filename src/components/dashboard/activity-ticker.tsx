@@ -4,10 +4,13 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { CardFooter } from "@/components/ui/card-footer";
 import { Activity } from "lucide-react";
 import { useApi } from "@/hooks/use-api";
-import type { DigestEntry } from "@/lib/parsers/types";
+import type { DigestEntry, PendingActions } from "@/lib/parsers/types";
 
 export function ActivityTicker() {
   const { data, loading, error, lastUpdated, refetch } = useApi<{ sections: DigestEntry[] }>("/api/digest", { snapshotKey: "digest", refreshOn: ["digest"] });
+  const { data: pending } = useApi<PendingActions>("/api/pending", { snapshotKey: "pending", refreshOn: ["pending"] });
+
+  const pendingCount = (pending?.dmDrafts.length || 0) + (pending?.xDrafts.length || 0) + (pending?.emailDrafts.length || 0);
 
   if (loading) {
     return (
@@ -39,7 +42,14 @@ export function ActivityTicker() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Activity size={16} className="text-[#00D4AA]" />
-          <h3 className="text-sm font-medium">Activity</h3>
+          <h3 className="text-sm font-medium">
+            Activity
+            {pendingCount > 0 && (
+              <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-[#F59E0B]/10 text-[#F59E0B] font-normal">
+                {pendingCount} pending
+              </span>
+            )}
+          </h3>
         </div>
         <span className="text-xs text-[#94A3B8]">{allItems.length} entries today</span>
       </div>

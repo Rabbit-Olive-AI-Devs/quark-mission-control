@@ -7,6 +7,7 @@ import { StatusDot } from "@/components/ui/status-dot";
 import { AgentAvatar } from "@/components/ui/agent-avatar";
 import { Users } from "lucide-react";
 import { useApi } from "@/hooks/use-api";
+import { formatTimeAgo } from "@/lib/utils";
 import type { AgentStatus, BroadcastStatus } from "@/lib/parsers/types";
 
 const agentRoles: Record<string, string> = {
@@ -17,6 +18,12 @@ const agentRoles: Record<string, string> = {
   "mse-6": "Mac Maintenance Droid",
   mse6: "Mac Maintenance Droid",
 };
+
+function isRecentActivity(timestamp: string | null): boolean {
+  if (!timestamp) return false;
+  const diff = Date.now() - new Date(timestamp).getTime();
+  return diff < 2 * 60 * 60 * 1000; // 2 hours
+}
 
 export function AgentBar() {
   const router = useRouter();
@@ -59,28 +66,36 @@ export function AgentBar() {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        {agents.map((agent) => (
-          <button
-            key={agent.config.name}
-            onClick={() => router.push(`/agents?agent=${agent.config.name}`)}
-            className="flex flex-col items-center gap-3 p-5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-all hover:scale-[1.02] cursor-pointer"
-          >
-            <div className="relative">
-              <AgentAvatar name={agent.config.name} size={72} glow={agent.hasInbound} />
-              <div className="absolute -bottom-0.5 -right-0.5">
-                <StatusDot
-                  status={agent.hasInbound ? "active" : "idle"}
-                  size="sm"
-                  pulse={agent.hasInbound}
-                />
+        {agents.map((agent) => {
+          const recent = isRecentActivity(agent.latestTimestamp);
+          const ringColor = recent ? "ring-[#10B981]/40" : "ring-[#94A3B8]/20";
+
+          return (
+            <button
+              key={agent.config.name}
+              onClick={() => router.push(`/agents?agent=${agent.config.name}`)}
+              className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-all hover:scale-[1.02] cursor-pointer"
+            >
+              <div className={`relative ring-2 rounded-full ${ringColor}`}>
+                <AgentAvatar name={agent.config.name} size={56} glow={agent.hasInbound} />
+                <div className="absolute -bottom-0.5 -right-0.5">
+                  <StatusDot
+                    status={agent.hasInbound ? "active" : "idle"}
+                    size="sm"
+                    pulse={agent.hasInbound}
+                  />
+                </div>
               </div>
-            </div>
-            <span className="text-sm font-medium text-[#F1F5F9]">{agent.config.name}</span>
-            <span className="text-[10px] text-[#94A3B8] text-center line-clamp-1">
-              {agentRoles[agent.config.name.toLowerCase()] || agent.config.description.split("—")[0]?.trim()}
-            </span>
-          </button>
-        ))}
+              <span className="text-xs font-medium text-[#F1F5F9]">{agent.config.name}</span>
+              <span className="text-[10px] text-[#94A3B8] text-center line-clamp-1">
+                {agentRoles[agent.config.name.toLowerCase()] || agent.config.description.split("—")[0]?.trim()}
+              </span>
+              <span className={`text-[9px] ${recent ? "text-[#10B981]" : "text-[#4B5563]"}`}>
+                {agent.latestTimestamp ? formatTimeAgo(agent.latestTimestamp) : "no activity"}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       <CardFooter lastUpdated={lastUpdated} error={error} onRefresh={refetch} />
