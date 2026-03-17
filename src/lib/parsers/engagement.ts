@@ -7,6 +7,8 @@ import type {
   DailyAggregate,
   GuardrailBlock,
   InboundGap,
+  EngagementUnifiedKpis,
+  EngagementSourceCoverage,
 } from "./types";
 
 const AUDIT_PATH = path.join(WORKSPACE_PATH, "content-engine/state/engagement-audit.jsonl");
@@ -160,6 +162,46 @@ function readInboundGap(): InboundGap {
   }
 }
 
+function computeUnifiedKpis(actions: EngagementAction[], inboundGap: InboundGap): EngagementUnifiedKpis {
+  const totalInteractions = actions.length;
+  const impressions = inboundGap.totalReceived;
+  const engagementRate = impressions > 0 ? totalInteractions / impressions : 0;
+
+  const repliesSent = actions.filter((a) => a.action === "reply").length;
+  const reach = impressions;
+
+  return {
+    visibility: {
+      impressions,
+      reach,
+    },
+    engagement: {
+      totalInteractions,
+      engagementRate,
+    },
+    responsiveness: {
+      repliesSent,
+      unansweredCount: inboundGap.unansweredCount,
+      replyRate: inboundGap.replyRate,
+    },
+    growth: {
+      followerDelta: 0,
+    },
+    conversion: {
+      linkClicks: 0,
+      ctr: 0,
+    },
+  };
+}
+
+function computeSourceCoverage(): EngagementSourceCoverage {
+  return {
+    chandler: fs.existsSync(COGNITIVE_DIR),
+    genviral: fs.existsSync(path.join(WORKSPACE_PATH, "content-engine/state/publish-jobs")),
+    engagementAudit: fs.existsSync(AUDIT_PATH),
+  };
+}
+
 export function parseEngagement(): EngagementData {
   const lines = readLastLines(AUDIT_PATH, MAX_LINES);
   const actions: EngagementAction[] = [];
@@ -170,12 +212,16 @@ export function parseEngagement(): EngagementData {
 
   actions.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 
+  const inboundGap = readInboundGap();
+
   return {
     actions,
     today: computeToday(actions),
     trends: computeTrends(actions),
     guardrailBlocks: extractBlocks(actions),
-    inboundGap: readInboundGap(),
+    inboundGap,
     mode: readEngagementMode(),
+    unifiedKpis: computeUnifiedKpis(actions, inboundGap),
+    sourceCoverage: computeSourceCoverage(),
   };
 }

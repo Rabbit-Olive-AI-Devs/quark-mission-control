@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Heart, MessageCircle, Globe, ShieldAlert } from "lucide-react";
+import { Heart, MessageCircle, Globe, ShieldAlert, Eye, Activity } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import type { EngagementData } from "@/lib/parsers/types";
 import { getPlatformColor, PLATFORM_LABELS } from "@/lib/engagement-constants";
@@ -39,10 +39,17 @@ function Gauge({ value, max = 1, color }: { value: number; max?: number; color: 
 }
 
 export function EngagementScorecards({ data }: Props) {
-  const { today, inboundGap, guardrailBlocks } = data;
+  const { today, inboundGap, guardrailBlocks, unifiedKpis } = data;
 
   const replyColor =
     inboundGap.replyRate >= 0.5 ? "#10B981" : inboundGap.replyRate >= 0.3 ? "#F59E0B" : "#EF4444";
+
+  const engagementColor =
+    unifiedKpis.engagement.engagementRate >= 0.05
+      ? "#10B981"
+      : unifiedKpis.engagement.engagementRate >= 0.02
+        ? "#F59E0B"
+        : "#EF4444";
 
   const activePlatforms = Object.keys(today.byPlatform);
   const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
@@ -54,11 +61,18 @@ export function EngagementScorecards({ data }: Props) {
 
   const cards = [
     {
-      icon: Heart,
-      label: "Actions Today",
-      value: String(today.total),
-      color: "#00D4AA",
-      detail: actionBreakdown || "No actions yet",
+      icon: Eye,
+      label: "Impressions",
+      value: String(unifiedKpis.visibility.impressions),
+      color: "#3B82F6",
+      detail: "Inbound visibility",
+    },
+    {
+      icon: Activity,
+      label: "Engagement Rate",
+      value: null,
+      color: engagementColor,
+      detail: `${Math.round(unifiedKpis.engagement.totalInteractions)} interactions`,
     },
     {
       icon: MessageCircle,
@@ -66,6 +80,13 @@ export function EngagementScorecards({ data }: Props) {
       value: null,
       color: replyColor,
       detail: `${inboundGap.totalReplied}/${inboundGap.totalReceived} replied`,
+    },
+    {
+      icon: Heart,
+      label: "Actions Today",
+      value: String(today.total),
+      color: "#00D4AA",
+      detail: actionBreakdown || "No actions yet",
     },
     {
       icon: Globe,
@@ -84,7 +105,7 @@ export function EngagementScorecards({ data }: Props) {
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
       {cards.map((card, i) => (
         <motion.div
           key={card.label}
@@ -100,6 +121,8 @@ export function EngagementScorecards({ data }: Props) {
 
             {card.label === "Reply Rate" ? (
               <Gauge value={inboundGap.replyRate} color={replyColor} />
+            ) : card.label === "Engagement Rate" ? (
+              <Gauge value={unifiedKpis.engagement.engagementRate} max={0.1} color={engagementColor} />
             ) : card.label === "Platforms Active" ? (
               <div className="text-center">
                 <div className="text-2xl font-bold text-[#F1F5F9] mb-2">{card.value}</div>

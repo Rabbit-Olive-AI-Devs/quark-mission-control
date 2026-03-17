@@ -39,10 +39,18 @@ export default function EngagementPage() {
               </span>
             )}
           </div>
-          <div className="flex items-center gap-3 mt-1">
+          <div className="flex items-center gap-3 mt-1 flex-wrap">
             <p className="text-sm text-[#94A3B8]">
               {data ? `${data.actions.length} actions tracked · ${data.mode} mode` : "Loading..."}
             </p>
+            {data && (
+              <span className="text-xs text-[#94A3B8]/70">
+                · Sources: {Object.entries(data.sourceCoverage)
+                  .filter(([, ok]) => ok)
+                  .map(([name]) => name)
+                  .join(", ") || "none"}
+              </span>
+            )}
             {lastUpdated && (
               <span className="text-xs text-[#94A3B8]/50">
                 · Updated {new Date(lastUpdated).toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" })}
