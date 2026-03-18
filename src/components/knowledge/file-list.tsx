@@ -133,9 +133,9 @@ function JournalsList({
   selectedPath: string | null;
   onSelect: (path: string) => void;
 }) {
-  // Only journal-type (YYYY-MM-DD.md) and session files, sorted newest first
+  // Only actual journal files (from memory/journal/), not session logs
   const journals = files
-    .filter((f) => f.type === "session" || f.type === "journal")
+    .filter((f) => f.type === "journal")
     .sort((a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime());
 
   if (journals.length === 0) {

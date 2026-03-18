@@ -42,7 +42,7 @@ export default function KnowledgePage() {
 
   // Counts for tab badges
   const journalCount = memoryFiles.filter(
-    (f) => f.type === "session" || f.type === "journal"
+    (f) => f.type === "journal"
   ).length;
 
   const loadFile = useCallback(async (filePath: string) => {
@@ -51,25 +51,36 @@ export default function KnowledgePage() {
     setMobileReaderOpen(true);
 
     try {
-      // KB files have paths like "knowledge-base/..." — need "shared/" prefix for the catch-all route.
-      // Memory files have paths like "memory/..." — already valid for the catch-all route.
-      const apiPath = filePath.startsWith("knowledge-base/")
-        ? `shared/${filePath}`
-        : filePath;
-      const res = await fetch(
+      const isKb = filePath.startsWith("knowledge-base/");
+
+      // 1) Prefer filesystem catch-all (fast path in local mode)
+      const apiPath = isKb ? `shared/${filePath}` : filePath;
+      const direct = await fetch(
         `/api/knowledge/${apiPath.split("/").map(encodeURIComponent).join("/")}`
       );
-      if (!res.ok) {
-        // Fallback: try memory slug route (for legacy compat)
-        const fallback = await fetch(
-          `/api/memory?slug=${encodeURIComponent(filePath)}`
-        );
-        const json = await fallback.json();
+
+      if (direct.ok) {
+        const json = await direct.json();
         setFileContent(json.content || "No content");
-      } else {
-        const json = await res.json();
-        setFileContent(json.content || "No content");
+        return;
       }
+
+      // 2) Remote/snapshot fallback for KB files
+      if (isKb) {
+        const kbFallback = await fetch(
+          `/api/knowledge?slug=${encodeURIComponent(filePath)}`
+        );
+        if (kbFallback.ok) {
+          const json = await kbFallback.json();
+          setFileContent(json.content || "No content available");
+          return;
+        }
+      }
+
+      // 3) Legacy fallback for memory files
+      const memFallback = await fetch(`/api/memory?slug=${encodeURIComponent(filePath)}`);
+      const json = await memFallback.json();
+      setFileContent(json.content || "No content");
     } catch {
       setFileContent("Error loading file");
     } finally {
