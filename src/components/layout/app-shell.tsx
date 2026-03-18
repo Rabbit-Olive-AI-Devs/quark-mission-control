@@ -1,6 +1,6 @@
 "use client";
 
-import { Sidebar } from "@/components/ui/sidebar";
+import { Sidebar } from "@/components/layout/Sidebar";
 import { useSSE } from "@/hooks/use-sse";
 import { useHashPolling } from "@/hooks/use-hash-polling";
 import { useDashboardStore } from "@/stores/dashboard";
