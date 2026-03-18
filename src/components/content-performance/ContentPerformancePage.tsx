@@ -9,11 +9,28 @@ import { AuditTrailTable } from "./AuditTrailTable";
 import { WindowSelector } from "./WindowSelector";
 import { LastRefreshBadge } from "./LastRefreshBadge";
 import { StaleDataBanner } from "./StaleDataBanner";
-import { EvolutionCharts } from "./EvolutionCharts";
+import { EvolutionCharts, type EvolutionRow } from "./EvolutionCharts";
 import { TopPostsTable } from "./TopPostsTable";
 import { PlatformBreakdownTabs } from "./PlatformBreakdownTabs";
 import { ContentTypeComparisonChart } from "./ContentTypeComparisonChart";
 import type { ContentPerformanceAuditEvent } from "@/lib/content-performance/audit-log";
+
+interface TopPostRow {
+  id: string;
+  platform: string;
+  normalizedScore: number;
+  rawMetrics: {
+    likes?: number;
+    comments?: number;
+    shares?: number;
+    views?: number | null;
+  };
+}
+
+interface ContentTypeRow {
+  contentType: string;
+  score: number;
+}
 
 interface ContentPerformancePageProps {
   dataset?: unknown[] | null;
@@ -23,7 +40,31 @@ interface ContentPerformancePageProps {
   auditEvents?: ContentPerformanceAuditEvent[];
   stale?: boolean;
   lastSuccessAt?: string | null;
+  evolutionRows?: EvolutionRow[];
+  topPosts?: TopPostRow[];
+  contentTypeRows?: ContentTypeRow[];
 }
+
+const defaultEvolutionRows: EvolutionRow[] = [
+  { dayKey: "2026-03-12", publishes: 2, totalEngagements: 40, engagementPerPost: 20, rolling7d: 18 },
+  { dayKey: "2026-03-13", publishes: 3, totalEngagements: 55, engagementPerPost: 18.3, rolling7d: 20 },
+  { dayKey: "2026-03-14", publishes: 2, totalEngagements: 52, engagementPerPost: 26, rolling7d: 21 },
+];
+
+const defaultTopPosts: TopPostRow[] = [
+  {
+    id: "x-1",
+    platform: "x",
+    normalizedScore: 1.22,
+    rawMetrics: { likes: 44, comments: 7, shares: 5, views: 1200 },
+  },
+];
+
+const defaultContentTypeRows: ContentTypeRow[] = [
+  { contentType: "analysis", score: 0.84 },
+  { contentType: "story", score: 0.71 },
+  { contentType: "tutorial", score: 0.67 },
+];
 
 export function ContentPerformancePage({
   dataset = null,
@@ -33,23 +74,11 @@ export function ContentPerformancePage({
   auditEvents = [],
   stale = false,
   lastSuccessAt,
+  evolutionRows = defaultEvolutionRows,
+  topPosts = defaultTopPosts,
+  contentTypeRows = defaultContentTypeRows,
 }: ContentPerformancePageProps) {
   const [windowDays, setWindowDays] = useState<7 | 14 | 30>(7);
-
-  const evolutionRows = [
-    { dayKey: "2026-03-12", publishes: 2, totalEngagements: 40, engagementPerPost: 20, rolling7d: 18 },
-    { dayKey: "2026-03-13", publishes: 3, totalEngagements: 55, engagementPerPost: 18.3, rolling7d: 20 },
-    { dayKey: "2026-03-14", publishes: 2, totalEngagements: 52, engagementPerPost: 26, rolling7d: 21 },
-  ];
-
-  const topPosts = [
-    {
-      id: "x-1",
-      platform: "x",
-      normalizedScore: 1.22,
-      rawMetrics: { likes: 44, comments: 7, shares: 5, views: 1200 },
-    },
-  ];
 
   return (
     <div className="max-w-6xl mx-auto space-y-4">
@@ -91,13 +120,7 @@ export function ContentPerformancePage({
           substack: "Substack engagement breakdown",
         }}
       />
-      <ContentTypeComparisonChart
-        rows={[
-          { contentType: "analysis", score: 0.84 },
-          { contentType: "story", score: 0.71 },
-          { contentType: "tutorial", score: 0.67 },
-        ]}
-      />
+      <ContentTypeComparisonChart rows={contentTypeRows} />
 
       <AuditTrailTable events={auditEvents} />
     </div>
