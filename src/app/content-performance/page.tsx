@@ -3,7 +3,14 @@ import { ContentPerformancePage } from "@/components/content-performance/Content
 import { readAuditEvents } from "@/lib/content-performance/audit-log";
 
 export default async function ContentPerformanceRoute() {
-  const auditEvents = readAuditEvents();
+  let auditEvents = [];
+
+  try {
+    auditEvents = readAuditEvents();
+  } catch (error) {
+    console.error("Failed to read content performance audit events", error);
+    auditEvents = [];
+  }
 
   return (
     <AppShell>

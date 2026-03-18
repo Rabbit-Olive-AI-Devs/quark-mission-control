@@ -2,12 +2,15 @@ import { Megaphone } from "lucide-react";
 import { ContentPerformanceEmpty } from "./ContentPerformanceEmpty";
 import { ContentPerformanceError } from "./ContentPerformanceError";
 import { ContentPerformanceSkeleton } from "./ContentPerformanceSkeleton";
+import { AuditTrailTable } from "./AuditTrailTable";
+import type { ContentPerformanceAuditEvent } from "@/lib/content-performance/audit-log";
 
 interface ContentPerformancePageProps {
   dataset?: unknown[] | null;
   error?: string | null;
   loading?: boolean;
   lastRefresh?: string;
+  auditEvents?: ContentPerformanceAuditEvent[];
 }
 
 export function ContentPerformancePage({
@@ -60,18 +63,6 @@ export function ContentPerformancePage({
       )}
 
       <AuditTrailTable events={auditEvents} />
-    </div>
-  );
-}
-
-      )}
-    </div>
-  );
-}
-erformanceEmpty />
-      ) : (
-        <ContentPerformanceEmpty />
-      )}
     </div>
   );
 }
