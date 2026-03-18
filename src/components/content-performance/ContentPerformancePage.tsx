@@ -15,6 +15,7 @@ export function ContentPerformancePage({
   error = null,
   loading = false,
   lastRefresh,
+  auditEvents = [],
 }: ContentPerformancePageProps) {
   return (
     <div className="max-w-6xl mx-auto">
@@ -54,6 +55,20 @@ export function ContentPerformancePage({
         <ContentPerformanceError message={error} />
       ) : !dataset || dataset.length === 0 ? (
         <ContentPerformanceEmpty />
+      ) : (
+        <ContentPerformanceEmpty />
+      )}
+
+      <AuditTrailTable events={auditEvents} />
+    </div>
+  );
+}
+
+      )}
+    </div>
+  );
+}
+erformanceEmpty />
       ) : (
         <ContentPerformanceEmpty />
       )}
