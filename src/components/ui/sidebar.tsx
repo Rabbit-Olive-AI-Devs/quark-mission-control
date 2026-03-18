@@ -12,6 +12,7 @@ import {
   BookOpen,
   BarChart3,
   Calendar,
+  Megaphone,
   Settings,
   Menu,
   X,
@@ -28,6 +29,7 @@ const navItems = [
   { href: "/engagement", label: "Engagement", icon: MessageCircle },
   { href: "/schedule", label: "Schedule", icon: Calendar },
   { href: "/operations", label: "Operations", icon: BarChart3 },
+  { href: "/content-performance", label: "Content Performance", icon: Megaphone },
   { href: "/knowledge", label: "Knowledge", icon: BookOpen },
   { href: "/intel", label: "Intel", icon: Radio },
   { href: "/agents", label: "Agents", icon: Users },
@@ -40,11 +42,6 @@ export function Sidebar() {
   const cognitiveDegradation = useDashboardStore((s) => s.cognitiveDegradation);
   const engagementUnanswered = useDashboardStore((s) => s.engagementUnanswered);
   const [open, setOpen] = useState(false);
-
-  // Close sidebar on route change (mobile)
-  useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
 
   // Prevent body scroll when mobile sidebar is open
   useEffect(() => {

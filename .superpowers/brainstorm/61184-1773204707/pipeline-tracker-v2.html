@@ -1,0 +1,245 @@
+<h2>Pipeline Tracker — B vs C Deep Dive</h2>
+<p class="subtitle">More detailed mockups with real pipeline data and interaction patterns</p>
+
+<div class="split">
+  <div class="mockup" data-choice="b" onclick="toggleSelect(this)" style="cursor: pointer;">
+    <div class="mockup-header">B — Orbital Radar (expanded)</div>
+    <div class="mockup-body" style="background: #0A0E17; padding: 24px; min-height: 420px; position: relative; overflow: hidden;">
+      <!-- Radar container -->
+      <div style="display: flex; gap: 24px; align-items: flex-start;">
+        <!-- Radar visualization -->
+        <div style="position: relative; width: 220px; height: 220px; flex-shrink: 0;">
+          <!-- Rings -->
+          <div style="position: absolute; inset: 0; border: 1px solid #ffffff08; border-radius: 50%;"></div>
+          <div style="position: absolute; inset: 22px; border: 1px solid #ffffff08; border-radius: 50%;"></div>
+          <div style="position: absolute; inset: 44px; border: 1px solid #ffffff08; border-radius: 50%;"></div>
+          <div style="position: absolute; inset: 66px; border: 1px solid #ffffff0a; border-radius: 50%;"></div>
+          <!-- Center glow -->
+          <div style="position: absolute; inset: 88px; background: radial-gradient(circle, #00D4AA33, transparent); border-radius: 50%;"></div>
+          <div style="position: absolute; inset: 98px; background: #00D4AA; border-radius: 50%; box-shadow: 0 0 24px #00D4AA66;"></div>
+
+          <!-- Sweep line (static representation) -->
+          <div style="position: absolute; top: 50%; left: 50%; width: 110px; height: 40px; transform-origin: left center; transform: rotate(-45deg); background: linear-gradient(90deg, #00D4AA22, transparent); clip-path: polygon(0 50%, 100% 0, 100% 100%);"></div>
+
+          <!-- Cross-hairs -->
+          <div style="position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: #ffffff06;"></div>
+          <div style="position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: #ffffff06;"></div>
+
+          <!-- Stage dots - completed (green, outer ring) -->
+          <div style="position: absolute; top: -4px; left: 50%; transform: translateX(-50%); width: 10px; height: 10px; background: #10B981; border-radius: 50%; box-shadow: 0 0 6px #10B98166;" title="L1 Gate"></div>
+          <div style="position: absolute; top: 16px; right: 16px; width: 10px; height: 10px; background: #10B981; border-radius: 50%; box-shadow: 0 0 6px #10B98166;" title="L2 Proof"></div>
+          <div style="position: absolute; top: 50%; right: -4px; transform: translateY(-50%); width: 10px; height: 10px; background: #10B981; border-radius: 50%; box-shadow: 0 0 6px #10B98166;" title="L2b Screenshot"></div>
+          <div style="position: absolute; bottom: 16px; right: 16px; width: 10px; height: 10px; background: #10B981; border-radius: 50%; box-shadow: 0 0 6px #10B98166;" title="L3 Script"></div>
+          <div style="position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%); width: 10px; height: 10px; background: #10B981; border-radius: 50%; box-shadow: 0 0 6px #10B98166;" title="L4a Manifest"></div>
+
+          <!-- Active stage (cyan, pulsing) -->
+          <div style="position: absolute; bottom: 16px; left: 16px; width: 14px; height: 14px; background: #00D4AA; border-radius: 50%; box-shadow: 0 0 16px #00D4AA88; animation: pulse 2s infinite;" title="L4b HeyGen — ACTIVE"></div>
+
+          <!-- Pending stages (dim) -->
+          <div style="position: absolute; top: 50%; left: -4px; transform: translateY(-50%); width: 8px; height: 8px; border: 1px solid #374151; border-radius: 50;" title="L4c Clips"></div>
+          <div style="position: absolute; top: 16px; left: 16px; width: 8px; height: 8px; border: 1px solid #374151; border-radius: 50%;" title="L5a Preview"></div>
+
+          <!-- Labels -->
+          <div style="position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 8px; color: #94A3B8; font-family: monospace;">L1</div>
+          <div style="position: absolute; bottom: 24px; left: 2px; font-size: 8px; color: #00D4AA; font-family: monospace; font-weight: 600;">L4b</div>
+        </div>
+
+        <!-- Info panel -->
+        <div style="flex: 1; padding-top: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+            <div style="font-size: 20px; font-weight: 700; color: #F1F5F9; font-family: monospace;">005</div>
+            <div style="font-size: 10px; color: #0A0E17; background: #00D4AA; padding: 2px 8px; border-radius: 3px; font-weight: 600;">ACTIVE</div>
+          </div>
+
+          <div style="font-size: 11px; color: #94A3B8; margin-bottom: 12px;">
+            <span style="color: #00D4AA; font-family: monospace;">heygen_submitted</span>
+            <span style="margin-left: 8px;">→ waiting for render</span>
+          </div>
+
+          <!-- Stage timeline -->
+          <div style="border-left: 2px solid #ffffff0a; padding-left: 12px; margin-bottom: 16px;">
+            <div style="margin-bottom: 8px; position: relative;">
+              <div style="position: absolute; left: -17px; top: 3px; width: 8px; height: 8px; background: #10B981; border-radius: 50%;"></div>
+              <div style="font-size: 10px; color: #10B981; font-family: monospace;">gate_passed</div>
+              <div style="font-size: 9px; color: #4B5563;">2.1s • relevance: 0.85</div>
+            </div>
+            <div style="margin-bottom: 8px; position: relative;">
+              <div style="position: absolute; left: -17px; top: 3px; width: 8px; height: 8px; background: #10B981; border-radius: 50%;"></div>
+              <div style="font-size: 10px; color: #10B981; font-family: monospace;">script_ready</div>
+              <div style="font-size: 9px; color: #4B5563;">8.4s • cassian_script used</div>
+            </div>
+            <div style="margin-bottom: 8px; position: relative;">
+              <div style="position: absolute; left: -17px; top: 3px; width: 10px; height: 10px; background: #00D4AA; border-radius: 50%; box-shadow: 0 0 8px #00D4AA66;"></div>
+              <div style="font-size: 10px; color: #00D4AA; font-family: monospace; font-weight: 600;">heygen_submitted</div>
+              <div style="font-size: 9px; color: #F59E0B;">⏱ 4m 32s elapsed</div>
+            </div>
+            <div style="position: relative;">
+              <div style="position: absolute; left: -17px; top: 3px; width: 8px; height: 8px; border: 1px solid #374151; border-radius: 50%;"></div>
+              <div style="font-size: 10px; color: #374151; font-family: monospace;">preview_sent</div>
+              <div style="font-size: 9px; color: #374151;">pending</div>
+            </div>
+          </div>
+
+          <!-- Meta tags -->
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+            <span style="font-size: 9px; color: #7C3AED; background: #7C3AED15; padding: 2px 6px; border-radius: 3px; border: 1px solid #7C3AED22;">proof</span>
+            <span style="font-size: 9px; color: #00D4AA; background: #00D4AA15; padding: 2px 6px; border-radius: 3px; border: 1px solid #00D4AA22;">authority</span>
+            <span style="font-size: 9px; color: #F59E0B; background: #F59E0B15; padding: 2px 6px; border-radius: 3px; border: 1px solid #F59E0B22; font-family: monospace;">v: 7</span>
+            <span style="font-size: 9px; color: #94A3B8; background: #ffffff08; padding: 2px 6px; border-radius: 3px;">tiktok + reels</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom info bar -->
+      <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, #00D4AA22, transparent);"></div>
+      <div style="position: absolute; bottom: 8px; left: 24px; right: 24px; display: flex; justify-content: space-between; font-size: 9px; color: #4B5563; font-family: monospace;">
+        <span>started 12m ago</span>
+        <span>ETA ~8m (heygen avg: 6m)</span>
+      </div>
+
+      <style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}</style>
+    </div>
+  </div>
+
+  <div class="mockup" data-choice="c" onclick="toggleSelect(this)" style="cursor: pointer;">
+    <div class="mockup-header">C — Segmented Progress (expanded)</div>
+    <div class="mockup-body" style="background: #0A0E17; padding: 24px; min-height: 420px; position: relative; overflow: hidden;">
+      <div style="position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, #00D4AA22, transparent);"></div>
+
+      <!-- Header row -->
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+        <div style="width: 12px; height: 12px; background: #00D4AA; border-radius: 50%; box-shadow: 0 0 14px #00D4AA66; animation: pulse 2s infinite;"></div>
+        <span style="color: #F1F5F9; font-size: 18px; font-weight: 700; font-family: monospace;">005</span>
+        <span style="color: #00D4AA; font-size: 11px; font-family: monospace; background: #00D4AA11; padding: 3px 10px; border-radius: 4px; border: 1px solid #00D4AA22;">heygen_submitted</span>
+        <span style="color: #F59E0B; font-size: 10px; font-family: monospace; margin-left: auto;">⏱ 4m 32s</span>
+      </div>
+
+      <!-- Segmented progress bar with labels -->
+      <div style="margin-bottom: 6px;">
+        <div style="display: flex; gap: 3px; height: 8px;">
+          <div style="flex: 1; background: #10B981; border-radius: 3px;" title="L1 Gate"></div>
+          <div style="flex: 1; background: #10B981; border-radius: 3px;" title="L2 Proof"></div>
+          <div style="flex: 1; background: #10B981; border-radius: 3px;" title="L2b Screenshot"></div>
+          <div style="flex: 1; background: #10B981; border-radius: 3px;" title="L3 Script"></div>
+          <div style="flex: 1; background: #10B981; border-radius: 3px;" title="L4a Manifest"></div>
+          <div style="flex: 2; background: linear-gradient(90deg, #00D4AA, #00D4AA55); border-radius: 3px; box-shadow: 0 0 10px #00D4AA33; animation: glowBar 2s infinite;" title="L4b+c HeyGen"></div>
+          <div style="flex: 1; background: #1a1f2e; border-radius: 3px;" title="L5a Assembly"></div>
+          <div style="flex: 1; background: #1a1f2e; border-radius: 3px;" title="L5b Preview"></div>
+          <div style="flex: 1; background: #1a1f2e; border-radius: 3px;" title="L5c Publish"></div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 3px; margin-bottom: 20px;">
+        <div style="flex: 1; font-size: 7px; color: #4B5563; text-align: center;">Gate</div>
+        <div style="flex: 1; font-size: 7px; color: #4B5563; text-align: center;">Proof</div>
+        <div style="flex: 1; font-size: 7px; color: #4B5563; text-align: center;">Shot</div>
+        <div style="flex: 1; font-size: 7px; color: #4B5563; text-align: center;">Script</div>
+        <div style="flex: 1; font-size: 7px; color: #4B5563; text-align: center;">Spec</div>
+        <div style="flex: 2; font-size: 7px; color: #00D4AA; text-align: center; font-weight: 600;">HeyGen</div>
+        <div style="flex: 1; font-size: 7px; color: #4B5563; text-align: center;">Asm</div>
+        <div style="flex: 1; font-size: 7px; color: #4B5563; text-align: center;">Preview</div>
+        <div style="flex: 1; font-size: 7px; color: #4B5563; text-align: center;">Publish</div>
+      </div>
+
+      <!-- Detail cards row -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+        <div style="background: #ffffff05; border: 1px solid #ffffff08; border-radius: 8px; padding: 10px;">
+          <div style="font-size: 9px; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Content Type</div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 13px; color: #7C3AED; font-weight: 600;">proof</span>
+            <span style="font-size: 9px; color: #94A3B8;">• authority lane</span>
+          </div>
+        </div>
+        <div style="background: #ffffff05; border: 1px solid #ffffff08; border-radius: 8px; padding: 10px;">
+          <div style="font-size: 9px; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Virality</div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 13px; color: #F59E0B; font-weight: 600;">7/10</span>
+            <span style="font-size: 9px; color: #94A3B8;">• genviral-trend</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stage log (expandable concept) -->
+      <div style="background: #ffffff03; border: 1px solid #ffffff06; border-radius: 8px; padding: 10px;">
+        <div style="font-size: 9px; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Stage Log</div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <div style="width: 6px; height: 6px; background: #10B981; border-radius: 50%;"></div>
+              <span style="font-size: 10px; color: #94A3B8; font-family: monospace;">gate_passed</span>
+            </div>
+            <span style="font-size: 9px; color: #4B5563; font-family: monospace;">2.1s</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <div style="width: 6px; height: 6px; background: #10B981; border-radius: 50%;"></div>
+              <span style="font-size: 10px; color: #94A3B8; font-family: monospace;">proof_validated</span>
+            </div>
+            <span style="font-size: 9px; color: #4B5563; font-family: monospace;">1.8s</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <div style="width: 6px; height: 6px; background: #10B981; border-radius: 50%;"></div>
+              <span style="font-size: 10px; color: #94A3B8; font-family: monospace;">screenshot_captured</span>
+            </div>
+            <span style="font-size: 9px; color: #4B5563; font-family: monospace;">12.3s</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <div style="width: 6px; height: 6px; background: #10B981; border-radius: 50%;"></div>
+              <span style="font-size: 10px; color: #94A3B8; font-family: monospace;">script_ready</span>
+            </div>
+            <span style="font-size: 9px; color: #4B5563; font-family: monospace;">8.4s</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <div style="width: 8px; height: 8px; background: #00D4AA; border-radius: 50%; box-shadow: 0 0 6px #00D4AA66;"></div>
+              <span style="font-size: 10px; color: #00D4AA; font-family: monospace; font-weight: 600;">heygen_submitted</span>
+            </div>
+            <span style="font-size: 9px; color: #F59E0B; font-family: monospace;">4m 32s ⏱</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom bar -->
+      <div style="display: flex; justify-content: space-between; margin-top: 12px; font-size: 9px; color: #4B5563; font-family: monospace;">
+        <span>total elapsed: 12m 18s</span>
+        <span>targets: tiktok + reels</span>
+        <span>ETA ~8m</span>
+      </div>
+
+      <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, #7C3AED22, transparent);"></div>
+      <style>
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+        @keyframes glowBar{0%,100%{box-shadow: 0 0 10px #00D4AA33}50%{box-shadow: 0 0 16px #00D4AA55}}
+      </style>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top: 24px;">
+  <h3>Key Differences</h3>
+  <div class="pros-cons">
+    <div class="pros">
+      <h4>B — Orbital Radar</h4>
+      <ul>
+        <li>Strongest cinematic identity — the sweep line and orbital dots feel like a real command bridge</li>
+        <li>Radar naturally maps to "scanning/monitoring" metaphor</li>
+        <li>Animated sweep line draws the eye</li>
+        <li>Stage positions on the ring are less intuitive than linear order — needs labels</li>
+        <li>Works best as a compact widget (sidebar or hero); gets sparse at full width</li>
+        <li>Mobile: radar shrinks well but info panel needs stacking</li>
+      </ul>
+    </div>
+    <div class="cons">
+      <h4>C — Segmented Progress</h4>
+      <ul>
+        <li>Instantly readable — left to right, filled to empty, done</li>
+        <li>Segmented bar scales perfectly from mobile to ultrawide</li>
+        <li>Stage log gives Grafana-level detail without leaving the card</li>
+        <li>More conventional — cinematic feel comes from the glow/animation treatment, not the shape</li>
+        <li>Expandable: collapsed = just the bar + status, expanded = full stage log</li>
+        <li>Mobile: bar stacks naturally, metadata cards go single column</li>
+      </ul>
+    </div>
+  </div>
+</div>
