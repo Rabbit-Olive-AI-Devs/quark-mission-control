@@ -43,11 +43,6 @@ export function Sidebar() {
   const engagementUnanswered = useDashboardStore((s) => s.engagementUnanswered);
   const [open, setOpen] = useState(false);
 
-  // Close sidebar on route change (mobile)
-  useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
-
   // Prevent body scroll when mobile sidebar is open
   useEffect(() => {
     if (open) {
