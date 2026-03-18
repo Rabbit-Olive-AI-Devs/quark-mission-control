@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
 import { createContentPerformanceCache, type ContentPerformanceCache } from "@/lib/content-performance/cache";
 import { parsePublishAuditJsonl } from "@/lib/content-performance/parsers/publishAudit";
 import { parseEngagementAuditJsonl } from "@/lib/content-performance/parsers/engagementAudit";
@@ -29,6 +31,19 @@ export interface ContentPerformancePageDto {
     message: string;
     raw?: string;
   }[];
+}
+
+const safeRead = (filePath: string, fallback = "") => (existsSync(filePath) ? readFileSync(filePath, "utf8") : fallback);
+
+export function loadServiceSources(): ServiceSources {
+  const fixturesRoot = path.resolve(process.cwd(), "src/lib/content-performance/fixtures");
+
+  return {
+    publishAuditJsonl: safeRead(path.join(fixturesRoot, "publish-valid.jsonl"), ""),
+    engagementAuditJsonl: safeRead(path.join(fixturesRoot, "engagement-valid.jsonl"), ""),
+    dailyMetricsMarkdown: safeRead(path.join(fixturesRoot, "daily-valid.md"), "---\ndate: 1970-01-01\nplatform: x\n---\n"),
+    cognitiveMetricsJson: safeRead(path.join(fixturesRoot, "cognitive-valid.json"), "[]"),
+  };
 }
 
 export class ContentPerformanceService {
@@ -98,3 +113,5 @@ export class ContentPerformanceService {
     return this.getPageData(sources, now);
   }
 }
+
+export const contentPerformanceService = new ContentPerformanceService();

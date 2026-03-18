@@ -1,20 +1,31 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { ContentPerformancePage } from "@/components/content-performance/ContentPerformancePage";
+import { RefreshButton } from "@/components/content-performance/RefreshButton";
 import { readAuditEvents } from "@/lib/content-performance/audit-log";
+import { contentPerformanceService, loadServiceSources } from "@/lib/content-performance/service";
 
 export default async function ContentPerformanceRoute() {
-  let auditEvents = [];
+  const dto = contentPerformanceService.getPageData(loadServiceSources());
 
+  let auditEvents = [];
   try {
     auditEvents = readAuditEvents();
   } catch (error) {
     console.error("Failed to read content performance audit events", error);
-    auditEvents = [];
   }
 
   return (
     <AppShell>
-      <ContentPerformancePage dataset={[]} auditEvents={auditEvents} />
+      <div className="mb-3 flex justify-end">
+        <RefreshButton />
+      </div>
+      <ContentPerformancePage
+        dataset={[dto.counts]}
+        lastRefresh={dto.meta.refreshedAt}
+        stale={dto.meta.stale}
+        lastSuccessAt={dto.meta.lastSuccessAt}
+        auditEvents={auditEvents}
+      />
     </AppShell>
   );
 }
