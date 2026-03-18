@@ -11,7 +11,7 @@ function isAuthorized(request: NextRequest): boolean {
   return bearer === key;
 }
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   return NextResponse.json({ error: "Method Not Allowed" }, { status: 405 });
 }
 

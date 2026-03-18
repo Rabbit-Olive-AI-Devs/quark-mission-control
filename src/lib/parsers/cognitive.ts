@@ -184,7 +184,7 @@ export function parseCognitive(): CognitiveData {
   if (history.length === 0) return empty;
 
   // Current = most recent day (defensive copy to avoid mutating history[0])
-  let current: CognitiveDay = { ...history[0], memoryHealth: { ...history[0].memoryHealth } };
+  const current: CognitiveDay = { ...history[0], memoryHealth: { ...history[0].memoryHealth } };
 
   // If today's file doesn't exist yet, overlay live staleness on current
   const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" });

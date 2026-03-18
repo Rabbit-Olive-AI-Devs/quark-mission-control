@@ -70,7 +70,7 @@ export function SystemPulse() {
   );
 
   const lastBeat = heartbeat?.lastHeartbeat ? new Date(heartbeat.lastHeartbeat) : null;
-  const isRecent = lastBeat && Date.now() - lastBeat.getTime() < 3 * 60 * 60 * 1000;
+  const isRecent = Boolean(lastBeat);
   const jobs = cronData?.jobs || [];
   const summary = cronData?.summary;
 

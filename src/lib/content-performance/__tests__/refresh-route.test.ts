@@ -54,9 +54,7 @@ describe("content-performance refresh route", () => {
 
   it("returns 405 for invalid method", async () => {
     const { GET } = await import("@/app/api/content-performance/refresh/route");
-    const req = new NextRequest("http://localhost/api/content-performance/refresh", { method: "GET" });
-
-    const res = await GET(req);
+    const res = await GET();
     expect(res.status).toBe(405);
   });
 

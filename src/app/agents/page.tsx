@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -15,22 +15,13 @@ function AgentsContent() {
     { snapshotKey: "agents", refreshOn: ["comms"] }
   );
   const searchParams = useSearchParams();
-  const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
-
-  // Auto-select agent from URL query param (e.g. /agents?agent=Fulcrum)
-  useEffect(() => {
-    const agentParam = searchParams.get("agent");
-    if (agentParam && !selectedAgent) {
-      setSelectedAgent(agentParam);
-    }
-  }, [searchParams, selectedAgent]);
+  const [selectedAgent, setSelectedAgent] = useState<string | null>(() => searchParams.get("agent"));
 
   const agents = data?.agents || [];
   const broadcast = data?.broadcast;
 
   return (
     <>
-      {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-semibold flex items-center gap-3">
           <Users size={24} className="text-[#00D4AA]" />
@@ -41,15 +32,13 @@ function AgentsContent() {
         </p>
       </div>
 
-      {/* Broadcast status banner */}
       {broadcast && broadcast.mode !== "NORMAL" && (
         <GlassCard className="mb-4">
           <div className="flex items-center gap-3">
             <Radio size={16} className="text-[#F59E0B]" />
             <div>
               <span className="text-sm">
-                Broadcast Mode:{" "}
-                <strong className="text-[#F59E0B]">{broadcast.mode}</strong>
+                Broadcast Mode: <strong className="text-[#F59E0B]">{broadcast.mode}</strong>
               </span>
               {broadcast.standingOrders.length > 0 && (
                 <div className="mt-1.5 space-y-1">
@@ -65,7 +54,6 @@ function AgentsContent() {
         </GlassCard>
       )}
 
-      {/* Loading skeleton */}
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[1, 2, 3, 4].map((i) => (
@@ -88,7 +76,6 @@ function AgentsContent() {
           ))}
         </div>
       ) : (
-        /* Agent card grid */
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {agents.map((agent, i) => (
             <AgentCard
@@ -96,11 +83,7 @@ function AgentsContent() {
               agent={agent}
               index={i}
               isSelected={selectedAgent === agent.config.name}
-              onSelect={() =>
-                setSelectedAgent(
-                  selectedAgent === agent.config.name ? null : agent.config.name
-                )
-              }
+              onSelect={() => setSelectedAgent(selectedAgent === agent.config.name ? null : agent.config.name)}
             />
           ))}
         </div>

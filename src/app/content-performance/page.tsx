@@ -1,13 +1,13 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { ContentPerformancePage } from "@/components/content-performance/ContentPerformancePage";
 import { RefreshButton } from "@/components/content-performance/RefreshButton";
-import { readAuditEvents } from "@/lib/content-performance/audit-log";
+import { readAuditEvents, type ContentPerformanceAuditEvent } from "@/lib/content-performance/audit-log";
 import { contentPerformanceService, loadServiceSources } from "@/lib/content-performance/service";
 
 export default async function ContentPerformanceRoute() {
   const dto = contentPerformanceService.getPageData(loadServiceSources());
 
-  let auditEvents = [];
+  let auditEvents: ContentPerformanceAuditEvent[] = [];
   try {
     auditEvents = readAuditEvents();
   } catch (error) {

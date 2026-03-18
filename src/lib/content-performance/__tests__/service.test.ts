@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createContentPerformanceCache } from "@/lib/content-performance/cache";
-import { ContentPerformanceService } from "@/lib/content-performance/service";
+import { ContentPerformanceService, type ContentPerformancePageDto } from "@/lib/content-performance/service";
 import { resolveBackfillPlan } from "@/lib/content-performance/backfill";
 
 const baseSources = {
@@ -18,7 +18,7 @@ const baseSources = {
 
 describe("content-performance service", () => {
   it("uses cache hit within hourly TTL and refreshes after TTL", () => {
-    const cache = createContentPerformanceCache(60 * 60 * 1000);
+    const cache = createContentPerformanceCache<ContentPerformancePageDto>(60 * 60 * 1000);
     const service = new ContentPerformanceService(cache);
 
     const t0 = new Date("2026-03-10T12:00:00.000Z");
@@ -31,7 +31,7 @@ describe("content-performance service", () => {
   });
 
   it("triggers stale metadata when lastSuccessAt older than 90 minutes", () => {
-    const cache = createContentPerformanceCache(2 * 60 * 60 * 1000);
+    const cache = createContentPerformanceCache<ContentPerformancePageDto>(2 * 60 * 60 * 1000);
     const service = new ContentPerformanceService(cache);
 
     service.getPageData(baseSources, new Date("2026-03-10T12:00:00.000Z"));
