@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { createContentPerformanceCache, type ContentPerformanceCache } from "@/lib/content-performance/cache";
 import { parsePublishAuditJsonl } from "@/lib/content-performance/parsers/publishAudit";
@@ -35,14 +35,28 @@ export interface ContentPerformancePageDto {
 
 const safeRead = (filePath: string, fallback = "") => (existsSync(filePath) ? readFileSync(filePath, "utf8") : fallback);
 
+function readLatestFile(dirPath: string, extension: string, fallback = ""): string {
+  if (!existsSync(dirPath)) return fallback;
+
+  const files = readdirSync(dirPath)
+    .filter((name) => name.endsWith(extension))
+    .sort()
+    .reverse();
+
+  if (files.length === 0) return fallback;
+  return safeRead(path.join(dirPath, files[0]), fallback);
+}
+
 export function loadServiceSources(): ServiceSources {
-  const fixturesRoot = path.resolve(process.cwd(), "src/lib/content-performance/fixtures");
+  const root = process.cwd();
+  const contentState = path.resolve(root, "content-engine/state");
+  const metricsRoot = path.resolve(root, "metrics");
 
   return {
-    publishAuditJsonl: safeRead(path.join(fixturesRoot, "publish-valid.jsonl"), ""),
-    engagementAuditJsonl: safeRead(path.join(fixturesRoot, "engagement-valid.jsonl"), ""),
-    dailyMetricsMarkdown: safeRead(path.join(fixturesRoot, "daily-valid.md"), "---\ndate: 1970-01-01\nplatform: x\n---\n"),
-    cognitiveMetricsJson: safeRead(path.join(fixturesRoot, "cognitive-valid.json"), "[]"),
+    publishAuditJsonl: safeRead(path.join(contentState, "publish-audit.jsonl"), ""),
+    engagementAuditJsonl: safeRead(path.join(contentState, "engagement-audit.jsonl"), ""),
+    dailyMetricsMarkdown: readLatestFile(path.join(metricsRoot, "daily"), ".md", "---\ndate: 1970-01-01\nplatform: x\n---\n"),
+    cognitiveMetricsJson: readLatestFile(path.join(metricsRoot, "cognitive"), ".json", "[]"),
   };
 }
 
@@ -61,7 +75,7 @@ export class ContentPerformanceService {
     const cognitive = parseCognitiveMetricsJson(sources.cognitiveMetricsJson, "cognitive-metrics.json");
 
     const refreshedAt = now.toISOString();
-    this.lastSuccessAt = this.lastSuccessAt ?? refreshedAt;
+    this.lastSuccessAt = refreshedAt;
 
     return {
       meta: {
