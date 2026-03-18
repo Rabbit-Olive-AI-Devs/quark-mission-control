@@ -8,9 +8,12 @@ const baseSources = {
     '{"id":"pub-1","platform":"x","contentType":"analysis","publishedAt":"2026-03-10T16:40:00.000Z","recordedAt":"2026-03-10T17:00:00.000Z"}\n',
   engagementAuditJsonl:
     '{"publishId":"pub-1","platform":"x","capturedAt":"2026-03-10T18:00:00.000Z","likes":10,"comments":2,"shares":1,"views":100}\n',
-  dailyMetricsMarkdown:
+  dailyMetricsMarkdownFiles: [
     '---\ndate: 2026-03-10\nplatform: x\npublishedCount: 1\nimpressions: 100\nengagements: 13\n---\nDaily.',
-  cognitiveMetricsJson: '[{"signalDate":"2026-03-10T20:00:00.000Z","cognitiveScore":0.9,"degradationDetected":false}]',
+  ],
+  cognitiveMetricsJsonFiles: [
+    '[{"signalDate":"2026-03-10T20:00:00.000Z","cognitiveScore":0.9,"degradationDetected":false}]',
+  ],
 };
 
 describe("content-performance service", () => {

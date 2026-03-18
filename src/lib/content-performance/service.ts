@@ -9,8 +9,15 @@ import { parseCognitiveMetricsJson } from "@/lib/content-performance/parsers/cog
 export interface ServiceSources {
   publishAuditJsonl: string;
   engagementAuditJsonl: string;
-  dailyMetricsMarkdown: string;
-  cognitiveMetricsJson: string;
+  dailyMetricsMarkdownFiles: string[];
+  cognitiveMetricsJsonFiles: string[];
+}
+
+interface SourceHealth {
+  publishAuditPresent: boolean;
+  engagementAuditPresent: boolean;
+  dailyMetricsFiles: number;
+  cognitiveMetricsFiles: number;
 }
 
 export interface ContentPerformancePageDto {
@@ -18,6 +25,7 @@ export interface ContentPerformancePageDto {
     refreshedAt: string;
     lastSuccessAt: string | null;
     stale: boolean;
+    sourceHealth: SourceHealth;
   };
   counts: {
     publishRecords: number;
@@ -33,18 +41,16 @@ export interface ContentPerformancePageDto {
   }[];
 }
 
-const safeRead = (filePath: string, fallback = "") => (existsSync(filePath) ? readFileSync(filePath, "utf8") : fallback);
+const safeRead = (filePath: string) => (existsSync(filePath) ? readFileSync(filePath, "utf8") : "");
 
-function readLatestFile(dirPath: string, extension: string, fallback = ""): string {
-  if (!existsSync(dirPath)) return fallback;
+function readAllFiles(dirPath: string, extension: string): string[] {
+  if (!existsSync(dirPath)) return [];
 
   const files = readdirSync(dirPath)
     .filter((name) => name.endsWith(extension))
-    .sort()
-    .reverse();
+    .sort();
 
-  if (files.length === 0) return fallback;
-  return safeRead(path.join(dirPath, files[0]), fallback);
+  return files.map((fileName) => readFileSync(path.join(dirPath, fileName), "utf8"));
 }
 
 export function loadServiceSources(): ServiceSources {
@@ -53,10 +59,10 @@ export function loadServiceSources(): ServiceSources {
   const metricsRoot = path.resolve(root, "metrics");
 
   return {
-    publishAuditJsonl: safeRead(path.join(contentState, "publish-audit.jsonl"), ""),
-    engagementAuditJsonl: safeRead(path.join(contentState, "engagement-audit.jsonl"), ""),
-    dailyMetricsMarkdown: readLatestFile(path.join(metricsRoot, "daily"), ".md", "---\ndate: 1970-01-01\nplatform: x\n---\n"),
-    cognitiveMetricsJson: readLatestFile(path.join(metricsRoot, "cognitive"), ".json", "[]"),
+    publishAuditJsonl: safeRead(path.join(contentState, "publish-audit.jsonl")),
+    engagementAuditJsonl: safeRead(path.join(contentState, "engagement-audit.jsonl")),
+    dailyMetricsMarkdownFiles: readAllFiles(path.join(metricsRoot, "daily"), ".md"),
+    cognitiveMetricsJsonFiles: readAllFiles(path.join(metricsRoot, "cognitive"), ".json"),
   };
 }
 
@@ -71,8 +77,25 @@ export class ContentPerformanceService {
   private buildDto(sources: ServiceSources, now: Date): ContentPerformancePageDto {
     const publish = parsePublishAuditJsonl(sources.publishAuditJsonl, "publish-audit.jsonl");
     const engagement = parseEngagementAuditJsonl(sources.engagementAuditJsonl, "engagement-audit.jsonl");
-    const daily = parseDailyMetricsMarkdown(sources.dailyMetricsMarkdown, "daily-metrics.md");
-    const cognitive = parseCognitiveMetricsJson(sources.cognitiveMetricsJson, "cognitive-metrics.json");
+
+    const dailyRuns = sources.dailyMetricsMarkdownFiles.map((content, idx) =>
+      parseDailyMetricsMarkdown(content, `daily-metrics-${idx + 1}.md`)
+    );
+    const cognitiveRuns = sources.cognitiveMetricsJsonFiles.map((content, idx) =>
+      parseCognitiveMetricsJson(content, `cognitive-metrics-${idx + 1}.json`)
+    );
+
+    const dailyRecords = dailyRuns.flatMap((run) => run.records);
+    const dailyErrors = dailyRuns.flatMap((run) => run.errors);
+    const cognitiveRecords = cognitiveRuns.flatMap((run) => run.records);
+    const cognitiveErrors = cognitiveRuns.flatMap((run) => run.errors);
+
+    if (sources.dailyMetricsMarkdownFiles.length === 0) {
+      dailyErrors.push({ source: "daily-metrics", line: 1, message: "No daily metrics files found" });
+    }
+    if (sources.cognitiveMetricsJsonFiles.length === 0) {
+      cognitiveErrors.push({ source: "cognitive-metrics", line: 1, message: "No cognitive metrics files found" });
+    }
 
     const refreshedAt = now.toISOString();
     this.lastSuccessAt = refreshedAt;
@@ -82,14 +105,20 @@ export class ContentPerformanceService {
         refreshedAt,
         lastSuccessAt: this.lastSuccessAt,
         stale: false,
+        sourceHealth: {
+          publishAuditPresent: sources.publishAuditJsonl.trim().length > 0,
+          engagementAuditPresent: sources.engagementAuditJsonl.trim().length > 0,
+          dailyMetricsFiles: sources.dailyMetricsMarkdownFiles.length,
+          cognitiveMetricsFiles: sources.cognitiveMetricsJsonFiles.length,
+        },
       },
       counts: {
         publishRecords: publish.records.length,
         engagementRecords: engagement.records.length,
-        dailyRecords: daily.records.length,
-        cognitiveRecords: cognitive.records.length,
+        dailyRecords: dailyRecords.length,
+        cognitiveRecords: cognitiveRecords.length,
       },
-      errors: [...publish.errors, ...engagement.errors, ...daily.errors, ...cognitive.errors],
+      errors: [...publish.errors, ...engagement.errors, ...dailyErrors, ...cognitiveErrors],
     };
   }
 
