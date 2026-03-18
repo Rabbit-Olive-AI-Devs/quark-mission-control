@@ -11,6 +11,7 @@ import { filterByWindow } from "@/lib/content-performance/window";
 import { resolveBackfillPlan } from "@/lib/content-performance/backfill";
 import { ContentPerformanceService } from "@/lib/content-performance/service";
 import { createContentPerformanceCache } from "@/lib/content-performance/cache";
+import { assertHistoricalImmutability } from "@/lib/content-performance/scoring-registry";
 
 const fixture = (name: string) =>
   readFileSync(path.join(process.cwd(), "src/lib/content-performance/fixtures", name), "utf8");
@@ -62,11 +63,11 @@ function buildPipelineOutput() {
     scoreVersion: "v1" as const,
   }));
 
-  return { publish, engagement, daily, cognitive, evolution, windows, rankingInput };
+  return { publish, engagement, daily, cognitive, evolution, windows, rankingInput, baseSeries };
 }
 
 describe("content-performance integration pipeline", () => {
-  it("builds end-to-end pipeline from fixtures and validates 7/14/30 outputs", () => {
+  it("builds end-to-end pipeline from fixtures and validates exact 7/14/30 metrics", () => {
     const pipeline = buildPipelineOutput();
 
     expect(pipeline.publish.errors).toHaveLength(0);
@@ -85,15 +86,37 @@ describe("content-performance integration pipeline", () => {
       new Date("2026-03-18T10:00:00.000Z")
     );
 
-    expect(dto.counts.publishRecords).toBe(pipeline.publish.records.length);
-    expect(dto.counts.engagementRecords).toBe(pipeline.engagement.records.length);
-    expect(dto.counts.dailyRecords).toBe(pipeline.daily.records.length);
-    expect(dto.counts.cognitiveRecords).toBe(pipeline.cognitive.records.length);
+    expect(dto.counts.publishRecords).toBe(2);
+    expect(dto.counts.engagementRecords).toBe(2);
+    expect(dto.counts.dailyRecords).toBe(1);
+    expect(dto.counts.cognitiveRecords).toBe(1);
 
-    expect(pipeline.windows.w7.length).toBeGreaterThan(0);
-    expect(pipeline.windows.w14.length).toBeGreaterThanOrEqual(pipeline.windows.w7.length);
-    expect(pipeline.windows.w30.length).toBeGreaterThanOrEqual(pipeline.windows.w14.length);
-    expect(pipeline.windows.w7.at(-1)?.totalEngagements).toBeGreaterThanOrEqual(0);
+    // exact base/evolution expectations from fixture data
+    expect(pipeline.baseSeries).toEqual([
+      { dayKey: "2026-03-10", posts: 2, engagements: 27 },
+      { dayKey: "2026-03-11", posts: 4, engagements: 84 },
+    ]);
+
+    expect(pipeline.evolution).toHaveLength(2);
+    expect(pipeline.evolution[0]).toMatchObject({
+      dayKey: "2026-03-10",
+      totalEngagements: 27,
+      engagementPerPost: 13.5,
+      rolling7dEngagement: 27,
+    });
+    expect(pipeline.evolution[1]).toMatchObject({
+      dayKey: "2026-03-11",
+      totalEngagements: 84,
+      engagementPerPost: 21,
+      rolling7dEngagement: 55.5,
+    });
+
+    expect(pipeline.windows.w7).toHaveLength(2);
+    expect(pipeline.windows.w14).toHaveLength(2);
+    expect(pipeline.windows.w30).toHaveLength(2);
+    expect(pipeline.windows.w7[1].totalEngagements).toBe(84);
+    expect(pipeline.windows.w14[0].engagementPerPost).toBe(13.5);
+    expect(pipeline.windows.w30[1].rolling7dEngagement).toBe(55.5);
   });
 
   it("keeps ranking stable across reruns using fixture-derived ranking input", () => {
@@ -103,14 +126,14 @@ describe("content-performance integration pipeline", () => {
     const runB = rankPosts(rankingInput).map((row) => row.id);
 
     expect(runA).toEqual(runB);
+    expect(runA).toEqual(["pub-2", "pub-1"]);
   });
 
-  it("preserves historical score version and impacted-window-only recompute behavior", () => {
-    const { rankingInput, evolution } = buildPipelineOutput();
+  it("validates score-version immutability and impacted-window-only recompute output", () => {
+    const { evolution } = buildPipelineOutput();
 
-    expect(() => rankPosts(rankingInput.map((row) => ({ ...row, recomputeVersion: "v2" as const })))).toThrow(
-      /historical recompute/i
-    );
+    // explicit governance path (simulated v2 insert/recompute)
+    expect(() => assertHistoricalImmutability("v1", "v2")).toThrow(/historical recompute/i);
 
     const backfill = resolveBackfillPlan({
       mode: "auto",
@@ -126,7 +149,17 @@ describe("content-performance integration pipeline", () => {
     expect(backfill.recomputeVersion).toBe("v1");
     expect(backfill.days).toBe(30);
 
-    const impacted = evolution.slice(-Math.min(evolution.length, 2));
-    expect(impacted.length).toBeLessThanOrEqual(evolution.length);
+    const updatedBase = [
+      { dayKey: "2026-03-10", posts: 2, engagements: 27 },
+      { dayKey: "2026-03-11", posts: 4, engagements: 99 }, // impacted day only
+    ];
+    const recomputed = computeEvolutionSeries(updatedBase);
+
+    // non-impacted day remains unchanged
+    expect(recomputed[0]).toMatchObject(evolution[0]);
+    // impacted day changes
+    expect(recomputed[1].totalEngagements).toBe(99);
+    expect(recomputed[1].engagementPerPost).toBe(24.75);
+    expect(recomputed[1].rolling7dEngagement).toBe(63);
   });
 });
