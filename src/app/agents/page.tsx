@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -15,7 +15,15 @@ function AgentsContent() {
     { snapshotKey: "agents", refreshOn: ["comms"] }
   );
   const searchParams = useSearchParams();
-  const [selectedAgent, setSelectedAgent] = useState<string | null>(() => searchParams.get("agent"));
+  const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
+
+  // Auto-select agent from URL query param (e.g. /agents?agent=Fulcrum)
+  useEffect(() => {
+    const agentParam = searchParams.get("agent");
+    if (agentParam && !selectedAgent) {
+      setSelectedAgent(agentParam);
+    }
+  }, [searchParams, selectedAgent]);
 
   const agents = data?.agents || [];
   const broadcast = data?.broadcast;

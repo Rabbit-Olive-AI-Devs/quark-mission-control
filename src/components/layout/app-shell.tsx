@@ -37,7 +37,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {IS_REMOTE && <StalenessBanner />}
 
         {/* SSE event indicator (local mode) */}
-        {!IS_REMOTE && lastEvent && (
+        {!IS_REMOTE && lastEvent && Date.now() - lastEvent.timestamp < 3000 && (
           <div className="fixed top-4 right-4 z-50 glass-card px-3 py-2 text-xs text-[#00D4AA] flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-[#00D4AA] animate-ping" />
             Updated: {lastEvent.type}
