@@ -56,7 +56,9 @@ describe("ContentPerformancePage integration", () => {
     expect(screen.getByText(/last success: 2026-03-18T08:20:00.000Z/i)).toBeInTheDocument();
     expect(screen.getByText("post-a")).toBeInTheDocument();
     expect(screen.getByText("post-b")).toBeInTheDocument();
+    expect(screen.getByText(topRows[0].normalizedScore.toFixed(2))).toBeInTheDocument();
     expect(screen.getByText(/likes: 40/i)).toBeInTheDocument();
+    expect(screen.getByText(/last refresh: 2026-03-18T10:00:00.000Z/i)).toBeInTheDocument();
     expect(screen.getByText(/audit trail/i)).toBeInTheDocument();
   });
 });
