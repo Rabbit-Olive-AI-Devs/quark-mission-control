@@ -1,8 +1,18 @@
+"use client";
+
+import { useState } from "react";
 import { Megaphone } from "lucide-react";
 import { ContentPerformanceEmpty } from "./ContentPerformanceEmpty";
 import { ContentPerformanceError } from "./ContentPerformanceError";
 import { ContentPerformanceSkeleton } from "./ContentPerformanceSkeleton";
 import { AuditTrailTable } from "./AuditTrailTable";
+import { WindowSelector } from "./WindowSelector";
+import { LastRefreshBadge } from "./LastRefreshBadge";
+import { StaleDataBanner } from "./StaleDataBanner";
+import { EvolutionCharts } from "./EvolutionCharts";
+import { TopPostsTable } from "./TopPostsTable";
+import { PlatformBreakdownTabs } from "./PlatformBreakdownTabs";
+import { ContentTypeComparisonChart } from "./ContentTypeComparisonChart";
 import type { ContentPerformanceAuditEvent } from "@/lib/content-performance/audit-log";
 
 interface ContentPerformancePageProps {
@@ -11,6 +21,8 @@ interface ContentPerformancePageProps {
   loading?: boolean;
   lastRefresh?: string;
   auditEvents?: ContentPerformanceAuditEvent[];
+  stale?: boolean;
+  lastSuccessAt?: string | null;
 }
 
 export function ContentPerformancePage({
@@ -19,10 +31,29 @@ export function ContentPerformancePage({
   loading = false,
   lastRefresh,
   auditEvents = [],
+  stale = false,
+  lastSuccessAt,
 }: ContentPerformancePageProps) {
+  const [windowDays, setWindowDays] = useState<7 | 14 | 30>(7);
+
+  const evolutionRows = [
+    { dayKey: "2026-03-12", publishes: 2, totalEngagements: 40, engagementPerPost: 20, rolling7d: 18 },
+    { dayKey: "2026-03-13", publishes: 3, totalEngagements: 55, engagementPerPost: 18.3, rolling7d: 20 },
+    { dayKey: "2026-03-14", publishes: 2, totalEngagements: 52, engagementPerPost: 26, rolling7d: 21 },
+  ];
+
+  const topPosts = [
+    {
+      id: "x-1",
+      platform: "x",
+      normalizedScore: 1.22,
+      rawMetrics: { likes: 44, comments: 7, shares: 5, views: 1200 },
+    },
+  ];
+
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div className="max-w-6xl mx-auto space-y-4">
+      <div className="mb-2 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="flex items-center gap-3 text-2xl font-semibold text-[#F1F5F9]">
             <Megaphone size={24} className="text-[#7C3AED]" />
@@ -34,23 +65,12 @@ export function ContentPerformancePage({
         </div>
 
         <div className="flex items-center gap-2">
-          <label htmlFor="window-select" className="sr-only">
-            Time window
-          </label>
-          <select
-            id="window-select"
-            defaultValue="7d"
-            className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-[#F1F5F9]"
-          >
-            <option value="24h">Last 24 hours</option>
-            <option value="7d">Last 7 days</option>
-            <option value="30d">Last 30 days</option>
-          </select>
-          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[11px] text-[#94A3B8]">
-            Last refresh: {lastRefresh ?? "—"}
-          </span>
+          <WindowSelector value={windowDays} onChange={setWindowDays} />
+          <LastRefreshBadge lastRefresh={lastRefresh} />
         </div>
       </div>
+
+      <StaleDataBanner stale={stale} lastSuccessAt={lastSuccessAt} />
 
       {loading ? (
         <ContentPerformanceSkeleton />
@@ -58,9 +78,26 @@ export function ContentPerformancePage({
         <ContentPerformanceError message={error} />
       ) : !dataset || dataset.length === 0 ? (
         <ContentPerformanceEmpty />
-      ) : (
-        <ContentPerformanceEmpty />
-      )}
+      ) : null}
+
+      <EvolutionCharts rows={evolutionRows.slice(-windowDays)} />
+      <TopPostsTable rows={topPosts} />
+      <PlatformBreakdownTabs
+        data={{
+          x: "X engagement breakdown",
+          tiktok: "TikTok engagement breakdown",
+          instagram: "Instagram engagement breakdown",
+          youtube: "YouTube engagement breakdown",
+          substack: "Substack engagement breakdown",
+        }}
+      />
+      <ContentTypeComparisonChart
+        rows={[
+          { contentType: "analysis", score: 0.84 },
+          { contentType: "story", score: 0.71 },
+          { contentType: "tutorial", score: 0.67 },
+        ]}
+      />
 
       <AuditTrailTable events={auditEvents} />
     </div>
