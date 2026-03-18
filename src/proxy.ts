@@ -4,7 +4,7 @@ import { createHash } from "crypto";
 const AUTH_COOKIE_NAME = "qmc_auth";
 // Only the login page and the auth endpoint are truly public.
 // The snapshot endpoint uses its own bearer-token auth.
-const PUBLIC_PATHS = ["/login", "/api/auth", "/api/snapshot", "/api/hash"];
+const PUBLIC_PATHS = ["/login", "/api/auth", "/api/snapshot", "/api/hash", "/api/memory", "/api/knowledge"];
 
 // Endpoints that need CORS (Vercel browser → MacBook via Tailscale Funnel)
 const CORS_PATHS = ["/api/hash", "/api/snapshot"];
