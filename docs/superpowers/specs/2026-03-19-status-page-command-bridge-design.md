@@ -83,7 +83,7 @@ Full-width banner at the top of the page.
 | Pill | Value | Source |
 |------|-------|--------|
 | Crons OK | `{ok}/{total}` | `/api/status` → cron.jobs (count where status != "error") |
-| Stuck Jobs | count | `/api/status` → pipeline.details.stuck.length |
+| Stuck Jobs | count | `/api/status-full` → pipeline.stuckCount (computed server-side from pipeline details) |
 | Quota | `{min(daily,weekly)}%` | `/api/status` → quota.raw |
 | Actions Today | count | `/api/engagement` → today.total |
 | Uptime | `{n}d` or `{n}h` | `/api/status` → system.uptime (seconds → human) |
@@ -306,10 +306,11 @@ Reusable component that provides the consistent panel chrome for all 10 instrume
 - Platform badges: inline colored pills for each platform that received a publish today
   - Colors from `PLATFORM_COLORS`
   - Text: platform name abbreviation (X, IG, TT, YT, SS)
-- Top post: hook text of the highest-performing post today (truncated to 60 chars)
-  - Source: content-performance data
+- Next scheduled: next upcoming publish if known (from pipeline intake), else "—"
 - Publish mode badge: "LIVE" (cyan) or "WARMUP" (amber)
-  - Source: from content-performance or pipeline state
+  - Source: `content-engine/state/publish-mode.json` (read by aggregated endpoint)
+
+**Note:** Top post hook text is not available in `publish-audit.jsonl` (only job_id/format/url). Omitted in v1 — can be added later by reading render manifests.
 
 **Empty state:** "No publishes yet today" + empty platform row + no top post
 
@@ -379,7 +380,7 @@ Reusable component that provides the consistent panel chrome for all 10 instrume
 - Each trend row:
   - Virality score: monospace, colored by magnitude (>= 8 cyan, >= 5 amber, < 5 muted)
   - Title: truncated to 50 chars
-  - Content-type tag: small colored pill (colors from `TYPE_COLORS`)
+  - Source badge: small muted pill showing trend source (e.g., "HN", "X", "TikTok") from `trend.source`
 - Update timestamp: "Updated {relative_time}" in text-xs #64748B
 
 **Data source:** `/api/intel` → `highSignal` (IntelTrend[])
@@ -403,7 +404,7 @@ Reusable component that provides the consistent panel chrome for all 10 instrume
   - Left border: 2px colored bar (cyan for normal, amber for warning, red for error)
   - Description: one-line text in #F1F5F9
 
-**Data source:** `/api/digest` → DigestEntry[] (flatten items from all time ranges)
+**Data source:** `/api/digest` → `{ sections: DigestEntry[] }` where each `DigestEntry` has `{ timeRange: string; items: string[] }`. Flatten all items from all sections, using the `timeRange` label (e.g., "5–7 AM") as the timestamp column. Level detection: keyword-based — items containing "fail", "error", "blind", "degraded" → "error" (red); items containing "stuck", "warn", "stale" → "warning" (amber); everything else → "info" (cyan).
 
 **Empty state:** "No activity recorded today" + single muted placeholder entry
 
@@ -441,7 +442,7 @@ Fixed-position footer bar at the bottom of the viewport. Full width, 40px height
   - Engagement parser
   - Cognitive parser
   - Intel parser
-  - Content-performance parser
+  - Content-today: parse `publish-audit.jsonl` directly (filter by today's date, count publishes, extract platforms, read `publish-mode.json`)
   - Digest/session-log parser
 - Return a single JSON response with all sections
 
@@ -450,7 +451,7 @@ Fixed-position footer bar at the bottom of the viewport. Full width, 40px height
 ```typescript
 interface StatusFullResponse {
   // Existing status cards (unchanged)
-  pipeline: StatusCard & { scorecard: PipelineScorecard };
+  pipeline: StatusCard & { stuckCount: number; scorecard: PipelineScorecard };
   cron: StatusCard & { jobs: CronJob[] };
   quota: StatusCard & { raw: CodexQuota };
   quark: StatusCard & { heartbeat: HeartbeatState };
@@ -466,7 +467,7 @@ interface StatusFullResponse {
   engagement: {
     today: { total: number; byPlatform: Record<string, number>; byAction: Record<string, number> };
     inboundGap: { replyRate: number; unansweredCount: number };
-    guardrailBlocks: number;
+    guardrailBlocks: number; // computed from engagement.guardrailBlocks.length (parser returns GuardrailBlock[])
   };
   cognitive: {
     memoryHealth: CognitiveMemoryHealth;
@@ -481,7 +482,7 @@ interface StatusFullResponse {
   contentToday: {
     publishedCount: number;
     platforms: string[];
-    topPostHook: string | null;
+    // topPostHook omitted in v1 — not available in publish-audit.jsonl
     publishMode: "LIVE" | "WARMUP";
   };
   activity: Array<{
