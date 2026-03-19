@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
+
 import { parsePipelineData } from "@/lib/parsers/pipeline";
 import { parseCronList } from "@/lib/parsers/cron";
 import { parseMetrics } from "@/lib/parsers/metrics";

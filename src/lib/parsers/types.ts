@@ -502,9 +502,9 @@ export interface StatusCard {
 
 export interface StatusData {
   pipeline: StatusCard;
-  cron: StatusCard;
-  quota: StatusCard;
-  quark: StatusCard;
+  cron: StatusCard & { jobs?: Array<Record<string, unknown>> };
+  quota: StatusCard & { raw?: Record<string, unknown> };
+  quark: StatusCard & { heartbeat?: Record<string, unknown> };
   system: StatusCard & {
     cpu: number;
     memory: number;
