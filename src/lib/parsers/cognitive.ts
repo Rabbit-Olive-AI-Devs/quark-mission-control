@@ -13,7 +13,25 @@ import type {
 } from "./types";
 
 const COGNITIVE_DIR = path.join(WORKSPACE_PATH, "metrics/cognitive");
+const KB_DIR = path.join(WORKSPACE_PATH, "shared/knowledge-base");
 const MAX_DAYS = 30;
+
+/** Count .md files in the knowledge-base directory tree (excluding README.md). */
+function countKbFiles(): number {
+  try {
+    let count = 0;
+    function walk(dir: string) {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (entry.isDirectory()) walk(path.join(dir, entry.name));
+        else if (entry.name.endsWith(".md") && entry.name !== "README.md") count++;
+      }
+    }
+    walk(KB_DIR);
+    return count;
+  } catch {
+    return 0;
+  }
+}
 
 function parseCognitiveFile(filePath: string): CognitiveDay | null {
   try {
@@ -186,6 +204,9 @@ export function parseCognitive(): CognitiveData {
   // Current = most recent day (defensive copy to avoid mutating history[0])
   const current: CognitiveDay = { ...history[0], memoryHealth: { ...history[0].memoryHealth } };
 
+  // Always use live KB file count instead of stale JSON value
+  current.memoryHealth.kbFileCount = countKbFiles();
+
   // If today's file doesn't exist yet, overlay live staleness on current
   const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
   if (current.date !== todayStr) {
@@ -207,34 +228,7 @@ export function parseCognitive(): CognitiveData {
     }
   }
 
-  // Overlay live engagement data if fresher than Chandler's snapshot
-  try {
-    const livePath = path.join(WORKSPACE_PATH, "metrics/engagement-live.json");
-    if (fs.existsSync(livePath)) {
-      const liveRaw = JSON.parse(fs.readFileSync(livePath, "utf-8"));
-      if (liveRaw.date === todayStr) {
-        const liveTs = new Date(liveRaw.updated_at).getTime();
-        const chandlerTs = current.collectedAt ? new Date(current.collectedAt).getTime() : 0;
-        if (liveTs > chandlerTs) {
-          const lp = liveRaw.platforms || {};
-          const la = liveRaw.actions || {};
-          current.engagement = {
-            ...current.engagement,
-            xReplies: lp.x ?? current.engagement.xReplies,
-            youtubeReplies: lp.youtube ?? current.engagement.youtubeReplies,
-            instagramReplies: lp.instagram ?? current.engagement.instagramReplies,
-            tiktokReplies: lp.tiktok ?? current.engagement.tiktokReplies,
-            substackReplies: lp.substack ?? current.engagement.substackReplies,
-            totalReplied: la.reply ?? current.engagement.totalReplied,
-            replyRate: liveRaw.reply_rate ?? current.engagement.replyRate,
-          };
-          current._engagementSource = "live";
-        }
-      }
-    }
-  } catch {
-    // engagement-live.json missing or malformed — use Chandler data as-is
-  }
+  // Engagement data is owned exclusively by the engagement parser — no overlay here.
 
   const weeklyRollups = computeWeeklyRollups(history);
   const activeDegradation = current.degradationFlags;
