@@ -161,6 +161,7 @@ function mockData(overrides: Partial<StatusFullResponse> = {}): StatusFullRespon
       { timestamp: "08:00-09:00", text: "Morning routine completed", level: "info" },
       { timestamp: "09:30-10:00", text: "Pipeline job published", level: "info" },
     ],
+    oauth: [],
     healthScore: 94,
     timestamp: new Date().toISOString(),
     ...overrides,
