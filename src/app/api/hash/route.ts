@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { computeWorkspaceHash } from "@/lib/hash";
 import { corsHeaders } from "@/lib/cors";
 
-export const dynamic = "force-dynamic";
 
 export async function OPTIONS(request: Request) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(request) });
@@ -25,8 +24,11 @@ export async function GET(request: Request) {
 
   const hash = await computeWorkspaceHash();
 
-  return NextResponse.json(
-    { hash, timestamp: new Date().toISOString() },
-    { headers: { ...cors, "Cache-Control": "no-store" } }
-  );
+  return NextResponse.json({ hash, timestamp: new Date().toISOString() }, {
+    headers: {
+      ...cors,
+      "CDN-Cache-Control": "s-maxage=5, stale-while-revalidate=10",
+      "Cache-Control": "public, max-age=2",
+    },
+  });
 }
