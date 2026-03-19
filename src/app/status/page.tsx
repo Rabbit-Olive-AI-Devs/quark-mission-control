@@ -1,64 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useDashboardStore } from "@/stores/dashboard";
 import { AppShell } from "@/components/layout/app-shell";
 import { PipelineCard } from "@/components/status/pipeline-card";
 import { CronCard } from "@/components/status/cron-card";
 import { QuotaCard } from "@/components/status/quota-card";
 import { QuarkCard } from "@/components/status/quark-card";
 import { SystemCard } from "@/components/status/system-card";
-import type { StatusCard } from "@/lib/parsers/types";
+import {
+  derivePipelineStatus,
+  deriveCronStatus,
+  deriveQuotaStatus,
+  deriveQuarkStatus,
+  deriveSystemStatus,
+} from "@/lib/status-logic";
 import { formatTimeShort } from "@/lib/utils";
-
-interface StatusResponse {
-  pipeline: StatusCard & { jobs?: unknown[] };
-  cron: StatusCard & { jobs?: Array<Record<string, unknown>> };
-  quota: StatusCard & { raw?: Record<string, unknown> };
-  quark: StatusCard & { heartbeat?: Record<string, unknown> };
-  system: StatusCard & {
-    cpu: number;
-    memory: number;
-    disk: number;
-    processes?: Array<Record<string, unknown>>;
-  };
-  timestamp: string;
-}
+import type { CronJob, PipelineJob, HeartbeatState, MetricsData, SystemInfo } from "@/lib/parsers/types";
 
 export default function StatusPage() {
-  const [data, setData] = useState<StatusResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const snapshot = useDashboardStore((s) => s.snapshot);
+  const stale = useDashboardStore((s) => s.snapshotStale);
+  const fetchedAt = useDashboardStore((s) => s.snapshotFetchedAt);
 
-  useEffect(() => {
-    let active = true;
-
-    async function fetchStatus() {
-      try {
-        const res = await fetch("/api/status");
-        if (!res.ok) throw new Error(`${res.status}`);
-        const json = await res.json();
-        if (active) setData(json);
-      } catch (e) {
-        if (active) setError(String(e));
-      }
-    }
-
-    fetchStatus();
-    const interval = setInterval(fetchStatus, 15_000);
-    return () => {
-      active = false;
-      clearInterval(interval);
-    };
-  }, []);
-
-  if (error && !data) {
-    return (
-      <AppShell>
-        <div className="p-6 text-red-400">Failed to load status: {error}</div>
-      </AppShell>
-    );
-  }
-
-  if (!data) {
+  if (!snapshot) {
     return (
       <AppShell>
         <div className="p-6">
@@ -72,23 +36,90 @@ export default function StatusPage() {
     );
   }
 
+  // --- Extract data from snapshot ---
+  // Snapshot shape (from /api/snapshot route.ts):
+  //   cron: { jobs: CronJob[], summary: { total, ok, failed } }
+  //   heartbeat: HeartbeatState
+  //   system: SystemInfo
+  //   metrics: MetricsData
+  //   pipeline: PipelineData  (has .jobs: PipelineJob[])
+
+  const cronSection = snapshot.cron as { jobs?: CronJob[]; summary?: Record<string, number> } | undefined;
+  const cronJobs: CronJob[] = cronSection?.jobs ?? [];
+
+  const pipelineSection = snapshot.pipeline as { jobs?: PipelineJob[] } | undefined;
+  const pipelineJobs: PipelineJob[] = pipelineSection?.jobs ?? [];
+
+  const metrics = snapshot.metrics as MetricsData | undefined;
+  const codexQuota = metrics?.codexQuota;
+
+  const heartbeat = snapshot.heartbeat as HeartbeatState | undefined;
+  const system = snapshot.system as SystemInfo | undefined;
+
+  // --- Derive status cards ---
+
+  const pipeline = derivePipelineStatus({
+    jobs: pipelineJobs.map((j) => ({
+      status: j.status ?? "",
+      updated_at: j.createdAt ?? "",
+      stage:
+        Array.isArray(j.stages) && j.stages.length > 0
+          ? (j.stages[j.stages.length - 1]?.name ?? "")
+          : "",
+    })),
+  });
+
+  const cron = deriveCronStatus({
+    jobs: cronJobs.map((j) => ({
+      name: j.name ?? "",
+      status: j.status ?? "",
+    })),
+  });
+
+  const quota = deriveQuotaStatus({
+    dailyPct: codexQuota?.dailyRemaining ?? 100,
+    weeklyPct: codexQuota?.weeklyRemaining ?? 100,
+  });
+
+  const failedCrons = cronJobs.filter((j) => j.status === "error").length;
+  const quark = deriveQuarkStatus({
+    lastHeartbeat: heartbeat?.lastHeartbeat ?? new Date().toISOString(),
+    recentRuns: cronJobs.length,
+    recentFailures: failedCrons,
+    windowHours: 6,
+  });
+
+  const cpuPct = system?.cpuPercent ?? 0;
+  const memUsed = system?.memoryUsedMb ?? 0;
+  const memTotal = system?.memoryTotalMb ?? 1;
+  const diskUsed = system?.diskUsedGb ?? 0;
+  const diskTotal = system?.diskTotalGb ?? 1;
+  const systemStatus = deriveSystemStatus({
+    cpu: cpuPct,
+    memory: memTotal > 0 ? Math.round((memUsed / memTotal) * 100) : 0,
+    disk: diskTotal > 0 ? Math.round((diskUsed / diskTotal) * 100) : 0,
+  });
+
+  // Convert CronJob[] to the Record<string,unknown>[] that CronCard expects
+  const cronJobRecords: Array<Record<string, unknown>> = cronJobs.map((j) => ({ ...j }));
+
   return (
     <AppShell>
       <div className="p-6">
         <div className="mb-4 flex items-center justify-between">
           <h1 className="text-xl font-semibold text-[#F1F5F9]">Status</h1>
-          {data.timestamp && (
-            <span className="text-xs text-[#94A3B8]">
-              Updated {formatTimeShort(data.timestamp)}
+          {fetchedAt && (
+            <span className={`text-xs ${stale ? "text-amber-400" : "text-[#94A3B8]"}`}>
+              {stale ? "Stale \u2014 " : ""}Updated {formatTimeShort(new Date(fetchedAt).toISOString())}
             </span>
           )}
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <PipelineCard data={data.pipeline} />
-          <CronCard data={data.cron} />
-          <QuotaCard data={data.quota} />
-          <QuarkCard data={data.quark} />
-          <SystemCard data={data.system} />
+          <PipelineCard data={{ ...pipeline }} />
+          <CronCard data={{ ...cron, jobs: cronJobRecords }} />
+          <QuotaCard data={{ ...quota, raw: codexQuota as unknown as Record<string, unknown> }} />
+          <QuarkCard data={{ ...quark, heartbeat: heartbeat as unknown as Record<string, unknown> }} />
+          <SystemCard data={{ ...systemStatus }} />
         </div>
       </div>
     </AppShell>
