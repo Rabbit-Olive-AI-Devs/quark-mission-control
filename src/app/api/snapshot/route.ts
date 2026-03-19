@@ -19,7 +19,6 @@ import { parseOperations } from "@/lib/parsers/operations";
 import { computeWorkspaceHash } from "@/lib/hash";
 import { corsHeaders } from "@/lib/cors";
 
-export const dynamic = "force-dynamic";
 
 export async function OPTIONS(request: Request) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(request) });
@@ -141,7 +140,8 @@ export async function GET(request: Request) {
   return NextResponse.json(snapshot, {
     headers: {
       ...cors,
-      "Cache-Control": "no-store",
+      "CDN-Cache-Control": "s-maxage=15, stale-while-revalidate=45, stale-if-error=3600",
+      "Cache-Control": "public, max-age=5",
     },
   });
 }
