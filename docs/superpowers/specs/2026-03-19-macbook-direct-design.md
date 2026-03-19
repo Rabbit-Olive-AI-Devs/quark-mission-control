@@ -34,6 +34,8 @@ Browser → Tailscale Funnel → MacBook :3000 (Next.js production)
 
 **Fix:** Replace the whole page with `useApi("/api/status")`. The endpoint already exists — it runs all parsers in parallel and returns `{ pipeline, cron, quota, quark, system, timestamp }` where each card already matches the `derive*Status()` return types. Consume these directly — do not re-derive inside the page. Drop the `stale` display and replace `fetchedAt` with `data.timestamp` from the API response.
 
+Also add `export const dynamic = "force-dynamic"` to `src/app/api/status/route.ts` to prevent Next.js from statically caching it at build time.
+
 ### 2. Delete remote-mode code
 
 The following files and branches exist solely to support the Vercel polling architecture and serve no purpose in local mode:
