@@ -30,11 +30,9 @@ Browser → Tailscale Funnel → MacBook :3000 (Next.js production)
 
 ### 1. Status page — fix for local mode
 
-`src/app/status/page.tsx` currently reads from Zustand `snapshot`, which is only populated in remote mode (hash-polling). Local mode never sets it → permanent blank.
+`src/app/status/page.tsx` currently reads `snapshot` (line 21), `snapshotStale` (line 22), and `snapshotFetchedAt` (line 23) from the Zustand store. All three fields are being deleted from the store. The entire derivation block (lines 51–112) must also go.
 
-**Fix:** Replace Zustand snapshot reads with `useApi("/api/status")`, matching the pattern used by every other page (engagement, schedule, cognitive, etc.).
-
-The `/api/status` endpoint already exists and works — it runs all parsers in parallel and returns a shaped object `{ pipeline, cron, quota, quark, system, timestamp }` where each card already matches the `derive*Status()` return types. Consume these directly — do not re-derive inside the page component.
+**Fix:** Replace the whole page with `useApi("/api/status")`. The endpoint already exists — it runs all parsers in parallel and returns `{ pipeline, cron, quota, quark, system, timestamp }` where each card already matches the `derive*Status()` return types. Consume these directly — do not re-derive inside the page. Drop the `stale` display and replace `fetchedAt` with `data.timestamp` from the API response.
 
 ### 2. Delete remote-mode code
 
@@ -46,8 +44,8 @@ The following files and branches exist solely to support the Vercel polling arch
 - `src/components/staleness-banner.tsx`
 
 **Simplify (remove IS_REMOTE / snapshot branches):**
-- `src/hooks/use-api.ts` — remove `IS_REMOTE` guard, `snapshotKey` option, snapshot store reads, hash-change re-fetch. Keep: direct fetch, SSE refresh, polling fallback.
-- `src/stores/dashboard.ts` — remove `snapshot`, `snapshotHash`, `snapshotStale`, `snapshotFetchedAt`, `lastHashCheck`, `hashHealthy`, `setSnapshot`, `setSnapshotStale`, `setHashHealth`, `hydrateFromCache`. Keep: `connected`, `lastEvent`, `refreshKey`, `cognitiveDegradation`, `engagementUnanswered`.
+- `src/hooks/use-api.ts` — remove: `IS_REMOTE` constant, `snapshotKey` from `UseApiOptions`, store subscriptions on lines 32–34 (`snapshot`, `snapshotFetchedAt`, `snapshotHash`), the remote snapshot `useEffect` (lines 39–47), the `snapshotHash` re-fetch `useEffect` (lines 81–86), and all `if (IS_REMOTE ...)` guards. Keep: direct fetch, SSE refresh, polling fallback.
+- `src/stores/dashboard.ts` — remove the import of `use-persisted-snapshot` (line 4), then remove fields/actions: `snapshot`, `snapshotHash`, `snapshotStale`, `snapshotFetchedAt`, `lastHashCheck`, `hashHealthy`, `setSnapshot`, `setSnapshotStale`, `setHashHealth`, `hydrateFromCache`. Keep: `connected`, `lastEvent`, `refreshKey`, `cognitiveDegradation`, `engagementUnanswered`. **The import must be removed before (or simultaneously with) deleting `use-persisted-snapshot.ts` to avoid a broken module reference.**
 - `src/components/layout/app-shell.tsx` — remove `RemoteHashPolling`, `IS_REMOTE` branch, `hydrateFromCache` effect, `StalenessBanner`. Keep: `LocalSSE`, sidebar, ambient orbs.
 - `src/lib/data-source.ts` — delete entirely (only used for server-side snapshot fetching in remote mode; local parsers are called directly).
 
