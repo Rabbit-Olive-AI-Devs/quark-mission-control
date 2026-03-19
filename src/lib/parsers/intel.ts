@@ -63,6 +63,13 @@ function parseTrendBlock(block: string): IntelTrend {
     if (angMatch) angle = angMatch[1];
   }
 
+  // Fallback: if no labeled Virality line matched, scan full block text for any X.Y/10 pattern
+  if (virality === 0) {
+    const blockText = lines.join(" ");
+    const fallbackMatch = blockText.match(/(\d+(?:\.\d+)?)\s*\/\s*10/);
+    if (fallbackMatch) virality = Math.round(parseFloat(fallbackMatch[1]));
+  }
+
   return { title, source, virality, confidence, expiry, angle };
 }
 
