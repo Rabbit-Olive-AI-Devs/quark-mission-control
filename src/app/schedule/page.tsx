@@ -17,7 +17,7 @@ export default function SchedulePage() {
   const { data, loading, refetch } = useApi<{
     jobs: CronJob[];
     summary: { total: number; ok: number; failed: number };
-  }>("/api/schedule", { snapshotKey: "cron", refreshOn: ["heartbeat"] });
+  }>("/api/schedule", { refreshOn: ["heartbeat"] });
 
   const jobs = data?.jobs || [];
   const summary = data?.summary || { total: 0, ok: 0, failed: 0 };

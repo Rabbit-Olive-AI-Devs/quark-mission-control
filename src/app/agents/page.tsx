@@ -12,7 +12,7 @@ import type { AgentStatus, BroadcastStatus } from "@/lib/parsers/types";
 function AgentsContent() {
   const { data, loading } = useApi<{ agents: AgentStatus[]; broadcast: BroadcastStatus }>(
     "/api/agents",
-    { snapshotKey: "agents", refreshOn: ["comms"] }
+    { refreshOn: ["comms"] }
   );
   const searchParams = useSearchParams();
   const [selectedAgent, setSelectedAgent] = useState<string | null>(() => searchParams.get("agent"));

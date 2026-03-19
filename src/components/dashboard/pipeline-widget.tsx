@@ -49,7 +49,7 @@ function MiniSegmentBar({ stages, terminalStatus }: { stages: PipelineStage[]; t
 }
 
 export function PipelineWidget({ delay = 0 }: { delay?: number }) {
-  const { data } = useApi<PipelineData>("/api/pipeline", { snapshotKey: "pipeline", refreshOn: ["pipeline"] })
+  const { data } = useApi<PipelineData>("/api/pipeline", { refreshOn: ["pipeline"] })
 
   const scorecard = data?.scorecard
   const activeJob = data?.activeJob

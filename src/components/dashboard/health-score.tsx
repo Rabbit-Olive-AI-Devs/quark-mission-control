@@ -61,7 +61,6 @@ export function HealthScore() {
     lastUpdated: cogUpdated,
     refetch: cogRefetch,
   } = useApi<CognitiveData>("/api/cognitive", {
-    snapshotKey: "cognitive",
     refreshOn: ["metrics"],
   });
 
@@ -71,7 +70,6 @@ export function HealthScore() {
     lastUpdated: engUpdated,
     refetch: engRefetch,
   } = useApi<EngagementData>("/api/engagement", {
-    snapshotKey: "engagement",
     refreshOn: ["engagement"],
   });
 

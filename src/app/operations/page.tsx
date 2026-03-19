@@ -14,7 +14,6 @@ import type { OperationsData } from "@/lib/parsers/types";
 
 export default function OperationsPage() {
   const { data, loading } = useApi<OperationsData>("/api/operations", {
-    snapshotKey: "operations",
     refreshOn: ["metrics"],
   });
 

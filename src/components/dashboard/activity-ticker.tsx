@@ -7,8 +7,8 @@ import { useApi } from "@/hooks/use-api";
 import type { DigestEntry, PendingActions } from "@/lib/parsers/types";
 
 export function ActivityTicker() {
-  const { data, loading, error, lastUpdated, refetch } = useApi<{ sections: DigestEntry[] }>("/api/digest", { snapshotKey: "digest", refreshOn: ["digest"] });
-  const { data: pending } = useApi<PendingActions>("/api/pending", { snapshotKey: "pending", refreshOn: ["pending"] });
+  const { data, loading, error, lastUpdated, refetch } = useApi<{ sections: DigestEntry[] }>("/api/digest", { refreshOn: ["digest"] });
+  const { data: pending } = useApi<PendingActions>("/api/pending", { refreshOn: ["pending"] });
 
   const pendingCount = (pending?.dmDrafts.length || 0) + (pending?.xDrafts.length || 0) + (pending?.emailDrafts.length || 0);
 

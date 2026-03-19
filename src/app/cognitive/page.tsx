@@ -15,7 +15,6 @@ import type { CognitiveData } from "@/lib/parsers/types";
 
 export default function CognitivePage() {
   const { data, loading } = useApi<CognitiveData>("/api/cognitive", {
-    snapshotKey: "cognitive",
     refreshOn: ["metrics"],
   });
 

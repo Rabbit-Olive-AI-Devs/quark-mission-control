@@ -29,7 +29,7 @@ export function AgentBar() {
   const router = useRouter();
   const { data, loading, error, lastUpdated, refetch } = useApi<{ agents: AgentStatus[]; broadcast: BroadcastStatus }>(
     "/api/agents",
-    { snapshotKey: "agents", refreshOn: ["comms"] }
+    { refreshOn: ["comms"] }
   );
 
   if (loading) {

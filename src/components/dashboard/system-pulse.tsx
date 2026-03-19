@@ -60,13 +60,13 @@ export function SystemPulse() {
     error: hbErr,
     lastUpdated: hbUpdated,
     refetch: hbRefetch,
-  } = useApi<HeartbeatState>("/api/heartbeat", { snapshotKey: "heartbeat", refreshOn: ["heartbeat"] });
+  } = useApi<HeartbeatState>("/api/heartbeat", { refreshOn: ["heartbeat"] });
 
-  const { data: system } = useApi<SystemInfo>("/api/system", { snapshotKey: "system", refreshOn: ["heartbeat"] });
+  const { data: system } = useApi<SystemInfo>("/api/system", { refreshOn: ["heartbeat"] });
 
   const { data: cronData } = useApi<{ jobs: CronJob[]; summary: { total: number; ok: number; failed: number } }>(
     "/api/cron",
-    { snapshotKey: "cron", refreshOn: ["heartbeat"] }
+    { refreshOn: ["heartbeat"] }
   );
 
   const lastBeat = heartbeat?.lastHeartbeat ? new Date(heartbeat.lastHeartbeat) : null;

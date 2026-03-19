@@ -17,7 +17,6 @@ import type { EngagementData } from "@/lib/parsers/types";
 
 export default function EngagementPage() {
   const { data, loading, error, lastUpdated, refetch } = useApi<EngagementData>("/api/engagement", {
-    snapshotKey: "engagement",
     refreshOn: ["engagement"],
   });
 
