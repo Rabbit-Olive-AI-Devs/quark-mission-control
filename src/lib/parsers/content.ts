@@ -1,8 +1,15 @@
+/**
+ * @deprecated These parsers read from skills/genviral/workspace/ which no longer exists.
+ * The /content page now uses the pipeline parser via /api/pipeline instead.
+ * The /api/content route still references these functions but no frontend calls it.
+ * Kept for backward compatibility — all functions return empty data safely.
+ */
 import fs from "fs";
 import path from "path";
 import { WORKSPACE_PATH } from "../config";
 import type { ContentPost, HookCategory } from "./types";
 
+// DEPRECATED: Genviral workspace paths do not exist — all reads fall through to empty returns
 const PERF_PATH = "skills/genviral/workspace/performance";
 const CONTENT_PATH = "skills/genviral/workspace/content";
 const HOOKS_PATH = "skills/genviral/workspace/hooks";
