@@ -51,8 +51,22 @@ The following files and branches exist solely to support the Vercel polling arch
 - `src/components/layout/app-shell.tsx` — remove `RemoteHashPolling`, `IS_REMOTE` branch, `hydrateFromCache` effect, `StalenessBanner`. Keep: `LocalSSE`, sidebar, ambient orbs.
 - `src/lib/data-source.ts` — delete entirely (only used for server-side snapshot fetching in remote mode; local parsers are called directly).
 
-**Remove env references:**
-- `src/app/settings/page.tsx` — remove any `IS_REMOTE` / `SNAPSHOT_URL` display fields.
+**Remove env references + rewrite settings page local-only:**
+- `src/app/settings/page.tsx` — remove `IS_REMOTE` and `NEXT_PUBLIC_SNAPSHOT_URL` constants, remove `snapshotFetchedAt` and `hashHealthy` store subscriptions (both deleted from store), rewrite `isConnected` to use `connected` only, set `modeLabel` to always "Local", replace `snapshotFetchedAt` row with SSE `lastEvent` timestamp, remove `snapshotKey` from its `useApi()` call.
+
+**Remove `snapshotKey` from all `useApi()` call sites:**
+Seven pages pass `snapshotKey` to `useApi()` — this option is being deleted from `UseApiOptions`. Remove the `snapshotKey` property from each call:
+- `src/app/cognitive/page.tsx`
+- `src/app/schedule/page.tsx`
+- `src/app/agents/page.tsx`
+- `src/app/content/page.tsx`
+- `src/app/operations/page.tsx`
+- `src/app/engagement/page.tsx`
+- `src/app/settings/page.tsx`
+
+**Clean up all API routes that import `data-source.ts`:**
+Every route file that imports from `@/lib/data-source` has an `if (isRemote()) { return getSnapshotSection(...) }` guard at the top. Remove the import and delete that guard block from each. The local parser call that follows each guard is already correct and stays. Then delete `data-source.ts` and `/api/source-status/route.ts` entirely. Affected routes:
+`api/intel`, `api/command-center`, `api/metrics`, `api/pipeline`, `api/cognitive`, `api/model-usage`, `api/schedule`, `api/memory`, `api/digest`, `api/comms`, `api/agents`, `api/content`, `api/session-log`, `api/operations`, `api/engagement`, `api/heartbeat`, `api/system`, `api/knowledge`, `api/cron-history`, `api/cron`, `api/pending`, `api/source-status`
 
 ### 3. No .env.local changes needed
 
