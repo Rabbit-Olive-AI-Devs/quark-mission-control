@@ -1,17 +1,10 @@
 import { NextResponse } from "next/server";
 import { parseCronList } from "@/lib/parsers/cron";
-import { isRemote, getSnapshotSection, getSourceMeta } from "@/lib/data-source";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  if (isRemote()) {
-    const data = await getSnapshotSection("cron");
-    if (data) return NextResponse.json({ ...(data as object), source: getSourceMeta() });
-  }
-
   const jobs = parseCronList();
-  const source = getSourceMeta();
   return NextResponse.json({
     jobs,
     summary: {
@@ -21,10 +14,5 @@ export async function GET() {
         (j) => j.status !== "ok" && j.status !== "idle" && j.status !== "unknown" && j.status !== "disabled"
       ).length,
     },
-    source,
-    warning:
-      source.mode === "remote" && !source.healthy
-        ? "Remote snapshot unavailable; using local parser fallback"
-        : undefined,
   });
 }

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { parseAgents, parseBroadcast, parseComms } from "@/lib/parsers/agents";
-import { isRemote, getSnapshotSection } from "@/lib/data-source";
 import type { AgentStatus, BroadcastStatus } from "@/lib/parsers/types";
 
 export const dynamic = "force-dynamic";
@@ -35,11 +34,6 @@ function ensureMse6(payload: { agents?: AgentStatus[]; broadcast?: BroadcastStat
 }
 
 export async function GET() {
-  if (isRemote()) {
-    const data = await getSnapshotSection("agents");
-    if (data) return NextResponse.json(ensureMse6(data));
-  }
-
   const agents = parseAgents();
   return NextResponse.json(
     ensureMse6({
