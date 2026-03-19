@@ -8,7 +8,7 @@ import { parsePipelineData } from "@/lib/parsers/pipeline";
 import { parseCronList } from "@/lib/parsers/cron";
 import { parseMetrics } from "@/lib/parsers/metrics";
 import { parseHeartbeat } from "@/lib/parsers/heartbeat";
-import { getSystemInfo } from "@/lib/parsers/system";
+import { getSystemInfo, getOAuthStatus } from "@/lib/parsers/system";
 import { parseEngagement } from "@/lib/parsers/engagement";
 import { parseCognitive } from "@/lib/parsers/cognitive";
 import { parseIntel } from "@/lib/parsers/intel";
@@ -110,7 +110,7 @@ function parseActivity(
 
 export async function GET() {
   try {
-    const [pipeline, cronJobs, metrics, heartbeat, system, engagement, cognitive, intel, digest] =
+    const [pipeline, cronJobs, metrics, heartbeat, system, engagement, cognitive, intel, digest, oauth] =
       await Promise.all([
         parsePipelineData(),
         parseCronList(),
@@ -121,6 +121,7 @@ export async function GET() {
         parseCognitive(),
         parseIntel(),
         parseDigest(),
+        Promise.resolve(getOAuthStatus()),
       ]);
 
     // --- Derive status cards (same logic as /api/status) ---
@@ -246,6 +247,7 @@ export async function GET() {
       },
       contentToday,
       activity,
+      oauth,
       healthScore,
       timestamp: new Date().toISOString(),
     };
