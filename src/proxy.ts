@@ -2,12 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
 
 const AUTH_COOKIE_NAME = "qmc_auth";
-// Only the login page and the auth endpoint are truly public.
-// The snapshot endpoint uses its own bearer-token auth.
-const PUBLIC_PATHS = ["/login", "/api/auth", "/api/snapshot", "/api/hash", "/api/memory", "/api/knowledge", "/api/status"];
+// Only the login page, auth endpoint, and select API routes are public.
+const PUBLIC_PATHS = ["/login", "/api/auth", "/api/memory", "/api/knowledge", "/api/status"];
 
-// Endpoints that need CORS (Vercel browser → MacBook via Tailscale Funnel)
-const CORS_PATHS = ["/api/hash", "/api/snapshot"];
+// CORS paths (none needed in MacBook-direct mode, kept for future use)
+const CORS_PATHS: string[] = [];
 
 function isValidToken(token: string): boolean {
   // Token must be a 64-char hex string (sha256 output)
