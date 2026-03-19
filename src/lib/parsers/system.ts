@@ -1,7 +1,7 @@
 import { execSync } from "child_process";
 import os from "os";
 import { cachedSync } from "../async-cache";
-import type { SystemInfo } from "./types";
+import type { OAuthProfile, SystemInfo } from "./types";
 
 function getMemoryUsedMb(): number {
   if (process.platform === "darwin") {
@@ -26,6 +26,51 @@ function getMemoryUsedMb(): number {
     }
   }
   return Math.round((os.totalmem() - os.freemem()) / (1024 * 1024));
+}
+
+export function getOAuthStatus(): OAuthProfile[] {
+  return cachedSync("oauth-status", 60_000, () => {
+    try {
+      const raw = execSync("openclaw models --status-json 2>/dev/null", {
+        encoding: "utf-8",
+        timeout: 10_000,
+      });
+      // Skip plugin log lines — find first {
+      const jsonStart = raw.indexOf("{");
+      if (jsonStart === -1) return [];
+      const data = JSON.parse(raw.slice(jsonStart));
+      const profiles = data?.auth?.oauth?.profiles ?? [];
+
+      return profiles
+        .filter((p: Record<string, unknown>) => p.type === "oauth")
+        .map((p: Record<string, unknown>): OAuthProfile => {
+          const remainingMs =
+            typeof p.remainingMs === "number" ? p.remainingMs : null;
+          let remainingHuman = "unknown";
+          if (p.status === "static") remainingHuman = "static";
+          else if (!remainingMs || remainingMs <= 0) remainingHuman = "expired";
+          else if (remainingMs > 86_400_000)
+            remainingHuman = `${Math.floor(remainingMs / 86_400_000)}d`;
+          else if (remainingMs > 3_600_000)
+            remainingHuman = `${Math.floor(remainingMs / 3_600_000)}h`;
+          else remainingHuman = `${Math.floor(remainingMs / 60_000)}m`;
+
+          return {
+            provider: String(p.provider ?? "unknown"),
+            status:
+              remainingMs !== null && remainingMs <= 0
+                ? "expired"
+                : (String(p.status ?? "error") as OAuthProfile["status"]),
+            expiresAt:
+              typeof p.expiresAt === "number" ? p.expiresAt : null,
+            remainingMs,
+            remainingHuman,
+          };
+        });
+    } catch {
+      return [];
+    }
+  });
 }
 
 export function getSystemInfo(): SystemInfo {

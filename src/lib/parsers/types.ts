@@ -490,6 +490,15 @@ export interface EngagementData {
   sourceCoverage: EngagementSourceCoverage;
 }
 
+// OAuth token status
+export interface OAuthProfile {
+  provider: string;
+  status: "ok" | "expired" | "error" | "static" | "missing";
+  expiresAt: number | null;  // epoch ms
+  remainingMs: number | null;
+  remainingHuman: string;    // "10d", "23h", "expired", "static"
+}
+
 // === Status Page Types ===
 
 export type StatusLevel = "healthy" | "warning" | "critical";
@@ -559,6 +568,9 @@ export interface StatusFullResponse {
   };
   contentToday: ContentTodayData;
   activity: ActivityEntry[];
+
+  // Auth
+  oauth: OAuthProfile[];
 
   // Metadata
   healthScore: number;
