@@ -7,6 +7,28 @@ const RENDERS_DIR = path.join(WORKSPACE, "content-engine/renders")
 const INTAKE_DIR = path.join(WORKSPACE, "content-engine/intake/approved")
 const INTAKE_BUCKETS = ["approved", "rejected", "quarantined", "pending"] as const
 const STATE_DIR = path.join(WORKSPACE, "content-engine/state")
+const PUBLISH_AUDIT_PATH = path.join(WORKSPACE, "content-engine/state/publish-audit.jsonl")
+
+/**
+ * Build a map of job_id → terminal status from publish-audit.jsonl.
+ * The last entry per job_id wins (handles multiple publishes / status changes).
+ */
+function loadTerminalStatuses(): Map<string, string> {
+  const map = new Map<string, string>()
+  try {
+    const content = fs.readFileSync(PUBLISH_AUDIT_PATH, "utf-8")
+    for (const line of content.split("\n")) {
+      if (!line.trim()) continue
+      try {
+        const entry = JSON.parse(line)
+        if (entry.job_id && entry.outcome) {
+          map.set(entry.job_id, entry.outcome)
+        }
+      } catch { /* skip malformed lines */ }
+    }
+  } catch { /* file missing — no overrides */ }
+  return map
+}
 
 const TERMINAL_STATUSES = ["published", "killed", "stale", "rejected", "quarantined"]
 
@@ -209,6 +231,9 @@ function computeScorecard(jobs: PipelineJob[]): PipelineScorecard {
 
 export function parsePipelineData(): PipelineData {
   try {
+    // Load terminal statuses from publish-audit.jsonl once
+    const terminalMap = loadTerminalStatuses()
+
     let manifestFiles: string[] = []
     if (fs.existsSync(RENDERS_DIR)) {
       manifestFiles = fs.readdirSync(RENDERS_DIR)
@@ -219,6 +244,15 @@ export function parsePipelineData(): PipelineData {
     const manifestJobs: PipelineJob[] = manifestFiles
       .map(parseManifest)
       .filter((j): j is PipelineJob => j !== null)
+
+    // Override manifest status with terminal status from audit log
+    for (const job of manifestJobs) {
+      const terminal = terminalMap.get(job.jobId)
+      if (terminal && TERMINAL_STATUSES.includes(terminal) && !TERMINAL_STATUSES.includes(job.status)) {
+        job.status = terminal
+        job.stages = deriveStages({ status: terminal })
+      }
+    }
 
     const manifestJobIds = new Set(manifestJobs.map((j) => j.jobId))
 
