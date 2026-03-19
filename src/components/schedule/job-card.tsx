@@ -2,6 +2,7 @@
 
 import { GlassCard } from "@/components/ui/glass-card";
 import { StatusDot } from "@/components/ui/status-dot";
+import { ReliabilityDots } from "./reliability-dots";
 import type { CronJob } from "@/lib/parsers/types";
 
 const TZ = "America/Chicago";
@@ -45,9 +46,10 @@ interface JobCardProps {
   job: CronJob;
   compact?: boolean;
   delay?: number;
+  recentRuns?: Array<{ status: "ok" | "error" }>;
 }
 
-export function JobCard({ job, compact = false, delay = 0 }: JobCardProps) {
+export function JobCard({ job, compact = false, delay = 0, recentRuns = [] }: JobCardProps) {
   const st = statusOf(job);
 
   if (compact) {
@@ -61,6 +63,7 @@ export function JobCard({ job, compact = false, delay = 0 }: JobCardProps) {
           </span>
         )}
         <span className="text-[10px] text-[#94A3B8] font-mono shrink-0">{formatRelative(job.lastRunMs)}</span>
+        {recentRuns.length > 0 && <ReliabilityDots runs={recentRuns} />}
       </div>
     );
   }
@@ -97,8 +100,13 @@ export function JobCard({ job, compact = false, delay = 0 }: JobCardProps) {
               )}
             </div>
           </div>
-          <div className="mt-2 text-[10px] text-[#64748B] font-mono truncate">
-            {job.model.split("/").pop()}
+          <div className="flex items-center gap-2 mt-2">
+            <ReliabilityDots runs={recentRuns} />
+            {job.lastRunMs && (
+              <span className={`text-[10px] font-mono ${job.status === "error" ? "text-[#EF4444]" : "text-[#10B981]"}`}>
+                {job.status === "error" ? "failed" : "completed"} {formatRelative(job.lastRunMs)}
+              </span>
+            )}
           </div>
         </div>
       </div>

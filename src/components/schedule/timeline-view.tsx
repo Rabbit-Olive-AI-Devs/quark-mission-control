@@ -2,7 +2,6 @@
 
 import { useMemo, useEffect, useState } from "react";
 import { GlassCard } from "@/components/ui/glass-card";
-import { StatusDot } from "@/components/ui/status-dot";
 import type { CronJob } from "@/lib/parsers/types";
 import { JobCard } from "./job-card";
 
@@ -60,9 +59,11 @@ function cronHours(schedule: string): number[] {
 interface TimelineViewProps {
   jobs: CronJob[];
   view: "daily" | "weekly";
+  failedFirst?: boolean;
+  recentRunsMap?: Record<string, Array<{ status: "ok" | "error" }>>;
 }
 
-export function TimelineView({ jobs, view }: TimelineViewProps) {
+export function TimelineView({ jobs, view, failedFirst = false, recentRunsMap = {} }: TimelineViewProps) {
   const [nowHour, setNowHour] = useState(chicagoHour);
 
   // Update current hour every 60s
@@ -85,6 +86,16 @@ export function TimelineView({ jobs, view }: TimelineViewProps) {
     }
     return slots;
   }, [jobs]);
+
+  // Sort jobs within a slot if failedFirst is enabled
+  function sortSlotJobs(slotJobs: CronJob[]): CronJob[] {
+    if (!failedFirst) return slotJobs;
+    return [...slotJobs].sort((a, b) => {
+      const aFailed = a.status === "error" ? 0 : 1;
+      const bFailed = b.status === "error" ? 0 : 1;
+      return aFailed - bFailed;
+    });
+  }
 
   // For weekly: group jobs by day-of-week from nextRunMs
   const weekSlots = useMemo(() => {
@@ -126,6 +137,7 @@ export function TimelineView({ jobs, view }: TimelineViewProps) {
       <div className="space-y-2">
         {weekSlots.map((slot) => {
           const isToday = slot.day === todayDow.slice(0, 3);
+          const sorted = sortSlotJobs(slot.jobs);
           return (
             <GlassCard key={slot.day} delay={slot.dayIndex * 0.03} className="p-3">
               <div className="flex items-center gap-3 mb-2">
@@ -145,10 +157,10 @@ export function TimelineView({ jobs, view }: TimelineViewProps) {
                   {slot.jobs.length} job{slot.jobs.length !== 1 ? "s" : ""}
                 </span>
               </div>
-              {slot.jobs.length > 0 ? (
+              {sorted.length > 0 ? (
                 <div className="space-y-1">
-                  {slot.jobs.map((job) => (
-                    <JobCard key={job.id} job={job} compact />
+                  {sorted.map((job) => (
+                    <JobCard key={job.id} job={job} compact recentRuns={recentRunsMap[job.id] || []} />
                   ))}
                 </div>
               ) : (
@@ -169,7 +181,7 @@ export function TimelineView({ jobs, view }: TimelineViewProps) {
 
       <div className="space-y-0">
         {Array.from({ length: 24 }, (_, h) => {
-          const slotJobs = hourSlots.get(h) || [];
+          const slotJobs = sortSlotJobs(hourSlots.get(h) || []);
           const isCurrent = h === nowHour;
           const isPast = h < nowHour;
 
@@ -212,7 +224,7 @@ export function TimelineView({ jobs, view }: TimelineViewProps) {
                 {slotJobs.length > 0 ? (
                   <div className="space-y-1">
                     {slotJobs.map((job) => (
-                      <JobCard key={job.id} job={job} compact />
+                      <JobCard key={job.id} job={job} compact recentRuns={recentRunsMap[job.id] || []} />
                     ))}
                   </div>
                 ) : isCurrent ? (
