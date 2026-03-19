@@ -3,11 +3,35 @@ import os from "os";
 import { cachedSync } from "../async-cache";
 import type { SystemInfo } from "./types";
 
+function getMemoryUsedMb(): number {
+  if (process.platform === "darwin") {
+    try {
+      const vmstat = execSync("vm_stat", { encoding: "utf-8" });
+      let pageSize = 16384;
+      try {
+        pageSize = parseInt(execSync("sysctl -n hw.pagesize", { encoding: "utf-8" }).trim(), 10) || 16384;
+      } catch { /* default 16384 */ }
+
+      const extract = (label: string): number => {
+        const match = vmstat.match(new RegExp(`${label}:\\s+(\\d+)`));
+        return match ? parseInt(match[1], 10) : 0;
+      };
+
+      const active = extract("Pages active");
+      const wired = extract("Pages wired down");
+      const compressor = extract("Pages occupied by compressor");
+      return Math.round((active + wired + compressor) * pageSize / (1024 * 1024));
+    } catch {
+      // Fall through to os.freemem() fallback
+    }
+  }
+  return Math.round((os.totalmem() - os.freemem()) / (1024 * 1024));
+}
+
 export function getSystemInfo(): SystemInfo {
   const cpus = os.cpus();
   const totalMem = os.totalmem();
-  const freeMem = os.freemem();
-  const usedMem = totalMem - freeMem;
+  const usedMem = getMemoryUsedMb();
 
   // CPU usage (average across cores)
   let cpuPercent = 0;
@@ -44,7 +68,7 @@ export function getSystemInfo(): SystemInfo {
 
   return {
     cpuPercent: Math.round(cpuPercent * 10) / 10,
-    memoryUsedMb: Math.round(usedMem / 1048576),
+    memoryUsedMb: usedMem,
     memoryTotalMb: Math.round(totalMem / 1048576),
     diskUsedGb,
     diskTotalGb,
