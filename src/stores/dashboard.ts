@@ -1,21 +1,12 @@
 "use client";
 
 import { create } from "zustand";
-import { persistSnapshot, loadPersistedSnapshot } from "@/hooks/use-persisted-snapshot";
 
 interface DashboardState {
-  // SSE connection (local mode)
+  // SSE connection
   connected: boolean;
   lastEvent: { type: string; file: string; timestamp: number } | null;
   refreshKey: number;
-
-  // Shared snapshot (remote mode)
-  snapshot: Record<string, unknown> | null;
-  snapshotHash: string | null;
-  snapshotStale: boolean;
-  snapshotFetchedAt: number | null;
-  lastHashCheck: number | null;
-  hashHealthy: boolean;
 
   // Cognitive
   cognitiveDegradation: string[];
@@ -29,44 +20,17 @@ interface DashboardState {
   triggerRefresh: () => void;
   setConnected: (connected: boolean) => void;
   setLastEvent: (event: DashboardState["lastEvent"]) => void;
-  setSnapshot: (data: Record<string, unknown>, hash: string) => void;
-  setSnapshotStale: (stale: boolean) => void;
-  setHashHealth: (healthy: boolean, lastCheck: number) => void;
-  hydrateFromCache: () => Promise<void>;
 }
 
-export const useDashboardStore = create<DashboardState>((set, get) => ({
+export const useDashboardStore = create<DashboardState>((set) => ({
   connected: false,
   lastEvent: null,
   refreshKey: 0,
-  snapshot: null,
-  snapshotHash: null,
-  snapshotStale: false,
-  snapshotFetchedAt: null,
-  lastHashCheck: null,
-  hashHealthy: true,
   cognitiveDegradation: [],
   setCognitiveDegradation: (flags) => set({ cognitiveDegradation: flags }),
   engagementUnanswered: 0,
   setEngagementUnanswered: (count) => set({ engagementUnanswered: count }),
-
   triggerRefresh: () => set((state) => ({ refreshKey: state.refreshKey + 1 })),
   setConnected: (connected) => set({ connected }),
   setLastEvent: (lastEvent) => set({ lastEvent, refreshKey: Date.now() }),
-  setSnapshot: (data, hash) => {
-    set({ snapshot: data, snapshotHash: hash, snapshotFetchedAt: Date.now(), snapshotStale: false });
-    persistSnapshot(data);
-  },
-  setSnapshotStale: (snapshotStale) => set({ snapshotStale }),
-  setHashHealth: (hashHealthy, lastHashCheck) => set({ hashHealthy, lastHashCheck }),
-  hydrateFromCache: async () => {
-    const cached = await loadPersistedSnapshot();
-    if (cached && !get().snapshot) {
-      set({
-        snapshot: cached.data,
-        snapshotFetchedAt: cached.savedAt,
-        snapshotStale: true,
-      });
-    }
-  },
 }));
