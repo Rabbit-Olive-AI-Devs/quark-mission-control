@@ -3,7 +3,7 @@ import { createHash } from "crypto";
 
 const AUTH_COOKIE_NAME = "qmc_auth";
 // Only the login page, auth endpoint, and select API routes are public.
-const PUBLIC_PATHS = ["/login", "/api/auth", "/api/memory", "/api/knowledge", "/api/status"];
+const PUBLIC_PATHS = ["/login", "/api/auth", "/api/memory", "/api/knowledge", "/api/status", "/api/status-full"];
 
 // CORS paths (none needed in MacBook-direct mode, kept for future use)
 const CORS_PATHS: string[] = [];
