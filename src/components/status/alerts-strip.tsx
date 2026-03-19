@@ -142,6 +142,43 @@ function generateAlerts(data: StatusFullResponse): AlertChip[] {
     }
   }
 
+  // 8. OAuth token expiry
+  const ONE_DAY = 86_400_000;
+  const THREE_DAYS = 3 * ONE_DAY;
+  for (const profile of data.oauth ?? []) {
+    if (profile.status === "static") continue;
+
+    const label =
+      profile.provider.includes("codex") || profile.provider.includes("openai")
+        ? "Codex"
+        : profile.provider.includes("minimax")
+          ? "MiniMax"
+          : profile.provider;
+
+    if (profile.status === "expired" || (profile.remainingMs !== null && profile.remainingMs <= 0)) {
+      alerts.push({
+        id: `oauth-expired-${profile.provider}`,
+        text: `${label} OAuth EXPIRED — re-auth required`,
+        level: "critical",
+        href: "/settings",
+      });
+    } else if (profile.remainingMs !== null && profile.remainingMs < ONE_DAY) {
+      alerts.push({
+        id: `oauth-critical-${profile.provider}`,
+        text: `${label} OAuth expires in ${profile.remainingHuman} — run: openclaw models auth login --provider ${profile.provider}`,
+        level: "critical",
+        href: "/settings",
+      });
+    } else if (profile.remainingMs !== null && profile.remainingMs < THREE_DAYS) {
+      alerts.push({
+        id: `oauth-warn-${profile.provider}`,
+        text: `${label} OAuth expires in ${profile.remainingHuman}`,
+        level: "warning",
+        href: "/settings",
+      });
+    }
+  }
+
   // Deduplicate by id
   const seen = new Set<string>();
   return alerts.filter((a) => {
