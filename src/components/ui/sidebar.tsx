@@ -5,42 +5,30 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-  LayoutDashboard,
-  Users,
+  Activity,
   FileText,
-  Radio,
-  BookOpen,
-  BarChart3,
+  Inbox,
   Calendar,
-  Megaphone,
+  Compass,
   Settings,
   Menu,
   X,
-  Brain,
-  MessageCircle,
 } from "lucide-react";
 import { StatusDot } from "./status-dot";
 import { useDashboardStore } from "@/stores/dashboard";
 
 const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/content", label: "Pipeline", icon: FileText },
-  { href: "/cognitive", label: "Cognitive", icon: Brain },
-  { href: "/engagement", label: "Engagement", icon: MessageCircle },
+  { href: "/status", label: "Status", icon: Activity },
+  { href: "/content", label: "Content", icon: FileText },
+  { href: "/inbox", label: "Inbox", icon: Inbox },
   { href: "/schedule", label: "Schedule", icon: Calendar },
-  { href: "/operations", label: "Operations", icon: BarChart3 },
-  { href: "/content-performance", label: "Content Performance", icon: Megaphone },
-  { href: "/knowledge", label: "Knowledge", icon: BookOpen },
-  { href: "/intel", label: "Intel", icon: Radio },
-  { href: "/agents", label: "Agents", icon: Users },
+  { href: "/explore", label: "Explore", icon: Compass },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const connected = useDashboardStore((s) => s.connected);
-  const cognitiveDegradation = useDashboardStore((s) => s.cognitiveDegradation);
-  const engagementUnanswered = useDashboardStore((s) => s.engagementUnanswered);
   const [open, setOpen] = useState(false);
 
   // Prevent body scroll when mobile sidebar is open
@@ -122,16 +110,6 @@ export function Sidebar() {
               >
                 <Icon size={18} />
                 <span>{item.label}</span>
-                {item.href === "/cognitive" && cognitiveDegradation.length > 0 && (
-                  <span className="ml-auto">
-                    <StatusDot status="warning" size="sm" pulse />
-                  </span>
-                )}
-                {item.href === "/engagement" && engagementUnanswered > 0 && (
-                  <span className="ml-auto">
-                    <StatusDot status="warning" size="sm" pulse />
-                  </span>
-                )}
               </Link>
             );
           })}
