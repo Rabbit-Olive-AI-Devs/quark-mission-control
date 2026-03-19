@@ -122,6 +122,11 @@ body {
   background: rgba(255, 255, 255, 0.2);
 }
 
+/* Hide scrollbar for horizontal scroll areas (alerts strip, etc.) */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* Command Bridge — instrument panel animations */
 @keyframes slow-pulse {
   0%, 100% { opacity: 1; }
