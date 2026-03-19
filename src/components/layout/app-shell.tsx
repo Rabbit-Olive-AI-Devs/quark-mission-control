@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useSSE } from "@/hooks/use-sse";
 import { useHashPolling } from "@/hooks/use-hash-polling";
@@ -20,6 +21,11 @@ function RemoteHashPolling() {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const lastEvent = useDashboardStore((s) => s.lastEvent);
+  const hydrateFromCache = useDashboardStore((s) => s.hydrateFromCache);
+
+  useEffect(() => {
+    hydrateFromCache();
+  }, [hydrateFromCache]);
 
   return (
     <div className="min-h-screen bg-[#0A0A0F]">

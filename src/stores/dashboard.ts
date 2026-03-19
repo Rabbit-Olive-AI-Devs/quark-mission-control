@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import { persistSnapshot, loadPersistedSnapshot } from "@/hooks/use-persisted-snapshot";
 
 interface DashboardState {
   // SSE connection (local mode)
@@ -31,9 +32,10 @@ interface DashboardState {
   setSnapshot: (data: Record<string, unknown>, hash: string) => void;
   setSnapshotStale: (stale: boolean) => void;
   setHashHealth: (healthy: boolean, lastCheck: number) => void;
+  hydrateFromCache: () => Promise<void>;
 }
 
-export const useDashboardStore = create<DashboardState>((set) => ({
+export const useDashboardStore = create<DashboardState>((set, get) => ({
   connected: false,
   lastEvent: null,
   refreshKey: 0,
@@ -51,8 +53,20 @@ export const useDashboardStore = create<DashboardState>((set) => ({
   triggerRefresh: () => set((state) => ({ refreshKey: state.refreshKey + 1 })),
   setConnected: (connected) => set({ connected }),
   setLastEvent: (lastEvent) => set({ lastEvent, refreshKey: Date.now() }),
-  setSnapshot: (data, hash) =>
-    set({ snapshot: data, snapshotHash: hash, snapshotFetchedAt: Date.now(), snapshotStale: false }),
+  setSnapshot: (data, hash) => {
+    set({ snapshot: data, snapshotHash: hash, snapshotFetchedAt: Date.now(), snapshotStale: false });
+    persistSnapshot(data);
+  },
   setSnapshotStale: (snapshotStale) => set({ snapshotStale }),
   setHashHealth: (hashHealthy, lastHashCheck) => set({ hashHealthy, lastHashCheck }),
+  hydrateFromCache: async () => {
+    const cached = await loadPersistedSnapshot();
+    if (cached && !get().snapshot) {
+      set({
+        snapshot: cached.data,
+        snapshotFetchedAt: cached.savedAt,
+        snapshotStale: true,
+      });
+    }
+  },
 }));
