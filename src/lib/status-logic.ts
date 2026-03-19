@@ -89,7 +89,7 @@ export function deriveQuotaStatus(input: QuotaInput): StatusCard {
     return {
       level: "healthy",
       sentence: `${Math.round(pct)}% remaining, pace normal`,
-      details: input,
+      details: input as unknown as Record<string, unknown>,
     };
   }
 
@@ -97,7 +97,7 @@ export function deriveQuotaStatus(input: QuotaInput): StatusCard {
     return {
       level: "warning",
       sentence: `${Math.round(pct)}% remaining — watch usage`,
-      details: input,
+      details: input as unknown as Record<string, unknown>,
     };
   }
 
@@ -105,7 +105,7 @@ export function deriveQuotaStatus(input: QuotaInput): StatusCard {
   return {
     level: "critical",
     sentence: `${Math.round(pct)}% remaining, exhausts in ~${hoursLeft}h`,
-    details: { ...input, hoursLeft },
+    details: { ...input, hoursLeft } as Record<string, unknown>,
   };
 }
 
@@ -125,7 +125,7 @@ export function deriveQuarkStatus(input: QuarkInput): StatusCard {
     return {
       level: "critical",
       sentence: `Silent ${silentMin}min, ${input.recentFailures} failures in last ${input.windowHours}h`,
-      details: input,
+      details: input as unknown as Record<string, unknown>,
     };
   }
 
@@ -133,14 +133,14 @@ export function deriveQuarkStatus(input: QuarkInput): StatusCard {
     return {
       level: "warning",
       sentence: `Silent ${silentMin}min, ${okRuns}/${input.recentRuns} runs OK (${input.windowHours}h)`,
-      details: input,
+      details: input as unknown as Record<string, unknown>,
     };
   }
 
   return {
     level: "healthy",
     sentence: `Active, ${okRuns}/${input.recentRuns} runs OK (${input.windowHours}h)`,
-    details: input,
+    details: input as unknown as Record<string, unknown>,
   };
 }
 
@@ -162,7 +162,7 @@ export function deriveSystemStatus(
   return {
     level,
     sentence: `CPU ${input.cpu}% · Mem ${input.memory}% · Disk ${input.disk}%`,
-    details: input,
+    details: input as unknown as Record<string, unknown>,
     cpu: input.cpu,
     memory: input.memory,
     disk: input.disk,
