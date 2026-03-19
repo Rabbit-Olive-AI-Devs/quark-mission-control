@@ -11,8 +11,6 @@ import type { SystemInfo } from "@/lib/parsers/types";
 import { Wifi, Zap, Server, RefreshCw } from "lucide-react";
 import { useState, useCallback } from "react";
 
-const IS_REMOTE = process.env.NEXT_PUBLIC_IS_REMOTE === "true";
-const SNAPSHOT_URL = process.env.NEXT_PUBLIC_SNAPSHOT_URL || "";
 const POLL_INTERVAL = 60;
 
 function formatUptime(seconds: number): string {
@@ -21,14 +19,6 @@ function formatUptime(seconds: number): string {
   const mins = Math.floor((seconds % 3600) / 60);
   if (days > 0) return `${days}d ${hours}h ${mins}m`;
   return `${hours}h ${mins}m`;
-}
-
-function snapshotHost(url: string): string {
-  try {
-    return new URL(url).host;
-  } catch {
-    return "unknown";
-  }
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {
@@ -42,13 +32,11 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 
 export default function SettingsPage() {
   const { data: system, refetch } = useApi<SystemInfo>("/api/system", {
-    snapshotKey: "system",
     refreshOn: ["heartbeat"],
   });
 
   const connected = useDashboardStore((s) => s.connected);
-  const snapshotFetchedAt = useDashboardStore((s) => s.snapshotFetchedAt);
-  const hashHealthy = useDashboardStore((s) => s.hashHealthy);
+  const lastEvent = useDashboardStore((s) => s.lastEvent);
   const triggerRefresh = useDashboardStore((s) => s.triggerRefresh);
 
   const [refreshing, setRefreshing] = useState(false);
@@ -60,8 +48,8 @@ export default function SettingsPage() {
     setTimeout(() => setRefreshing(false), 1200);
   }, [triggerRefresh, refetch]);
 
-  const isConnected = IS_REMOTE ? hashHealthy : connected;
-  const modeLabel = IS_REMOTE ? "Remote" : "Local";
+  const isConnected = connected;
+  const modeLabel = "Local";
 
   return (
     <AppShell>
@@ -95,12 +83,9 @@ export default function SettingsPage() {
               {modeLabel}
             </span>
           </div>
-          {IS_REMOTE && SNAPSHOT_URL && (
-            <InfoRow label="Snapshot Host" value={snapshotHost(SNAPSHOT_URL)} />
-          )}
           <InfoRow
-            label="Last Fetch"
-            value={snapshotFetchedAt ? formatDateTime(snapshotFetchedAt) : "\u2014"}
+            label="Last Event"
+            value={lastEvent ? formatDateTime(lastEvent.timestamp) : "\u2014"}
           />
         </GlassCard>
 
