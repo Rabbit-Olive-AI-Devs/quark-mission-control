@@ -34,7 +34,7 @@ Browser → Tailscale Funnel → MacBook :3000 (Next.js production)
 
 **Fix:** Replace Zustand snapshot reads with `useApi("/api/status")`, matching the pattern used by every other page (engagement, schedule, cognitive, etc.).
 
-The `/api/status` endpoint already exists and works — it runs all parsers in parallel and returns derived status cards. No new endpoint needed.
+The `/api/status` endpoint already exists and works — it runs all parsers in parallel and returns a shaped object `{ pipeline, cron, quota, quark, system, timestamp }` where each card already matches the `derive*Status()` return types. Consume these directly — do not re-derive inside the page component.
 
 ### 2. Delete remote-mode code
 
@@ -55,7 +55,9 @@ The following files and branches exist solely to support the Vercel polling arch
 - `src/app/settings/page.tsx` — remove `IS_REMOTE` and `NEXT_PUBLIC_SNAPSHOT_URL` constants, remove `snapshotFetchedAt` and `hashHealthy` store subscriptions (both deleted from store), rewrite `isConnected` to use `connected` only, set `modeLabel` to always "Local", replace `snapshotFetchedAt` row with SSE `lastEvent` timestamp, remove `snapshotKey` from its `useApi()` call.
 
 **Remove `snapshotKey` from all `useApi()` call sites:**
-Seven pages pass `snapshotKey` to `useApi()` — this option is being deleted from `UseApiOptions`. Remove the `snapshotKey` property from each call:
+`snapshotKey` is being deleted from `UseApiOptions`. Remove the property from every `useApi()` call — both pages and dashboard components:
+
+Pages:
 - `src/app/cognitive/page.tsx`
 - `src/app/schedule/page.tsx`
 - `src/app/agents/page.tsx`
@@ -64,9 +66,26 @@ Seven pages pass `snapshotKey` to `useApi()` — this option is being deleted fr
 - `src/app/engagement/page.tsx`
 - `src/app/settings/page.tsx`
 
+Dashboard components (also use `snapshotKey`):
+- `src/components/dashboard/system-pulse.tsx`
+- `src/components/dashboard/agent-bar.tsx`
+- `src/components/dashboard/codex-quota.tsx`
+- `src/components/dashboard/health-score.tsx`
+- `src/components/dashboard/activity-ticker.tsx`
+- `src/components/dashboard/pipeline-widget.tsx`
+
 **Clean up all API routes that import `data-source.ts`:**
-Every route file that imports from `@/lib/data-source` has an `if (isRemote()) { return getSnapshotSection(...) }` guard at the top. Remove the import and delete that guard block from each. The local parser call that follows each guard is already correct and stays. Then delete `data-source.ts` and `/api/source-status/route.ts` entirely. Affected routes:
-`api/intel`, `api/command-center`, `api/metrics`, `api/pipeline`, `api/cognitive`, `api/model-usage`, `api/schedule`, `api/memory`, `api/digest`, `api/comms`, `api/agents`, `api/content`, `api/session-log`, `api/operations`, `api/engagement`, `api/heartbeat`, `api/system`, `api/knowledge`, `api/cron-history`, `api/cron`, `api/pending`, `api/source-status`
+Every route file that imports from `@/lib/data-source` has an `if (isRemote()) { return getSnapshotSection(...) }` guard at the top. Remove the import and delete that guard block from each. The local parser call that follows each guard is already correct and stays.
+
+**Special cases** — two routes call `getSourceMeta()` *outside* the `isRemote()` guard (embedded in the local-mode response body):
+- `api/cron/route.ts` — remove the `getSourceMeta()` call and the `source`/`warning` fields from the response object
+- `api/schedule/route.ts` — same
+
+Then delete entirely:
+- `src/lib/data-source.ts`
+- `src/app/api/source-status/route.ts` (Vercel diagnostics only)
+- `src/app/api/snapshot/route.ts` (Vercel bundle endpoint — comment reads "Used by Vercel deployment")
+- `src/app/api/hash/route.ts` (Vercel hash-polling endpoint only)
 
 ### 3. No .env.local changes needed
 
