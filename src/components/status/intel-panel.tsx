@@ -1,7 +1,6 @@
 "use client";
 
 import type { StatusFullResponse } from "@/lib/parsers/types";
-import { formatTimeAgo } from "@/lib/utils";
 
 interface IntelPanelProps {
   data: StatusFullResponse;
@@ -19,6 +18,27 @@ function getViralityBg(virality: number): string {
   return "transparent";
 }
 
+/** Strip [CATEGORY] prefixes like [CONTENT], [BRIEF+CONTENT], [QUARK] from titles */
+function cleanTitle(title: string): string {
+  return title.replace(/^\[[\w+]+\]\s*/i, "").trim();
+}
+
+/** Map raw source paths/URLs to short human labels */
+function sourceLabel(source: string): string {
+  const s = source.toLowerCase();
+  if (s.includes("twitter") || s.includes("x_trending") || s.includes("x_home") || s.includes("x_mentions")) return "X";
+  if (s.includes("genviral")) return "Genviral";
+  if (s.includes("reuters")) return "Reuters";
+  if (s.includes("hn") || s.includes("hacker")) return "HN";
+  if (s.includes("producthunt")) return "PH";
+  if (s.includes("reddit")) return "Reddit";
+  if (s.includes("tavily")) return "Web";
+  if (s.includes("github")) return "GitHub";
+  if (s.includes("verge")) return "Verge";
+  if (s.includes("spacenews")) return "Space";
+  return "Intel";
+}
+
 export function IntelPanel({ data }: IntelPanelProps) {
   const trends = data.intel.highSignal.slice(0, 3);
 
@@ -31,7 +51,7 @@ export function IntelPanel({ data }: IntelPanelProps) {
             key={i}
             className="flex items-center gap-2 text-xs text-[#334155]"
           >
-            <span className="font-mono">\u2014</span>
+            <span className="font-mono">{"\u2014"}</span>
             <span>Awaiting intel...</span>
           </div>
         ))}
@@ -44,10 +64,10 @@ export function IntelPanel({ data }: IntelPanelProps) {
       {trends.map((trend, i) => (
         <div
           key={i}
-          className="flex items-start gap-2 rounded-md px-1.5 py-1 text-xs transition-colors duration-150"
+          className="flex items-center gap-2 overflow-hidden rounded-md px-1.5 py-1.5 text-xs transition-colors duration-150"
           style={{ backgroundColor: getViralityBg(trend.virality) }}
         >
-          {/* Virality score badge */}
+          {/* Virality score */}
           <span
             className="shrink-0 font-mono text-sm font-bold"
             style={{
@@ -60,29 +80,21 @@ export function IntelPanel({ data }: IntelPanelProps) {
             {trend.virality.toFixed(1)}
           </span>
 
-          {/* Title */}
-          <span
-            className="flex-1 text-[#F1F5F9]"
-            style={{
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              maxWidth: "50ch",
-            }}
-          >
-            {trend.title}
+          {/* Title — cleaned, truncated */}
+          <span className="min-w-0 flex-1 truncate text-[#F1F5F9]">
+            {cleanTitle(trend.title)}
           </span>
 
-          {/* Source badge */}
-          <span className="shrink-0 rounded bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-[#94A3B8]">
-            {trend.source}
+          {/* Source — short label */}
+          <span className="shrink-0 rounded bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-medium text-[#64748B]">
+            {sourceLabel(trend.source)}
           </span>
         </div>
       ))}
 
-      {/* Updated timestamp */}
+      {/* Signal count + update time */}
       <p className="pt-1 font-mono text-[10px] text-[#475569]">
-        Updated {formatTimeAgo(data.intel.updatedAt)}
+        {data.intel.highSignal.length} signal{data.intel.highSignal.length !== 1 ? "s" : ""} · Updated 5:30 AM
       </p>
     </div>
   );
