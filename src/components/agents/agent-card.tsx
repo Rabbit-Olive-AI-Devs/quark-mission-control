@@ -10,20 +10,12 @@ import { formatTimeAgo } from "@/lib/utils";
 import { useApi } from "@/hooks/use-api";
 import type { AgentStatus, CommsMessage } from "@/lib/parsers/types";
 
-const agentFiction: Record<string, string> = {
-  neo: "The Matrix",
-  fulcrum: "Star Wars: Ahsoka",
-  cassian: "Star Wars: Andor",
-  chandler: "Friends",
-  "mse-6": "Star Wars: A New Hope",
-  mse6: "Star Wars: A New Hope",
-};
-
 interface AgentCardProps {
   agent: AgentStatus;
   index: number;
   isSelected: boolean;
   onSelect: () => void;
+  tasksToday?: number;
 }
 
 function CommsHistory({ agentName }: { agentName: string }) {
@@ -71,15 +63,26 @@ function CommsHistory({ agentName }: { agentName: string }) {
   );
 }
 
-export function AgentCard({ agent, index, isSelected, onSelect }: AgentCardProps) {
-  const key = agent.config.name.toLowerCase();
-  const fiction = agentFiction[key];
+export function AgentCard({ agent, index, isSelected, onSelect, tasksToday }: AgentCardProps) {
   const modelShort = agent.config.model.split("/").pop() || agent.config.model;
   const commsPreview = agent.latestComms
     ? agent.latestComms.length > 100
       ? agent.latestComms.slice(0, 100) + "\u2026"
       : agent.latestComms
     : null;
+
+  // Improved status logic: detect errors in comms, check recency
+  const statusKey = (() => {
+    const commsLower = agent.latestComms.toLowerCase();
+    if (["error", "failed", "crash"].some((kw) => commsLower.includes(kw)))
+      return "error" as const;
+    if (agent.latestTimestamp) {
+      const hoursSince =
+        (Date.now() - new Date(agent.latestTimestamp).getTime()) / 3600000;
+      if (hoursSince < 1) return "active" as const;
+    }
+    return "idle" as const;
+  })();
 
   return (
     <GlassCard
@@ -90,15 +93,15 @@ export function AgentCard({ agent, index, isSelected, onSelect }: AgentCardProps
       <div className="cursor-pointer" onClick={onSelect}>
         {/* Top row: avatar + info + status */}
         <div className="flex items-start gap-3">
-          <AgentAvatar name={agent.config.name} size={52} glow={agent.hasInbound} />
+          <AgentAvatar name={agent.config.name} size={52} glow={statusKey === "active"} />
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-[#F1F5F9] text-sm">{agent.config.name}</h3>
                 <StatusDot
-                  status={agent.hasInbound ? "active" : "idle"}
-                  pulse={agent.hasInbound}
+                  status={statusKey}
+                  pulse={statusKey === "active"}
                   size="sm"
                 />
               </div>
@@ -110,24 +113,25 @@ export function AgentCard({ agent, index, isSelected, onSelect }: AgentCardProps
               </motion.div>
             </div>
 
-            {fiction && (
-              <p className="text-[10px] text-[#94A3B8] italic mt-0.5">{fiction}</p>
-            )}
-
             <p className="text-xs text-[#94A3B8] mt-0.5 truncate">
               {agent.config.description.split("\u2014")[0]?.trim()}
             </p>
           </div>
         </div>
 
-        {/* Meta row: model badge + last active */}
-        <div className="flex items-center gap-2 mt-3">
+        {/* Meta row: model badge + tasks today + last active */}
+        <div className="flex items-center gap-2 mt-3 flex-wrap">
           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono bg-[#7C3AED]/15 text-[#A78BFA] border border-[#7C3AED]/20">
             {modelShort}
           </span>
           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono bg-white/5 text-[#94A3B8]">
             {agent.config.timeoutSeconds}s timeout
           </span>
+          {tasksToday !== undefined && tasksToday > 0 && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono bg-[#00D4AA]/15 text-[#00D4AA]">
+              {tasksToday} today
+            </span>
+          )}
           {agent.latestTimestamp && (
             <span className="ml-auto flex items-center gap-1 text-[10px] text-[#94A3B8] font-mono">
               <Clock size={10} />
