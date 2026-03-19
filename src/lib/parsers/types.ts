@@ -489,3 +489,26 @@ export interface EngagementData {
   unifiedKpis: EngagementUnifiedKpis;
   sourceCoverage: EngagementSourceCoverage;
 }
+
+// === Status Page Types ===
+
+export type StatusLevel = "healthy" | "warning" | "critical";
+
+export interface StatusCard {
+  level: StatusLevel;
+  sentence: string;
+  details: Record<string, unknown>;
+}
+
+export interface StatusData {
+  pipeline: StatusCard;
+  cron: StatusCard;
+  quota: StatusCard;
+  quark: StatusCard;
+  system: StatusCard & {
+    cpu: number;
+    memory: number;
+    disk: number;
+  };
+  timestamp: string;
+}
