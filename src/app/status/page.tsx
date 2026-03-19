@@ -203,7 +203,7 @@ export default function StatusPage() {
             title="Intel"
             icon={Radar}
             level="healthy"
-            href="/intel"
+            href="/explore?tab=intel"
             dataPriority={3}
           >
             <IntelPanel data={data} />
