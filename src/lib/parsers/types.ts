@@ -512,3 +512,55 @@ export interface StatusData {
   };
   timestamp: string;
 }
+
+// === Command Bridge Types ===
+
+export interface ActivityEntry {
+  timestamp: string;
+  text: string;
+  level: "info" | "warning" | "error";
+}
+
+export interface ContentTodayData {
+  publishedCount: number;
+  platforms: string[];
+  publishMode: "LIVE" | "WARMUP";
+}
+
+export interface StatusFullResponse {
+  // Existing status cards
+  pipeline: StatusCard & { stuckCount: number; scorecard: PipelineScorecard };
+  cron: StatusCard & { jobs: CronJob[] };
+  quota: StatusCard & { raw: CodexQuota | null };
+  quark: StatusCard & { heartbeat: HeartbeatState | null };
+  system: StatusCard & {
+    cpu: number;
+    memory: number;
+    disk: number;
+    uptime: number;
+    osVersion: string;
+  };
+
+  // New sections for Command Bridge
+  engagement: {
+    today: { total: number; byPlatform: Record<string, number>; byAction: Record<string, number> };
+    inboundGap: { replyRate: number; unansweredCount: number };
+    guardrailBlocks: number;
+  };
+  cognitive: {
+    memoryHealth: CognitiveMemoryHealth;
+    proactivity: CognitiveProactivity;
+    engagement: CognitiveEngagement;
+    degradationFlags: string[];
+  } | null;
+  intel: {
+    highSignal: IntelTrend[];
+    updatedAt: string;
+  };
+  contentToday: ContentTodayData;
+  activity: ActivityEntry[];
+
+  // Metadata
+  healthScore: number;
+  timestamp: string;
+}

@@ -168,3 +168,54 @@ export function deriveSystemStatus(
     disk: input.disk,
   };
 }
+
+// === Health Score ===
+
+export interface HealthScoreInput {
+  cronOk: number;
+  cronTotal: number;
+  pipelineStuckCount: number;
+  pipelineQuarantinedCount: number;
+  quotaDailyPct: number;
+  quotaWeeklyPct: number;
+  systemCpu: number;
+  systemMemory: number;
+  systemDisk: number;
+  quarkLevel: "healthy" | "warning" | "critical";
+}
+
+export function computeHealthScore(input: HealthScoreInput): number {
+  // Cron: 30% weight (ok_count / total_count * 100)
+  const cronScore = input.cronTotal > 0
+    ? (input.cronOk / input.cronTotal) * 100
+    : 100;
+
+  // Pipeline: 20% weight (100 if no stuck, 50 if stuck, 0 if quarantined)
+  const pipelineScore = input.pipelineQuarantinedCount > 0
+    ? 0
+    : input.pipelineStuckCount > 0
+      ? 50
+      : 100;
+
+  // Quota: 20% weight (min of daily, weekly)
+  const quotaScore = Math.min(input.quotaDailyPct, input.quotaWeeklyPct);
+
+  // System: 15% weight (100 - max(cpu, memory, disk))
+  const systemScore = 100 - Math.max(input.systemCpu, input.systemMemory, input.systemDisk);
+
+  // Quark: 15% weight (100 if healthy, 50 if warning, 0 if critical)
+  const quarkScore = input.quarkLevel === "healthy"
+    ? 100
+    : input.quarkLevel === "warning"
+      ? 50
+      : 0;
+
+  const weighted =
+    cronScore * 0.30 +
+    pipelineScore * 0.20 +
+    quotaScore * 0.20 +
+    systemScore * 0.15 +
+    quarkScore * 0.15;
+
+  return Math.round(Math.max(0, Math.min(100, weighted)));
+}
