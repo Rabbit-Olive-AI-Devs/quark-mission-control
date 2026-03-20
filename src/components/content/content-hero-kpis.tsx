@@ -149,26 +149,37 @@ export function ContentHeroKpis({
             Followers
           </span>
         </div>
-        <div className="text-lg font-bold text-[#F1F5F9] tabular-nums font-mono">
-          {latestFollowers
+        {(() => {
+          const total = latestFollowers
+            ? (latestFollowers.x_followers ?? 0) +
+              (latestFollowers.tiktok_followers ?? 0) +
+              (latestFollowers.instagram_followers ?? 0) +
+              (latestFollowers.youtube_followers ?? 0) +
+              (latestFollowers.substack_subscribers ?? 0)
+            : 0;
+          const breakdown = latestFollowers
             ? [
-                latestFollowers.x_followers != null
-                  ? `X: ${latestFollowers.x_followers}`
-                  : null,
-                latestFollowers.tiktok_followers != null
-                  ? `TT: ${latestFollowers.tiktok_followers}`
-                  : null,
-                latestFollowers.instagram_followers != null
-                  ? `IG: ${latestFollowers.instagram_followers}`
-                  : null,
-              ]
-                .filter(Boolean)
-                .join(" \u00B7 ") || "--"
-            : "--"}
-        </div>
-        <p className="text-[10px] text-[#64748B] mt-1">
-          {latestFollowers ? `as of ${latestFollowers.date}` : "no follower data"}
-        </p>
+                latestFollowers.x_followers != null ? `X: ${latestFollowers.x_followers}` : null,
+                latestFollowers.tiktok_followers != null ? `TT: ${latestFollowers.tiktok_followers}` : null,
+                latestFollowers.instagram_followers != null ? `IG: ${latestFollowers.instagram_followers}` : null,
+                latestFollowers.youtube_followers != null ? `YT: ${latestFollowers.youtube_followers}` : null,
+                latestFollowers.substack_subscribers != null ? `SS: ${latestFollowers.substack_subscribers}` : null,
+              ].filter(Boolean).join(" \u00B7 ")
+            : "";
+          return (
+            <>
+              <div className="text-3xl font-bold text-[#F1F5F9] tabular-nums font-mono">
+                {total > 0 ? total : "--"}
+              </div>
+              {breakdown && (
+                <p className="text-[9px] text-[#64748B] mt-1 font-mono">{breakdown}</p>
+              )}
+              <p className="text-[10px] text-[#64748B] mt-0.5">
+                {latestFollowers ? `as of ${latestFollowers.date}` : "no follower data"}
+              </p>
+            </>
+          );
+        })()}
       </GlassCard>
 
       {/* Avg ER */}

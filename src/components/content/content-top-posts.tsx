@@ -409,7 +409,7 @@ export function ContentTopPosts({
                       } text-[#F1F5F9]`}
                     >
                       {m ? (
-                        formatNumber(m.impressions)
+                        formatNumber(m.impressions > 0 ? m.impressions : (m.views ?? 0))
                       ) : (
                         <span className="text-[#64748B]">&mdash;</span>
                       )}

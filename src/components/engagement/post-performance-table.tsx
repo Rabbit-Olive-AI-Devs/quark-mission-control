@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ExternalLink, ChevronDown, ChevronRight } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { PLATFORM_COLORS, TYPE_COLORS } from "@/lib/theme-constants";
-import type { TrackedPost, PostMetrics, DiagnosticLabel } from "@/lib/parsers/types";
+import type { TrackedPost, PostMetrics, DiagnosticLabel, TrafficSources } from "@/lib/parsers/types";
 
 interface Props {
   posts: TrackedPost[];
@@ -140,7 +140,7 @@ function PostRow({ post }: { post: TrackedPost }) {
           {post.hook.length > 50 ? post.hook.slice(0, 50) + "..." : post.hook}
         </td>
         <td className="py-2.5 px-2 text-[#F1F5F9] font-mono text-right">
-          {m ? formatNumber(m.impressions) : "--"}
+          {m ? formatNumber(m.impressions > 0 ? m.impressions : (m.views ?? 0)) : "--"}
         </td>
         <td className="py-2.5 px-2 text-[#F1F5F9] font-mono text-right">
           {m ? formatNumber(m.likes) : "--"}
@@ -192,24 +192,85 @@ function PostRow({ post }: { post: TrackedPost }) {
                   )}
                   {m && (
                     <div className="flex gap-4 flex-wrap">
-                      <span className="text-[#94A3B8]">
-                        Impressions: <span className="text-[#F1F5F9] font-mono">{m.impressions.toLocaleString()}</span>
-                      </span>
-                      <span className="text-[#94A3B8]">
-                        Likes: <span className="text-[#F1F5F9] font-mono">{m.likes.toLocaleString()}</span>
-                      </span>
-                      <span className="text-[#94A3B8]">
-                        Replies: <span className="text-[#F1F5F9] font-mono">{m.replies.toLocaleString()}</span>
-                      </span>
-                      <span className="text-[#94A3B8]">
-                        Retweets: <span className="text-[#F1F5F9] font-mono">{m.retweets.toLocaleString()}</span>
-                      </span>
-                      <span className="text-[#94A3B8]">
-                        Bookmarks: <span className="text-[#F1F5F9] font-mono">{m.bookmarks.toLocaleString()}</span>
-                      </span>
-                      <span className="text-[#94A3B8]">
-                        ER: <span className="text-[#F1F5F9] font-mono">{(m.engagement_rate * 100).toFixed(2)}%</span>
-                      </span>
+                      {post.platform === "youtube" ? (
+                        <>
+                          <span className="text-[#94A3B8]">
+                            Views: <span className="text-[#F1F5F9] font-mono">{(m.views ?? 0).toLocaleString()}</span>
+                          </span>
+                          <span className="text-[#94A3B8]">
+                            Watch Time: <span className="text-[#F1F5F9] font-mono">{(m.watch_time_minutes ?? 0).toLocaleString()} min</span>
+                          </span>
+                          <span className="text-[#94A3B8]">
+                            Retention: <span className="text-[#F1F5F9] font-mono">{m.avg_view_percentage != null ? `${m.avg_view_percentage.toFixed(1)}%` : "--"}</span>
+                          </span>
+                          <span className="text-[#94A3B8]">
+                            Avg Duration: <span className="text-[#F1F5F9] font-mono">{m.avg_view_duration_sec != null ? `${m.avg_view_duration_sec}s` : "--"}</span>
+                          </span>
+                          <span className="text-[#94A3B8]">
+                            Likes: <span className="text-[#F1F5F9] font-mono">{m.likes.toLocaleString()}</span>
+                          </span>
+                          <span className="text-[#94A3B8]">
+                            Subs Gained: <span className="text-[#F1F5F9] font-mono">{m.subscribers_gained ?? 0}</span>
+                          </span>
+                          <span className="text-[#94A3B8]">
+                            ER: <span className="text-[#F1F5F9] font-mono">{(m.engagement_rate * 100).toFixed(2)}%</span>
+                          </span>
+                        </>
+                      ) : post.platform === "substack" ? (
+                        <>
+                          <span className="text-[#94A3B8]">
+                            Views: <span className="text-[#F1F5F9] font-mono">{(m.views ?? 0).toLocaleString()}</span>
+                          </span>
+                          <span className="text-[#94A3B8]">
+                            Likes: <span className="text-[#F1F5F9] font-mono">{m.likes.toLocaleString()}</span>
+                          </span>
+                          <span className="text-[#94A3B8]">
+                            Comments: <span className="text-[#F1F5F9] font-mono">{(m.comments ?? 0).toLocaleString()}</span>
+                          </span>
+                          <span className="text-[#94A3B8]">
+                            Restacks: <span className="text-[#F1F5F9] font-mono">{(m.saves ?? 0).toLocaleString()}</span>
+                          </span>
+                          <span className="text-[#94A3B8]">
+                            ER: <span className="text-[#F1F5F9] font-mono">{(m.engagement_rate * 100).toFixed(2)}%</span>
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-[#94A3B8]">
+                            Impressions: <span className="text-[#F1F5F9] font-mono">{m.impressions.toLocaleString()}</span>
+                          </span>
+                          {m.views != null && m.views > 0 && (
+                            <span className="text-[#94A3B8]">
+                              Views: <span className="text-[#F1F5F9] font-mono">{m.views.toLocaleString()}</span>
+                            </span>
+                          )}
+                          <span className="text-[#94A3B8]">
+                            Likes: <span className="text-[#F1F5F9] font-mono">{m.likes.toLocaleString()}</span>
+                          </span>
+                          <span className="text-[#94A3B8]">
+                            Replies: <span className="text-[#F1F5F9] font-mono">{m.replies.toLocaleString()}</span>
+                          </span>
+                          <span className="text-[#94A3B8]">
+                            Retweets: <span className="text-[#F1F5F9] font-mono">{m.retweets.toLocaleString()}</span>
+                          </span>
+                          <span className="text-[#94A3B8]">
+                            Bookmarks: <span className="text-[#F1F5F9] font-mono">{m.bookmarks.toLocaleString()}</span>
+                          </span>
+                          <span className="text-[#94A3B8]">
+                            ER: <span className="text-[#F1F5F9] font-mono">{(m.engagement_rate * 100).toFixed(2)}%</span>
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  )}
+                  {post.platform === "youtube" && post.traffic_sources && Object.keys(post.traffic_sources).length > 0 && (
+                    <div className="flex gap-3 flex-wrap">
+                      <span className="text-[#94A3B8] text-[10px] font-medium">Traffic:</span>
+                      {Object.entries(post.traffic_sources as TrafficSources).map(([src, data]) => (
+                        <span key={src} className="text-[10px] text-[#94A3B8]">
+                          {src.replace(/_/g, " ")}: <span className="text-[#F1F5F9] font-mono">{data.views}</span>
+                        </span>
+                      ))}
                     </div>
                   )}
                   {post.note && (

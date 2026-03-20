@@ -109,6 +109,8 @@ function mockData(overrides: Partial<StatusFullResponse> = {}): StatusFullRespon
       avgER: 2.3,
       followerDelta: 12,
       diagnosticSummary: "2 SCALE, 1 FIX HOOKS",
+      totalFollowers: 84,
+      totalWatchTimeMinutes: 296,
     },
     cognitive: {
       memoryHealth: {

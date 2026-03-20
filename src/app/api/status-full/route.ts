@@ -118,15 +118,19 @@ function derivePostPerformanceSummary(): PostPerformanceSummary {
       avgER: 0,
       followerDelta: 0,
       diagnosticSummary: "no data",
+      totalFollowers: 0,
+      totalWatchTimeMinutes: 0,
     };
   }
 
   const posts = data.posts;
 
-  // Total impressions across all tracked posts
+  // Total impressions: X uses impressions, other platforms use views
   const totalImpressions = posts.reduce((sum, p) => {
-    const m = p.metrics as { impressions?: number };
-    return sum + (m.impressions ?? 0);
+    const m = p.metrics as { impressions?: number; views?: number };
+    const imp = m.impressions ?? 0;
+    const views = m.views ?? 0;
+    return sum + (imp > 0 ? imp : views);
   }, 0);
 
   // Average engagement rate across posts that have it
@@ -142,18 +146,34 @@ function derivePostPerformanceSummary(): PostPerformanceSummary {
         }, 0) / erPosts.length
       : 0;
 
-  // Follower delta: diff between latest and oldest snapshot (X followers)
+  // Helper to sum all platform followers from a snapshot
+  const sumAllFollowers = (s: { x_followers?: number; tiktok_followers?: number; instagram_followers?: number; youtube_followers?: number; substack_subscribers?: number }) =>
+    (s.x_followers ?? 0) +
+    (s.tiktok_followers ?? 0) +
+    (s.instagram_followers ?? 0) +
+    (s.youtube_followers ?? 0) +
+    (s.substack_subscribers ?? 0);
+
+  // Follower delta: diff between latest and oldest snapshot (all platforms)
   let followerDelta = 0;
-  if (data.followerHistory.length >= 2) {
+  let totalFollowers = 0;
+  if (data.followerHistory.length >= 1) {
     const sorted = [...data.followerHistory].sort((a, b) =>
       a.date.localeCompare(b.date)
     );
-    const oldest = sorted[0];
     const newest = sorted[sorted.length - 1];
-    const oldVal = oldest.x_followers ?? 0;
-    const newVal = newest.x_followers ?? 0;
-    followerDelta = newVal - oldVal;
+    totalFollowers = sumAllFollowers(newest);
+    if (sorted.length >= 2) {
+      const oldest = sorted[0];
+      followerDelta = totalFollowers - sumAllFollowers(oldest);
+    }
   }
+
+  // Total watch time minutes (YouTube)
+  const totalWatchTimeMinutes = posts.reduce((sum, p) => {
+    const m = p.metrics as { watch_time_minutes?: number };
+    return sum + (m.watch_time_minutes ?? 0);
+  }, 0);
 
   // Diagnostic summary: count by label
   const counts: Record<string, number> = {};
@@ -178,7 +198,7 @@ function derivePostPerformanceSummary(): PostPerformanceSummary {
   }
   const diagnosticSummary = parts.length > 0 ? parts.join(", ") : "no data";
 
-  return { totalImpressions, avgER, followerDelta, diagnosticSummary };
+  return { totalImpressions, avgER, followerDelta, diagnosticSummary, totalFollowers, totalWatchTimeMinutes };
 }
 
 export async function GET() {

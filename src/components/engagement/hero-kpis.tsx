@@ -141,15 +141,37 @@ export function HeroKpis({ engagement, postPerf }: Props) {
   const replyRate = engagement.inboundGap.replyRate;
   const replyColor = replyRate >= 0.5 ? "#10B981" : replyRate >= 0.3 ? "#F59E0B" : "#EF4444";
 
-  // Follower count
+  // Follower count — all platforms
   const followerHistory = postPerf?.followerHistory ?? [];
-  const latestFollowers = followerHistory.length > 0
-    ? followerHistory[followerHistory.length - 1].x_followers ?? 0
-    : 0;
-  const prevFollowers = followerHistory.length > 1
-    ? followerHistory[followerHistory.length - 2].x_followers ?? 0
-    : latestFollowers;
-  const followerDelta = getDelta(latestFollowers, prevFollowers);
+  const latestSnap = followerHistory.length > 0
+    ? followerHistory[followerHistory.length - 1]
+    : null;
+  const prevSnap = followerHistory.length > 1
+    ? followerHistory[followerHistory.length - 2]
+    : null;
+
+  const sumFollowers = (s: typeof latestSnap) =>
+    (s?.x_followers ?? 0) +
+    (s?.tiktok_followers ?? 0) +
+    (s?.instagram_followers ?? 0) +
+    (s?.youtube_followers ?? 0) +
+    (s?.substack_subscribers ?? 0);
+
+  const totalFollowers = sumFollowers(latestSnap);
+  const prevTotalFollowers = prevSnap ? sumFollowers(prevSnap) : totalFollowers;
+  const followerDelta = getDelta(totalFollowers, prevTotalFollowers);
+
+  const followerBreakdown = latestSnap
+    ? [
+        latestSnap.x_followers != null ? `X: ${latestSnap.x_followers}` : null,
+        latestSnap.tiktok_followers != null ? `TT: ${latestSnap.tiktok_followers}` : null,
+        latestSnap.instagram_followers != null ? `IG: ${latestSnap.instagram_followers}` : null,
+        latestSnap.youtube_followers != null ? `YT: ${latestSnap.youtube_followers}` : null,
+        latestSnap.substack_subscribers != null ? `SS: ${latestSnap.substack_subscribers}` : null,
+      ]
+        .filter(Boolean)
+        .join(" \u00B7 ")
+    : "";
 
   // Posts in last 24h
   const recentPosts = getRecentPosts(posts, 24);
@@ -207,10 +229,13 @@ export function HeroKpis({ engagement, postPerf }: Props) {
       color: "#7C3AED",
       render: () => (
         <>
-          <div className="text-2xl font-bold text-[#F1F5F9] font-mono">{formatNumber(latestFollowers)}</div>
+          <div className="text-2xl font-bold text-[#F1F5F9] font-mono">{formatNumber(totalFollowers)}</div>
           <span className="text-xs font-mono" style={{ color: followerDelta.color }}>
             {followerDelta.label}
           </span>
+          {followerBreakdown && (
+            <p className="text-[9px] text-[#94A3B8] mt-1 font-mono">{followerBreakdown}</p>
+          )}
         </>
       ),
     },

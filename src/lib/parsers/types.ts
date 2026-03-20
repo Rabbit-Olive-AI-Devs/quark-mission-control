@@ -530,7 +530,21 @@ export interface PostMetrics {
   views?: number;
   comments?: number;
   shares?: number;
+  // YouTube Analytics
+  watch_time_minutes?: number;
+  avg_view_duration_sec?: number;
+  avg_view_percentage?: number;
+  subscribers_gained?: number;
+  // Substack
+  saves?: number;
 }
+
+export interface TrafficSource {
+  views: number;
+  minutes_watched: number;
+}
+
+export type TrafficSources = Record<string, TrafficSource>;
 
 export type DiagnosticLabel =
   | "scale"
@@ -554,6 +568,7 @@ export interface TrackedPost {
   metrics: PostMetrics | Record<string, never>;
   diagnostic: DiagnosticLabel;
   note?: string;
+  traffic_sources?: TrafficSources;
 }
 
 export interface HookEntry {
@@ -591,6 +606,8 @@ export interface FollowerSnapshot {
   x_followers?: number;
   tiktok_followers?: number;
   instagram_followers?: number;
+  youtube_followers?: number;
+  substack_subscribers?: number;
 }
 
 export interface FeedbackRecommendations {
@@ -734,6 +751,8 @@ export interface PostPerformanceSummary {
   avgER: number;
   followerDelta: number;
   diagnosticSummary: string; // e.g. "2 SCALE, 1 FIX" or "no data"
+  totalFollowers: number;
+  totalWatchTimeMinutes: number;
 }
 
 export interface StatusFullResponse {
