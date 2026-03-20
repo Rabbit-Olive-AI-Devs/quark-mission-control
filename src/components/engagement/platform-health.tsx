@@ -31,6 +31,10 @@ function getFollowerCount(platform: string, history: FollowerSnapshot[]): number
       return latest.tiktok_followers ?? 0;
     case "instagram":
       return latest.instagram_followers ?? 0;
+    case "youtube":
+      return latest.youtube_followers ?? 0;
+    case "substack":
+      return latest.substack_subscribers ?? 0;
     default:
       return 0;
   }
@@ -182,7 +186,7 @@ export function PlatformHealthPanel({ postPerf }: Props) {
               </span>
             </div>
 
-            {card.health && (
+            {card.health && card.health.baseline_er > 0 && (
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-1.5 text-[#94A3B8]">
                   <Activity size={12} />

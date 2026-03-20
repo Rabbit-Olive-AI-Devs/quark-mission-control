@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
   ReferenceLine,
   Label,
+  ReferenceArea,
 } from "recharts";
 import { GlassCard } from "@/components/ui/glass-card";
 import { TYPE_COLORS } from "@/lib/theme-constants";
@@ -30,8 +31,7 @@ interface ScatterPoint {
   diagnostic: string;
 }
 
-const GRID_COLOR = "rgba(255,255,255,0.05)";
-const AXIS_COLOR = "#94A3B8";
+const AXIS_COLOR = "#64748B";
 
 function getTypeColor(ct: string): string {
   return TYPE_COLORS[ct] ?? "#94A3B8";
@@ -56,7 +56,7 @@ function QuadrantTooltip({
           className="w-2 h-2 rounded-full"
           style={{ backgroundColor: getTypeColor(p.content_type) }}
         />
-        <span className="text-[#94A3B8]">{p.content_type}</span>
+        <span className="text-[#94A3B8]">{p.content_type.replace("_", " ")}</span>
       </div>
       <p className="text-[#94A3B8]">
         Impressions: <span className="text-[#F1F5F9]">{p.x.toLocaleString()}</span>
@@ -64,62 +64,58 @@ function QuadrantTooltip({
       <p className="text-[#94A3B8]">
         ER: <span className="text-[#F1F5F9]">{(p.y * 100).toFixed(1)}%</span>
       </p>
-      <p className="text-[#94A3B8]">
-        Diagnostic:{" "}
-        <span
-          className="font-medium"
-          style={{
-            color:
-              p.diagnostic === "scale"
-                ? "#10B981"
-                : p.diagnostic === "rethink"
-                  ? "#EF4444"
-                  : "#F59E0B",
-          }}
-        >
-          {p.diagnostic.replace("_", " ").toUpperCase()}
-        </span>
-      </p>
     </div>
   );
 }
 
 export function DiagnosticQuadrant({ posts, thresholds }: Props) {
-  const { data, groups, impThreshold, erThreshold } = useMemo(() => {
-    const withMetrics = posts.filter(
-      (p) => p.metrics && "impressions" in p.metrics && (p.metrics as PostMetrics).impressions > 0
-    );
+  const { data, groups, impLine, erLine, maxImp, maxER } = useMemo(() => {
+    // Include posts with either impressions or views > 0
+    const withMetrics = posts.filter((p) => {
+      if (!p.metrics) return false;
+      const m = p.metrics as PostMetrics;
+      return (m.impressions || 0) > 0 || (m.views || 0) > 0;
+    });
 
     const points: ScatterPoint[] = withMetrics.map((p) => {
       const m = p.metrics as PostMetrics;
+      const imp = (m.impressions || 0) > 0 ? m.impressions : (m.views || 0);
       return {
-        x: m.impressions,
-        y: m.engagement_rate,
-        hook: p.hook,
-        content_type: p.content_type,
-        job_id: p.job_id,
-        diagnostic: p.diagnostic,
+        x: imp,
+        y: m.engagement_rate || 0,
+        hook: p.hook || "",
+        content_type: p.content_type || "unknown",
+        job_id: p.job_id || "",
+        diagnostic: p.diagnostic || "unclassified",
       };
     });
 
-    // Group by content type for colored series
+    // Group by content type
     const typeGroups = new Map<string, ScatterPoint[]>();
     for (const pt of points) {
+      if (pt.content_type === "unknown" || pt.content_type === "series") continue;
       const arr = typeGroups.get(pt.content_type) ?? [];
       arr.push(pt);
       typeGroups.set(pt.content_type, arr);
     }
 
-    // Derive threshold lines from platform thresholds or defaults
-    const xThresh = thresholds?.x;
-    const impLine = xThresh?.min_impressions ?? 500;
-    const erLine = xThresh?.good_engagement_rate ?? 0.03;
+    // Threshold lines — use median of data as divider (not platform thresholds which may be way off)
+    const sortedImp = points.map((p) => p.x).sort((a, b) => a - b);
+    const sortedER = points.map((p) => p.y).sort((a, b) => a - b);
+    const medianImp = sortedImp.length > 0 ? sortedImp[Math.floor(sortedImp.length / 2)] : 20;
+    const medianER = sortedER.length > 0 ? sortedER[Math.floor(sortedER.length / 2)] : 0.05;
+
+    const rawMax = Math.max(...points.map((d) => d.x), 10) * 1.2;
+    const niceMax = Math.ceil(rawMax / 10) * 10;
+    const erMax = Math.min(Math.max(...points.map((d) => d.y), 0.05) * 1.3, 1);
 
     return {
       data: points,
       groups: typeGroups,
-      impThreshold: impLine,
-      erThreshold: erLine,
+      impLine: medianImp,
+      erLine: medianER,
+      maxImp: niceMax,
+      maxER: erMax,
     };
   }, [posts, thresholds]);
 
@@ -136,27 +132,23 @@ export function DiagnosticQuadrant({ posts, thresholds }: Props) {
     );
   }
 
-  const rawMaxImp = Math.max(...data.map((d) => d.x)) * 1.15;
-  const maxImp = Math.ceil(rawMaxImp / 10) * 10; // round up to nice number
-  const maxER = Math.min(Math.max(...data.map((d) => d.y)) * 1.3, 1);
-
   return (
     <GlassCard>
       <h3 className="text-sm font-semibold text-[#94A3B8] uppercase tracking-wider mb-4">
         Diagnostic Quadrant
       </h3>
       <ResponsiveContainer width="100%" height={320}>
-        <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} />
+        <ScatterChart margin={{ top: 30, right: 30, bottom: 25, left: 25 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
           <XAxis
             type="number"
             dataKey="x"
             name="Impressions"
             domain={[0, maxImp]}
             tick={{ fill: AXIS_COLOR, fontSize: 10 }}
-            tickFormatter={(v: number) => { const r = Math.round(v); return r >= 1000 ? `${(r / 1000).toFixed(0)}K` : String(r); }}
+            tickFormatter={(v: number) => String(Math.round(v))}
           >
-            <Label value="Impressions" position="bottom" offset={0} style={{ fill: AXIS_COLOR, fontSize: 10 }} />
+            <Label value="Impressions" position="bottom" offset={5} style={{ fill: AXIS_COLOR, fontSize: 10 }} />
           </XAxis>
           <YAxis
             type="number"
@@ -170,82 +162,40 @@ export function DiagnosticQuadrant({ posts, thresholds }: Props) {
           </YAxis>
           <Tooltip content={<QuadrantTooltip />} />
 
-          {/* Quadrant reference lines */}
-          <ReferenceLine
-            x={impThreshold}
-            stroke="rgba(255,255,255,0.15)"
-            strokeDasharray="6 4"
+          {/* Quadrant divider lines */}
+          <ReferenceLine x={impLine} stroke="rgba(255,255,255,0.12)" strokeDasharray="6 4" />
+          <ReferenceLine y={erLine} stroke="rgba(255,255,255,0.12)" strokeDasharray="6 4" />
+
+          {/* Quadrant background labels using ReferenceArea */}
+          <ReferenceArea
+            x1={0} x2={impLine} y1={erLine} y2={maxER}
+            fill="transparent" ifOverflow="visible"
+            label={{ value: "FIX DIST", fill: "#F59E0B", fontSize: 9, fontWeight: 600, opacity: 0.4, position: "center" }}
           />
-          <ReferenceLine
-            y={erThreshold}
-            stroke="rgba(255,255,255,0.15)"
-            strokeDasharray="6 4"
+          <ReferenceArea
+            x1={impLine} x2={maxImp} y1={erLine} y2={maxER}
+            fill="transparent" ifOverflow="visible"
+            label={{ value: "SCALE", fill: "#10B981", fontSize: 9, fontWeight: 600, opacity: 0.4, position: "center" }}
+          />
+          <ReferenceArea
+            x1={0} x2={impLine} y1={0} y2={erLine}
+            fill="transparent" ifOverflow="visible"
+            label={{ value: "RETHINK", fill: "#EF4444", fontSize: 9, fontWeight: 600, opacity: 0.4, position: "center" }}
+          />
+          <ReferenceArea
+            x1={impLine} x2={maxImp} y1={0} y2={erLine}
+            fill="transparent" ifOverflow="visible"
+            label={{ value: "FIX HOOKS", fill: "#F59E0B", fontSize: 9, fontWeight: 600, opacity: 0.4, position: "center" }}
           />
 
-          {/* Quadrant labels — positioned in quadrant centers to avoid overlap */}
-          <ReferenceLine
-            x={impThreshold * 0.5}
-            ifOverflow="extendDomain"
-            label={{
-              value: "FIX DIST",
-              position: "insideTopLeft",
-              fill: "#F59E0B",
-              fontSize: 8,
-              fontWeight: 600,
-              opacity: 0.5,
-            }}
-            stroke="transparent"
-          />
-          <ReferenceLine
-            x={(impThreshold + maxImp) / 2}
-            ifOverflow="extendDomain"
-            label={{
-              value: "SCALE",
-              position: "insideTopRight",
-              fill: "#10B981",
-              fontSize: 8,
-              fontWeight: 600,
-              opacity: 0.5,
-            }}
-            stroke="transparent"
-          />
-          <ReferenceLine
-            x={impThreshold * 0.5}
-            y={0}
-            ifOverflow="extendDomain"
-            label={{
-              value: "RETHINK",
-              position: "insideBottomLeft",
-              fill: "#EF4444",
-              fontSize: 8,
-              fontWeight: 600,
-              opacity: 0.5,
-            }}
-            stroke="transparent"
-          />
-          <ReferenceLine
-            x={(impThreshold + maxImp) / 2}
-            y={0}
-            ifOverflow="extendDomain"
-            label={{
-              value: "FIX HOOKS",
-              position: "insideBottomRight",
-              fill: "#F59E0B",
-              fontSize: 8,
-              fontWeight: 600,
-              opacity: 0.5,
-            }}
-            stroke="transparent"
-          />
-
-          {/* One Scatter per content type for color coding */}
+          {/* Scatter per content type */}
           {[...groups.entries()].map(([ct, pts]) => (
             <Scatter
               key={ct}
               name={ct}
               data={pts}
               fill={getTypeColor(ct)}
-              fillOpacity={0.8}
+              fillOpacity={0.85}
               strokeWidth={0}
               r={6}
             />
