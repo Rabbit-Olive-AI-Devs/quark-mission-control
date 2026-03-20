@@ -1,155 +1,247 @@
 "use client";
 
 import { GlassCard } from "@/components/ui/glass-card";
-import { HoverCard } from "@/components/ui/hover-card";
-import { Sparkline } from "@/components/ui/sparkline";
-import { PLATFORM_COLORS } from "@/lib/theme-constants";
-import { Trophy, Hash, TrendingUp, Users } from "lucide-react";
+import {
+  Hash,
+  Calendar,
+  Users,
+  TrendingUp,
+  Activity,
+  MessageSquare,
+} from "lucide-react";
 import type {
-  ContentPost,
+  PostPerformanceData,
   PipelineScorecard,
-  EngagementUnifiedKpis,
-  DailyAggregate,
+  ContentFeedback,
+  TrackedPost,
+  PostMetrics,
+  FollowerSnapshot,
 } from "@/lib/parsers/types";
 
 interface ContentHeroKpisProps {
-  posts: ContentPost[];
+  todayCount: number;
+  weekCount: number;
+  platformCounts: Record<string, number>;
+  cadenceAvg7d: number;
+  postPerformance: PostPerformanceData | null;
   scorecard: PipelineScorecard | null;
-  kpis: EngagementUnifiedKpis | null;
-  trends: DailyAggregate[];
-  publishMode: "LIVE" | "WARMUP" | null;
+  feedback: ContentFeedback | null;
 }
 
-function totalEngagement(post: ContentPost): number {
-  const m = post.metrics;
-  return m.views + m.likes + m.comments + m.shares;
+function getLatestFollowers(history: FollowerSnapshot[]): FollowerSnapshot | null {
+  if (history.length === 0) return null;
+  return history[history.length - 1];
+}
+
+function computeAvgER(posts: TrackedPost[]): { er: number; count: number } {
+  const withMetrics = posts.filter(
+    (p) => "impressions" in p.metrics && (p.metrics as PostMetrics).impressions > 0
+  );
+  if (withMetrics.length === 0) return { er: 0, count: 0 };
+  const total = withMetrics.reduce(
+    (sum, p) => sum + ((p.metrics as PostMetrics).engagement_rate ?? 0),
+    0
+  );
+  return { er: total / withMetrics.length, count: withMetrics.length };
+}
+
+function formatPlatformBreakdown(counts: Record<string, number>): string {
+  const labels: Record<string, string> = {
+    x: "X",
+    tiktok: "TT",
+    instagram: "IG",
+    youtube: "YT",
+    substack: "Sub",
+  };
+  const parts = Object.entries(counts)
+    .filter(([k, v]) => v > 0 && k !== "unknown")
+    .map(([k, v]) => `${v} ${labels[k] || k}`);
+  return parts.length > 0 ? parts.join(", ") : "none yet";
+}
+
+function trendLabel(weekCount: number, cadenceAvg: number): string {
+  if (cadenceAvg <= 0) return "no baseline yet";
+  const weeklyAvg = cadenceAvg * 7;
+  if (weekCount > weeklyAvg * 1.15) return "above avg";
+  if (weekCount < weeklyAvg * 0.85) return "below avg";
+  return "on pace";
 }
 
 export function ContentHeroKpis({
-  posts,
+  todayCount,
+  weekCount,
+  platformCounts,
+  cadenceAvg7d,
+  postPerformance,
   scorecard,
-  kpis,
-  trends,
-  publishMode,
+  feedback,
 }: ContentHeroKpisProps) {
-  // Best performer
-  const bestPost =
-    posts.length > 0
-      ? posts.reduce((best, p) =>
-          totalEngagement(p) > totalEngagement(best) ? p : best
-        )
-      : null;
-  const bestEngagement = bestPost ? totalEngagement(bestPost) : 0;
-  const bestHook = bestPost
-    ? bestPost.hook.length > 60
-      ? bestPost.hook.slice(0, 60) + "..."
-      : bestPost.hook
+  const latestFollowers = postPerformance
+    ? getLatestFollowers(postPerformance.followerHistory)
     : null;
-  const bestPlatformColor = bestPost
-    ? PLATFORM_COLORS[bestPost.platform] || "#94A3B8"
-    : "#94A3B8";
+  const { er: avgER, count: erPostCount } = postPerformance
+    ? computeAvgER(postPerformance.posts)
+    : { er: 0, count: 0 };
 
-  // Published this week
-  const publishedCount = scorecard?.published ?? 0;
-  const platformsUsed = Object.keys(scorecard?.contentTypeBreakdown ?? {});
+  const pendingCount = scorecard?.pending ?? 0;
+  const staleCount = scorecard?.stale ?? 0;
+  const hasStuck = staleCount > 0;
 
-  // Engagement rate
-  const engagementRate = kpis?.engagement?.engagementRate ?? 0;
-  const sparkData = trends.map((t) => t.total);
+  const feedbackSummary = feedback?.summary ?? null;
+  const truncatedFeedback = feedbackSummary
+    ? feedbackSummary.length > 80
+      ? feedbackSummary.slice(0, 77) + "..."
+      : feedbackSummary
+    : null;
 
-  // Follower delta
-  const followerDelta = kpis?.growth?.followerDelta ?? 0;
+  const dataConfidence =
+    erPostCount >= 10
+      ? "high"
+      : erPostCount >= 5
+      ? "moderate"
+      : "insufficient";
+
+  const confidenceColors: Record<string, string> = {
+    high: "#10B981",
+    moderate: "#F59E0B",
+    insufficient: "#64748B",
+  };
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {/* Best Performer */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Published Today */}
       <GlassCard delay={0}>
-        <div className="flex items-center gap-2 mb-3">
-          <Trophy size={14} className="text-[#F59E0B]" />
-          <span className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider">
-            Best Performer
-          </span>
-        </div>
-        {bestPost ? (
-          <>
-            <p className="text-xs text-[#F1F5F9] leading-relaxed mb-2 line-clamp-2">
-              {bestHook}
-            </p>
-            <div className="flex items-center gap-2">
-              <span
-                className="text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase"
-                style={{
-                  backgroundColor: `${bestPlatformColor}20`,
-                  color: bestPlatformColor,
-                }}
-              >
-                {bestPost.platform}
-              </span>
-              <span className="text-[10px] font-mono text-[#F59E0B]">
-                {bestEngagement.toLocaleString()} eng
-              </span>
-            </div>
-          </>
-        ) : (
-          <p className="text-xs text-[#64748B]">No posts this week</p>
-        )}
-      </GlassCard>
-
-      {/* Published This Week */}
-      <GlassCard delay={0.05}>
         <div className="flex items-center gap-2 mb-3">
           <Hash size={14} className="text-[#00D4AA]" />
           <span className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider">
-            Published
+            Published Today
           </span>
         </div>
         <div className="text-3xl font-bold text-[#F1F5F9] tabular-nums">
-          {publishedCount}
+          {todayCount}
         </div>
         <p className="text-[10px] text-[#64748B] mt-1">
-          {platformsUsed.length > 0
-            ? platformsUsed.join(", ")
-            : "No platforms yet"}
+          {formatPlatformBreakdown(platformCounts)}
         </p>
       </GlassCard>
 
-      {/* Engagement Rate */}
-      <GlassCard delay={0.1}>
+      {/* This Week */}
+      <GlassCard delay={0.04}>
         <div className="flex items-center gap-2 mb-3">
-          <TrendingUp size={14} className="text-[#7C3AED]" />
-          <HoverCard
-            content="Interactions / impressions. Above 3% is strong."
-          >
-            <span className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider cursor-help border-b border-dotted border-[#94A3B8]/30">
-              Engagement Rate
-            </span>
-          </HoverCard>
+          <Calendar size={14} className="text-[#7C3AED]" />
+          <span className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider">
+            This Week
+          </span>
         </div>
         <div className="text-3xl font-bold text-[#F1F5F9] tabular-nums">
-          {engagementRate.toFixed(1)}%
+          {weekCount}
         </div>
-        <div className="mt-2">
-          <Sparkline data={sparkData} color="#7C3AED" height={32} />
-        </div>
+        <p className="text-[10px] text-[#64748B] mt-1">
+          {trendLabel(weekCount, cadenceAvg7d)}
+        </p>
       </GlassCard>
 
       {/* Followers */}
-      <GlassCard delay={0.15}>
+      <GlassCard delay={0.08}>
         <div className="flex items-center gap-2 mb-3">
-          <Users size={14} className="text-[#10B981]" />
+          <Users size={14} className="text-[#3B82F6]" />
           <span className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider">
             Followers
           </span>
         </div>
-        <div
-          className={`text-3xl font-bold tabular-nums ${
-            followerDelta >= 0 ? "text-[#10B981]" : "text-[#EF4444]"
-          }`}
-        >
-          {followerDelta >= 0 ? "+" : ""}
-          {followerDelta}
+        <div className="text-lg font-bold text-[#F1F5F9] tabular-nums font-mono">
+          {latestFollowers
+            ? [
+                latestFollowers.x_followers != null
+                  ? `X: ${latestFollowers.x_followers}`
+                  : null,
+                latestFollowers.tiktok_followers != null
+                  ? `TT: ${latestFollowers.tiktok_followers}`
+                  : null,
+                latestFollowers.instagram_followers != null
+                  ? `IG: ${latestFollowers.instagram_followers}`
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(" \u00B7 ") || "--"
+            : "--"}
         </div>
-        <p className="text-[10px] text-[#64748B] mt-1">net change this week</p>
+        <p className="text-[10px] text-[#64748B] mt-1">
+          {latestFollowers ? `as of ${latestFollowers.date}` : "no follower data"}
+        </p>
+      </GlassCard>
+
+      {/* Avg ER */}
+      <GlassCard delay={0.12}>
+        <div className="flex items-center gap-2 mb-3">
+          <TrendingUp size={14} className="text-[#10B981]" />
+          <span className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider">
+            Avg ER
+          </span>
+        </div>
+        <div className="text-3xl font-bold text-[#F1F5F9] tabular-nums">
+          {erPostCount > 0 ? `${(avgER * 100).toFixed(1)}%` : "--"}
+        </div>
+        <div className="flex items-center gap-1.5 mt-1">
+          <span className="text-[10px] text-[#64748B]">
+            across {erPostCount} post{erPostCount !== 1 ? "s" : ""}
+          </span>
+          <span
+            className="text-[9px] px-1 py-0.5 rounded font-medium"
+            style={{
+              backgroundColor: `${confidenceColors[dataConfidence]}20`,
+              color: confidenceColors[dataConfidence],
+            }}
+          >
+            {dataConfidence === "insufficient"
+              ? "insufficient data"
+              : dataConfidence}
+          </span>
+        </div>
+      </GlassCard>
+
+      {/* Pipeline */}
+      <GlassCard delay={0.16}>
+        <div className="flex items-center gap-2 mb-3">
+          <Activity size={14} className="text-[#F59E0B]" />
+          <span className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider">
+            Pipeline
+          </span>
+        </div>
+        <div
+          className="text-3xl font-bold tabular-nums"
+          style={{ color: hasStuck ? "#F59E0B" : "#F1F5F9" }}
+        >
+          {pendingCount}
+        </div>
+        <p className="text-[10px] mt-1">
+          <span className="text-[#64748B]">
+            {pendingCount} pending
+          </span>
+          {staleCount > 0 && (
+            <span className="text-[#EF4444]"> · {staleCount} stuck</span>
+          )}
+        </p>
+      </GlassCard>
+
+      {/* Feedback */}
+      <GlassCard delay={0.2}>
+        <div className="flex items-center gap-2 mb-3">
+          <MessageSquare size={14} className="text-[#EC4899]" />
+          <span className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider">
+            Feedback
+          </span>
+        </div>
+        <div className="text-sm text-[#F1F5F9] leading-relaxed">
+          {truncatedFeedback || (
+            <span className="text-[#64748B]">No feedback yet</span>
+          )}
+        </div>
+        {feedback && (
+          <p className="text-[10px] text-[#64748B] mt-1">
+            {feedback.posts_analyzed} post{feedback.posts_analyzed !== 1 ? "s" : ""} analyzed
+          </p>
+        )}
       </GlassCard>
     </div>
   );

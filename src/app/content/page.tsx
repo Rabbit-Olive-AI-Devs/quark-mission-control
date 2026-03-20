@@ -2,9 +2,10 @@
 
 import { AppShell } from "@/components/layout/app-shell";
 import { ContentHeroKpis } from "@/components/content/content-hero-kpis";
+import { ContentRecommendations } from "@/components/content/content-recommendations";
+import { PublishingCadenceChart } from "@/components/content/publishing-cadence-chart";
+import { PipelineFunnel } from "@/components/content/pipeline-funnel";
 import { ContentTopPosts } from "@/components/content/content-top-posts";
-import { ContentPlatformBreakdown } from "@/components/content/content-platform-breakdown";
-import { ContentWhatsNext } from "@/components/content/content-whats-next";
 import { useApi } from "@/hooks/use-api";
 import { Clapperboard } from "lucide-react";
 import { formatTimeShort } from "@/lib/utils";
@@ -13,6 +14,7 @@ import type {
   ContentAuditData,
   StatusFullResponse,
   PostPerformanceData,
+  ContentLifecycleData,
 } from "@/lib/parsers/types";
 
 export default function ContentPage() {
@@ -29,9 +31,18 @@ export default function ContentPage() {
     "/api/post-performance",
     { refreshOn: ["pipeline"] }
   );
+  const { data: lifecycle } = useApi<ContentLifecycleData>(
+    "/api/content-lifecycle",
+    { refreshOn: ["pipeline"] }
+  );
 
   const publishMode = statusFull?.contentToday?.publishMode || null;
-  const avgTimeMs = (pipeline?.scorecard?.avgTimeToPublish ?? 0) * 1000;
+
+  // Derive cadence avg from lifecycle data
+  const cadenceAvg7d = lifecycle?.cadence?.avgPerDay7d ?? 0;
+
+  // Merge feedback: prefer lifecycle feedback, fall back to postPerformance feedback
+  const feedback = lifecycle?.feedback ?? postPerformance?.feedback ?? null;
 
   return (
     <AppShell>
@@ -60,16 +71,34 @@ export default function ContentPage() {
           )}
         </div>
 
-        {/* Hero KPIs */}
+        {/* Section 1: Hero KPIs */}
         <ContentHeroKpis
           todayCount={content?.todayCount ?? 0}
           weekCount={content?.weekCount ?? 0}
           platformCounts={content?.platformCounts ?? {}}
-          avgTimeMs={avgTimeMs}
-          publishMode={publishMode}
+          cadenceAvg7d={cadenceAvg7d}
+          postPerformance={postPerformance ?? null}
+          scorecard={pipeline?.scorecard ?? null}
+          feedback={feedback}
         />
 
-        {/* Published Posts */}
+        {/* Section 2: Recommendations */}
+        <ContentRecommendations
+          feedback={feedback}
+          cadenceDaily={lifecycle?.cadence?.daily ?? []}
+        />
+
+        {/* Section 3: Charts row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <PublishingCadenceChart
+            daily={lifecycle?.cadence?.daily ?? []}
+            avgPerDay7d={cadenceAvg7d}
+            trend={lifecycle?.cadence?.trend ?? "flat"}
+          />
+          <PipelineFunnel funnel={lifecycle?.funnel ?? null} />
+        </div>
+
+        {/* Section 4: Published Posts */}
         <div>
           <h2 className="text-sm font-semibold text-[#94A3B8] uppercase tracking-wider mb-3">
             Published Posts
@@ -78,24 +107,6 @@ export default function ContentPage() {
             records={content?.records ?? []}
             performancePosts={postPerformance?.posts ?? []}
           />
-        </div>
-
-        {/* Bottom split: Platform Breakdown + What's Next */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h2 className="text-sm font-semibold text-[#94A3B8] uppercase tracking-wider mb-3">
-              Platform Breakdown
-            </h2>
-            <ContentPlatformBreakdown
-              platformCounts={content?.platformCounts ?? {}}
-            />
-          </div>
-          <div>
-            <h2 className="text-sm font-semibold text-[#94A3B8] uppercase tracking-wider mb-3">
-              What&apos;s Next
-            </h2>
-            <ContentWhatsNext jobs={pipeline?.jobs ?? []} />
-          </div>
         </div>
       </div>
     </AppShell>

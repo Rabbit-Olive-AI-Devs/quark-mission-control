@@ -5,7 +5,12 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { PLATFORM_COLORS, TYPE_COLORS } from "@/lib/theme-constants";
 import { formatDateTime } from "@/lib/utils";
 import { ExternalLink } from "lucide-react";
-import type { PublishRecord, TrackedPost, PostMetrics, DiagnosticLabel } from "@/lib/parsers/types";
+import type {
+  PublishRecord,
+  TrackedPost,
+  PostMetrics,
+  DiagnosticLabel,
+} from "@/lib/parsers/types";
 
 interface ContentTopPostsProps {
   records: PublishRecord[];
@@ -17,6 +22,14 @@ type PlatformFilter = "all" | string;
 type SortKey = "date" | "top";
 
 const PLATFORMS = ["x", "tiktok", "instagram", "youtube", "substack"];
+const CONTENT_TYPES = [
+  "proof",
+  "news_relay",
+  "viral_ride",
+  "hot_take",
+  "war_story",
+  "reaction",
+];
 const TIME_FILTERS: { key: TimeFilter; label: string }[] = [
   { key: "7d", label: "7d" },
   { key: "30d", label: "30d" },
@@ -72,8 +85,16 @@ function buildPerfMap(posts: TrackedPost[]): {
   return { byJobId, byPostId };
 }
 
-function getMetrics(m: PostMetrics | Record<string, never>): PostMetrics | null {
+function getMetrics(
+  m: PostMetrics | Record<string, never>
+): PostMetrics | null {
   return "impressions" in m ? (m as PostMetrics) : null;
+}
+
+/** Data is considered low-confidence if impressions <= 1 */
+function isLowConfidence(m: PostMetrics | null): boolean {
+  if (!m) return false;
+  return m.impressions <= 1;
 }
 
 export function ContentTopPosts({
@@ -83,8 +104,24 @@ export function ContentTopPosts({
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("7d");
   const [platformFilter, setPlatformFilter] = useState<PlatformFilter>("all");
   const [sortKey, setSortKey] = useState<SortKey>("date");
+  const [typeFilters, setTypeFilters] = useState<Set<string>>(new Set());
 
-  const perfMap = useMemo(() => buildPerfMap(performancePosts), [performancePosts]);
+  const toggleTypeFilter = (type: string) => {
+    setTypeFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) {
+        next.delete(type);
+      } else {
+        next.add(type);
+      }
+      return next;
+    });
+  };
+
+  const perfMap = useMemo(
+    () => buildPerfMap(performancePosts),
+    [performancePosts]
+  );
 
   const filtered = useMemo(() => {
     const now = Date.now();
@@ -100,7 +137,9 @@ export function ContentTopPosts({
         const age = now - new Date(r.timestamp).getTime();
         if (age > cutoff) return false;
       }
-      if (platformFilter !== "all" && r.platform !== platformFilter) return false;
+      if (platformFilter !== "all" && r.platform !== platformFilter)
+        return false;
+      if (typeFilters.size > 0 && !typeFilters.has(r.contentType)) return false;
       return true;
     });
 
@@ -114,14 +153,18 @@ export function ContentTopPosts({
         const perfB =
           perfMap.byJobId.get(b.jobId) ||
           (tweetIdB ? perfMap.byPostId.get(tweetIdB) : undefined);
-        const erA = perfA ? getMetrics(perfA.metrics)?.engagement_rate ?? -1 : -1;
-        const erB = perfB ? getMetrics(perfB.metrics)?.engagement_rate ?? -1 : -1;
+        const erA = perfA
+          ? getMetrics(perfA.metrics)?.engagement_rate ?? -1
+          : -1;
+        const erB = perfB
+          ? getMetrics(perfB.metrics)?.engagement_rate ?? -1
+          : -1;
         return erB - erA;
       });
     }
 
     return base;
-  }, [records, timeFilter, platformFilter, sortKey, perfMap]);
+  }, [records, timeFilter, platformFilter, sortKey, typeFilters, perfMap]);
 
   return (
     <GlassCard delay={0.1}>
@@ -176,6 +219,34 @@ export function ContentTopPosts({
                 }
               >
                 {pl}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="w-px h-4 bg-white/10" />
+
+        {/* Content type filters */}
+        <div className="flex gap-1 flex-wrap">
+          {CONTENT_TYPES.map((ct) => {
+            const color = TYPE_COLORS[ct] || "#94A3B8";
+            const active = typeFilters.has(ct);
+            return (
+              <button
+                key={ct}
+                onClick={() => toggleTypeFilter(ct)}
+                className={`px-2 py-1 rounded text-[9px] font-bold transition-colors uppercase ${
+                  active
+                    ? "text-white"
+                    : "text-[#94A3B8] hover:text-[#F1F5F9] hover:bg-white/5"
+                }`}
+                style={
+                  active
+                    ? { backgroundColor: `${color}30`, color }
+                    : undefined
+                }
+              >
+                {ct.replace(/_/g, " ")}
               </button>
             );
           })}
@@ -251,9 +322,12 @@ export function ContentTopPosts({
             </thead>
             <tbody>
               {filtered.map((record, idx) => {
-                const platColor = PLATFORM_COLORS[record.platform] || "#94A3B8";
-                const typeColor = TYPE_COLORS[record.contentType] || "#94A3B8";
-                const outcomeColor = OUTCOME_COLORS[record.outcome] || "#94A3B8";
+                const platColor =
+                  PLATFORM_COLORS[record.platform] || "#94A3B8";
+                const typeColor =
+                  TYPE_COLORS[record.contentType] || "#94A3B8";
+                const outcomeColor =
+                  OUTCOME_COLORS[record.outcome] || "#94A3B8";
 
                 const tweetId = extractTweetId(record.url);
                 const perf =
@@ -263,9 +337,19 @@ export function ContentTopPosts({
                 const diag = perf?.diagnostic ?? null;
                 const diagColor = diag ? DIAGNOSTIC_COLORS[diag] : null;
                 const diagLabel = diag ? DIAGNOSTIC_LABELS[diag] : null;
+                const lowConf = isLowConfidence(m);
+
+                // For low-confidence data, show diagnostic as "insufficient data"
+                const displayDiagLabel =
+                  lowConf && diag && diag !== "unclassified"
+                    ? "LOW DATA"
+                    : diagLabel;
+                const displayDiagColor = lowConf ? "#64748B" : diagColor;
 
                 const erColor = m
-                  ? m.engagement_rate >= 0.03
+                  ? lowConf
+                    ? "#64748B"
+                    : m.engagement_rate >= 0.03
                     ? "#10B981"
                     : m.engagement_rate >= 0.01
                     ? "#F59E0B"
@@ -278,7 +362,9 @@ export function ContentTopPosts({
                     className="group border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors"
                   >
                     <td className="px-5 py-2.5 font-mono text-[#94A3B8] tabular-nums whitespace-nowrap">
-                      {record.timestamp ? formatDateTime(record.timestamp) : "--"}
+                      {record.timestamp
+                        ? formatDateTime(record.timestamp)
+                        : "--"}
                     </td>
                     <td className="px-3 py-2.5 text-center">
                       <span
@@ -316,35 +402,51 @@ export function ContentTopPosts({
                         </span>
                       </span>
                     </td>
-                    {/* Engagement metrics */}
-                    <td className="px-3 py-2.5 text-right font-mono tabular-nums text-[#F1F5F9]">
-                      {m ? formatNumber(m.impressions) : (
-                        <span className="text-[#64748B]">&mdash;</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2.5 text-right font-mono tabular-nums text-[#F1F5F9]">
-                      {m ? formatNumber(m.likes) : (
+                    {/* Engagement metrics — dimmed if low confidence */}
+                    <td
+                      className={`px-3 py-2.5 text-right font-mono tabular-nums ${
+                        lowConf ? "opacity-40" : ""
+                      } text-[#F1F5F9]`}
+                    >
+                      {m ? (
+                        formatNumber(m.impressions)
+                      ) : (
                         <span className="text-[#64748B]">&mdash;</span>
                       )}
                     </td>
                     <td
-                      className="px-3 py-2.5 text-right font-mono tabular-nums"
+                      className={`px-3 py-2.5 text-right font-mono tabular-nums ${
+                        lowConf ? "opacity-40" : ""
+                      } text-[#F1F5F9]`}
+                    >
+                      {m ? (
+                        formatNumber(m.likes)
+                      ) : (
+                        <span className="text-[#64748B]">&mdash;</span>
+                      )}
+                    </td>
+                    <td
+                      className={`px-3 py-2.5 text-right font-mono tabular-nums ${
+                        lowConf ? "opacity-40" : ""
+                      }`}
                       style={{ color: erColor }}
                     >
-                      {m ? `${(m.engagement_rate * 100).toFixed(1)}%` : (
+                      {m ? (
+                        `${(m.engagement_rate * 100).toFixed(1)}%`
+                      ) : (
                         <span className="text-[#64748B]">&mdash;</span>
                       )}
                     </td>
                     <td className="px-3 py-2.5 text-center">
-                      {diagLabel && diagColor ? (
+                      {displayDiagLabel && displayDiagColor ? (
                         <span
                           className="text-[9px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap"
                           style={{
-                            backgroundColor: `${diagColor}20`,
-                            color: diagColor,
+                            backgroundColor: `${displayDiagColor}20`,
+                            color: displayDiagColor,
                           }}
                         >
-                          {diagLabel}
+                          {displayDiagLabel}
                         </span>
                       ) : (
                         <span className="text-[#64748B]">&mdash;</span>
