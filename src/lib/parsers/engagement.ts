@@ -26,23 +26,85 @@ function readLastLines(filePath: string, max: number): string[] {
   }
 }
 
-function parseAuditLine(line: string): EngagementAction | null {
+/**
+ * Normalize an audit JSONL line to an EngagementAction, handling two legacy
+ * schema variants found in the real JSONL:
+ *
+ *   Standard:  { action, target_id, guardrail_result, ... }
+ *   Health-check (lines 281-285): { result, detail } — no action or target_id
+ *   Old-action  (lines 286-288): { action, target, result } — target instead of target_id,
+ *                                 result instead of guardrail_result
+ *
+ * Returns null on parse error or empty input.
+ */
+export function normalizeAuditLine(line: string): EngagementAction | null {
+  if (!line.trim()) return null;
   try {
     const d = JSON.parse(line);
+
+    // Determine action: fall back to "check" for health-check entries
+    const action: string = d.action ?? "check";
+
+    // Determine targetId: standard field is target_id; legacy field is target
+    const targetId: string = d.target_id ?? d.target ?? "";
+
+    // Determine guardrailResult: standard field is guardrail_result; legacy
+    // field is result. Map "success" (old schema) to "pass".
+    let guardrailResult: string = d.guardrail_result ?? d.result ?? "pass";
+    if (guardrailResult === "success") guardrailResult = "pass";
+
     return {
       timestamp: d.timestamp ?? "",
       platform: d.platform ?? "",
-      action: d.action ?? "",
-      targetId: d.target_id ?? "",
+      action,
+      targetId,
       targetAuthor: d.target_author ?? "",
       text: d.text ?? "",
       autonomous: d.autonomous ?? true,
-      guardrailResult: d.guardrail_result ?? "pass",
+      guardrailResult,
       source: d.source ?? "",
     };
   } catch {
     return null;
   }
+}
+
+/**
+ * Deduplicate EngagementAction entries.
+ *
+ * The same real-world action can be logged by both "manual" and
+ * "engagement_cron" sources with different timestamps but the same
+ * action+platform+targetId triple. Keep the first occurrence.
+ */
+export function deduplicateActions(actions: EngagementAction[]): EngagementAction[] {
+  const seen = new Set<string>();
+  const result: EngagementAction[] = [];
+  for (const a of actions) {
+    const key = `${a.action}|${a.platform}|${a.targetId}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push(a);
+    }
+  }
+  return result;
+}
+
+/**
+ * Returns true if the action counts as a real social engagement (like, reply,
+ * follow, comment, skip). Returns false for health-check actions ("check" or
+ * "check:*") which should be excluded from the reply-rate denominator.
+ */
+export function isRealEngagement(action: EngagementAction): boolean {
+  return action.action !== "check" && !action.action.startsWith("check:");
+}
+
+/**
+ * Returns true only for genuine guardrail failures: results starting with
+ * "error:" or equal to "forbidden". Intentional skips (e.g.
+ * "skip:troll_disengage") and pass variants are NOT failures.
+ */
+export function isGuardrailFailure(guardrailResult: string): boolean {
+  return guardrailResult.startsWith("error:") || guardrailResult === "forbidden";
 }
 
 function getTodayStr(): string {
@@ -85,7 +147,7 @@ function computeTrends(actions: EngagementAction[]): DailyAggregate[] {
       for (const a of dayActions) {
         byPlatform[a.platform] = (byPlatform[a.platform] ?? 0) + 1;
         byAction[a.action] = (byAction[a.action] ?? 0) + 1;
-        if (a.guardrailResult !== "pass") blocks++;
+        if (isGuardrailFailure(a.guardrailResult)) blocks++;
       }
 
       return { date, total: dayActions.length, byPlatform, byAction, blocks };
@@ -95,7 +157,7 @@ function computeTrends(actions: EngagementAction[]): DailyAggregate[] {
 
 function extractBlocks(actions: EngagementAction[]): GuardrailBlock[] {
   return actions
-    .filter((a) => a.guardrailResult !== "pass" && !a.guardrailResult.startsWith("pass:"))
+    .filter((a) => isGuardrailFailure(a.guardrailResult))
     .map((a) => ({
       timestamp: a.timestamp,
       platform: a.platform,
@@ -163,11 +225,13 @@ function readInboundGap(): InboundGap {
 }
 
 function computeUnifiedKpis(actions: EngagementAction[], inboundGap: InboundGap): EngagementUnifiedKpis {
-  const totalInteractions = actions.length;
+  // Exclude check actions from interaction counts — they are health checks, not real engagement
+  const realActions = actions.filter(isRealEngagement);
+  const totalInteractions = realActions.length;
   const impressions = inboundGap.totalReceived;
   const engagementRate = impressions > 0 ? totalInteractions / impressions : 0;
 
-  const repliesSent = actions.filter((a) => a.action === "reply").length;
+  const repliesSent = realActions.filter((a) => a.action === "reply").length;
   const reach = impressions;
 
   return {
@@ -204,11 +268,14 @@ function computeSourceCoverage(): EngagementSourceCoverage {
 
 export function parseEngagement(): EngagementData {
   const lines = readLastLines(AUDIT_PATH, MAX_LINES);
-  const actions: EngagementAction[] = [];
+  const rawActions: EngagementAction[] = [];
   for (const line of lines) {
-    const a = parseAuditLine(line);
-    if (a) actions.push(a);
+    const a = normalizeAuditLine(line);
+    if (a) rawActions.push(a);
   }
+
+  // Deduplicate before sorting: first occurrence wins
+  const actions = deduplicateActions(rawActions);
 
   actions.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 
