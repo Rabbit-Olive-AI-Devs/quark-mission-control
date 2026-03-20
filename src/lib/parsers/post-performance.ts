@@ -50,7 +50,24 @@ export function parsePostPerformance(): PostPerformanceData | null {
   }
 
   const posts: TrackedPost[] = Array.isArray(data.posts)
-    ? (data.posts as TrackedPost[])
+    ? (data.posts as Record<string, unknown>[]).map((p) => ({
+        job_id: (p.job_id as string) ?? "",
+        post_id: (p.post_id as string) ?? "",
+        platform: (p.platform as string) ?? "unknown",
+        format: (p.format as string) ?? "",
+        content_type: (p.content_type as string) ?? "unknown",
+        hook: (p.hook as string) ?? "",
+        cta: (p.cta as string) ?? "",
+        title: (p.title as string) ?? "",
+        text: (p.text as string) ?? "",
+        created_at: (p.created_at as string) ?? (p.published_at as string) ?? "",
+        last_updated: (p.last_updated as string) ?? (p.metrics_updated_at as string) ?? "",
+        url: (p.url as string) ?? "",
+        metrics: p.metrics && typeof p.metrics === "object" ? p.metrics as TrackedPost["metrics"] : {},
+        diagnostic: ((p.diagnostic as string) ?? "unclassified") as TrackedPost["diagnostic"],
+        note: (p.note as string) ?? undefined,
+        traffic_sources: p.traffic_sources as TrackedPost["traffic_sources"],
+      }))
     : [];
 
   const hooks: HookStats =

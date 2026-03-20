@@ -9,9 +9,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  ReferenceLine,
   Label,
-  ReferenceArea,
 } from "recharts";
 import { GlassCard } from "@/components/ui/glass-card";
 import { TYPE_COLORS } from "@/lib/theme-constants";
@@ -49,7 +47,7 @@ function QuadrantTooltip({
   return (
     <div className="glass-card p-3 text-xs border border-white/10 max-w-[260px]">
       <p className="text-[#F1F5F9] font-medium mb-1 break-words">
-        {p.hook.length > 80 ? p.hook.slice(0, 80) + "..." : p.hook}
+        {(p.hook || "").length > 80 ? p.hook.slice(0, 80) + "..." : p.hook || "No hook"}
       </p>
       <div className="flex items-center gap-2 mb-1">
         <span
@@ -142,13 +140,22 @@ export function DiagnosticQuadrant({ posts, thresholds }: Props) {
       <h3 className="text-sm font-semibold text-[#94A3B8] uppercase tracking-wider mb-4">
         Diagnostic Quadrant
       </h3>
+      {/* Chart with quadrant labels as a 2x2 grid behind the scatter */}
       <div className="relative">
-        {/* Quadrant labels — CSS positioned, independent of chart scale */}
-        <div className="absolute inset-0 pointer-events-none z-10" style={{ top: 30, right: 30, bottom: 25, left: 25 }}>
-          <span className="absolute text-[10px] font-bold opacity-30" style={{ top: "25%", left: "20%", transform: "translate(-50%, -50%)", color: "#F59E0B" }}>FIX DIST</span>
-          <span className="absolute text-[10px] font-bold opacity-30" style={{ top: "25%", right: "20%", transform: "translate(50%, -50%)", color: "#10B981" }}>SCALE</span>
-          <span className="absolute text-[10px] font-bold opacity-30" style={{ bottom: "25%", left: "20%", transform: "translate(-50%, 50%)", color: "#EF4444" }}>RETHINK</span>
-          <span className="absolute text-[10px] font-bold opacity-30" style={{ bottom: "25%", right: "20%", transform: "translate(50%, 50%)", color: "#F59E0B" }}>FIX HOOKS</span>
+        {/* Quadrant labels — 2x2 grid, absolute over chart area (inset matches chart margins) */}
+        <div className="absolute pointer-events-none z-10 grid grid-cols-2 grid-rows-2" style={{ top: 30, left: 55, right: 30, bottom: 45 }}>
+          <div className="flex items-center justify-center border-r border-b border-white/[0.08]">
+            <span className="text-[11px] font-bold tracking-wide" style={{ color: "#F59E0B", opacity: 0.35 }}>FIX DIST</span>
+          </div>
+          <div className="flex items-center justify-center border-b border-white/[0.08]">
+            <span className="text-[11px] font-bold tracking-wide" style={{ color: "#10B981", opacity: 0.35 }}>SCALE</span>
+          </div>
+          <div className="flex items-center justify-center border-r border-white/[0.08]">
+            <span className="text-[11px] font-bold tracking-wide" style={{ color: "#EF4444", opacity: 0.35 }}>RETHINK</span>
+          </div>
+          <div className="flex items-center justify-center">
+            <span className="text-[11px] font-bold tracking-wide" style={{ color: "#F59E0B", opacity: 0.35 }}>FIX HOOKS</span>
+          </div>
         </div>
       <ResponsiveContainer width="100%" height={320}>
         <ScatterChart margin={{ top: 30, right: 30, bottom: 25, left: 25 }}>
@@ -181,15 +188,7 @@ export function DiagnosticQuadrant({ posts, thresholds }: Props) {
           </YAxis>
           <Tooltip content={<QuadrantTooltip />} />
 
-          {/* Quadrant divider lines */}
-          <ReferenceLine x={impLine} stroke="rgba(255,255,255,0.12)" strokeDasharray="6 4" />
-          <ReferenceLine y={erLine} stroke="rgba(255,255,255,0.12)" strokeDasharray="6 4" />
-
-          {/* Quadrant tinted areas — NO labels (CSS overlay handles those) */}
-          <ReferenceArea x1={useLog ? 1 : 0} x2={impLine} y1={erLine} y2={maxER} fill="#F59E0B" fillOpacity={0.03} ifOverflow="visible" />
-          <ReferenceArea x1={impLine} x2={maxImp * 1.2} y1={erLine} y2={maxER} fill="#10B981" fillOpacity={0.03} ifOverflow="visible" />
-          <ReferenceArea x1={useLog ? 1 : 0} x2={impLine} y1={0} y2={erLine} fill="#EF4444" fillOpacity={0.03} ifOverflow="visible" />
-          <ReferenceArea x1={impLine} x2={maxImp * 1.2} y1={0} y2={erLine} fill="#F59E0B" fillOpacity={0.03} ifOverflow="visible" />
+          {/* No Recharts reference lines/areas — CSS grid handles quadrant visuals */}
 
           {/* Scatter per content type */}
           {[...groups.entries()].map(([ct, pts]) => (
