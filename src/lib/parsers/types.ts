@@ -177,7 +177,7 @@ export interface SessionEntry {
   items: string[];
 }
 
-// Content performance
+// Content performance (deprecated — kept for backward compat)
 export interface ContentPost {
   id: string;
   date: string;
@@ -196,6 +196,27 @@ export interface HookCategory {
   totalPosts: number;
   avgViews: number;
   bestPostId: string | null;
+}
+
+// Publish audit (replaces Genviral-based content data)
+export interface PublishRecord {
+  jobId: string;
+  contentType: string;
+  format: string;
+  platform: string;  // derived: x, tiktok, instagram, youtube, substack
+  outcome: "published" | "killed" | "quarantined";
+  url: string | null;
+  timestamp: string;
+  source: string | null;
+}
+
+export interface ContentAuditData {
+  records: PublishRecord[];
+  todayCount: number;
+  weekCount: number;
+  platformCounts: Record<string, number>;
+  contentTypeCounts: Record<string, number>;
+  killedCount: number;
 }
 
 // Pipeline V2 types
@@ -450,6 +471,11 @@ export interface EngagementUnifiedKpis {
   visibility: {
     impressions: number;
     reach: number;
+    xImpressions: number;
+    xLikes: number;
+    xReplies: number;
+    xRetweets: number;
+    xBookmarks: number;
   };
   engagement: {
     totalInteractions: number;

@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { WORKSPACE_PATH } from "../config";
+import { parseContentPerformance } from "./operations";
 import type {
   EngagementAction,
   EngagementData,
@@ -229,7 +230,12 @@ function computeUnifiedKpis(actions: EngagementAction[], inboundGap: InboundGap)
   // Exclude check actions from interaction counts — they are health checks, not real engagement
   const realActions = actions.filter(isRealEngagement);
   const totalInteractions = realActions.length;
-  const impressions = inboundGap.totalReceived;
+
+  // Pull real X analytics from Chandler daily reports; fall back to inboundGap proxy
+  const xPerf = parseContentPerformance();
+  const xMetrics = xPerf?.x ?? null;
+
+  const impressions = xMetrics?.impressions ?? inboundGap.totalReceived;
   const engagementRate = impressions > 0 ? totalInteractions / impressions : 0;
 
   const repliesSent = realActions.filter((a) => a.action === "reply").length;
@@ -239,6 +245,11 @@ function computeUnifiedKpis(actions: EngagementAction[], inboundGap: InboundGap)
     visibility: {
       impressions,
       reach,
+      xImpressions: xMetrics?.impressions ?? 0,
+      xLikes: xMetrics?.likes ?? 0,
+      xReplies: xMetrics?.replies ?? 0,
+      xRetweets: xMetrics?.retweets ?? 0,
+      xBookmarks: xMetrics?.bookmarks ?? 0,
     },
     engagement: {
       totalInteractions,

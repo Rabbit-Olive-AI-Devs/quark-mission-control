@@ -161,7 +161,7 @@ function buildCronReliability(): OperationsCronReliability {
   };
 }
 
-function parseContentPerformance(): ContentPerformanceData | null {
+export function parseContentPerformance(): ContentPerformanceData | null {
   const dailyDir = path.join(WORKSPACE_PATH, "metrics/daily");
   try {
     const files = fs.readdirSync(dailyDir).filter((f) => f.endsWith(".md")).sort();
