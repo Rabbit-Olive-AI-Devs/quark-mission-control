@@ -18,12 +18,13 @@ interface Props {
 const PAGE_SIZE = 50;
 const ALL_PLATFORMS = ["x", "tiktok", "youtube", "instagram", "substack"];
 
-export function ActionFeed({ actions }: Props) {
+export function ActionFeed({ actions = [] }: Props) {
   const [platformFilter, setPlatformFilter] = useState<string | null>(null);
   const [actionFilter, setActionFilter] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
-  const filtered = actions.filter((a) => {
+  const safeActions = actions ?? [];
+  const filtered = safeActions.filter((a) => {
     if (platformFilter && a.platform !== platformFilter) return false;
     if (actionFilter && a.action !== actionFilter) return false;
     return true;
@@ -31,7 +32,7 @@ export function ActionFeed({ actions }: Props) {
 
   const visible = filtered.slice(0, visibleCount);
   const hasMore = visibleCount < filtered.length;
-  const actionTypes = [...new Set(actions.map((a) => a.action))];
+  const actionTypes = [...new Set(safeActions.map((a) => a.action))];
 
   return (
     <GlassCard>

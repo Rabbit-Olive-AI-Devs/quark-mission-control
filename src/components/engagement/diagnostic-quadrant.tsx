@@ -69,7 +69,7 @@ function QuadrantTooltip({
 }
 
 export function DiagnosticQuadrant({ posts, thresholds }: Props) {
-  const { data, groups, impLine, erLine, maxImp, maxER } = useMemo(() => {
+  const { data, groups, impLine, erLine, maxImp, maxER, useLog } = useMemo(() => {
     // Include posts with either impressions or views > 0
     const withMetrics = posts.filter((p) => {
       if (!p.metrics) return false;
@@ -99,23 +99,28 @@ export function DiagnosticQuadrant({ posts, thresholds }: Props) {
       typeGroups.set(pt.content_type, arr);
     }
 
-    // Threshold lines — use median of data as divider (not platform thresholds which may be way off)
+    // Threshold lines — use percentile-based dividers that adapt to the data
     const sortedImp = points.map((p) => p.x).sort((a, b) => a - b);
     const sortedER = points.map((p) => p.y).sort((a, b) => a - b);
+    // Use p50 (median) as the divider — splits data into equal halves
     const medianImp = sortedImp.length > 0 ? sortedImp[Math.floor(sortedImp.length / 2)] : 20;
     const medianER = sortedER.length > 0 ? sortedER[Math.floor(sortedER.length / 2)] : 0.05;
 
-    const rawMax = Math.max(...points.map((d) => d.x), 10) * 1.2;
-    const niceMax = Math.ceil(rawMax / 10) * 10;
+    const minImp = Math.max(Math.min(...points.map((d) => d.x)), 1);
+    const maxImpRaw = Math.max(...points.map((d) => d.x), 10);
     const erMax = Math.min(Math.max(...points.map((d) => d.y), 0.05) * 1.3, 1);
+
+    // Determine if we need log scale (range > 10x between min and max)
+    const useLog = maxImpRaw / minImp > 10;
 
     return {
       data: points,
       groups: typeGroups,
       impLine: medianImp,
       erLine: medianER,
-      maxImp: niceMax,
+      maxImp: maxImpRaw,
       maxER: erMax,
+      useLog,
     };
   }, [posts, thresholds]);
 
@@ -144,11 +149,17 @@ export function DiagnosticQuadrant({ posts, thresholds }: Props) {
             type="number"
             dataKey="x"
             name="Impressions"
-            domain={[0, maxImp]}
+            scale={useLog ? "log" : "auto"}
+            domain={useLog ? [1, "auto"] : [0, "auto"]}
             tick={{ fill: AXIS_COLOR, fontSize: 10 }}
-            tickFormatter={(v: number) => String(Math.round(v))}
+            tickFormatter={(v: number) => {
+              const r = Math.round(v);
+              if (r >= 1000) return `${(r / 1000).toFixed(r >= 10000 ? 0 : 1)}K`;
+              return String(r);
+            }}
+            allowDataOverflow={false}
           >
-            <Label value="Impressions" position="bottom" offset={5} style={{ fill: AXIS_COLOR, fontSize: 10 }} />
+            <Label value={useLog ? "Impressions / Views (log)" : "Impressions / Views"} position="bottom" offset={5} style={{ fill: AXIS_COLOR, fontSize: 10 }} />
           </XAxis>
           <YAxis
             type="number"
@@ -166,26 +177,26 @@ export function DiagnosticQuadrant({ posts, thresholds }: Props) {
           <ReferenceLine x={impLine} stroke="rgba(255,255,255,0.12)" strokeDasharray="6 4" />
           <ReferenceLine y={erLine} stroke="rgba(255,255,255,0.12)" strokeDasharray="6 4" />
 
-          {/* Quadrant background labels using ReferenceArea */}
+          {/* Quadrant background tinted areas + centered labels */}
           <ReferenceArea
-            x1={0} x2={impLine} y1={erLine} y2={maxER}
-            fill="transparent" ifOverflow="visible"
-            label={{ value: "FIX DIST", fill: "#F59E0B", fontSize: 9, fontWeight: 600, opacity: 0.4, position: "center" }}
+            x1={useLog ? 1 : 0} x2={impLine} y1={erLine} y2={maxER}
+            fill="#F59E0B" fillOpacity={0.03} ifOverflow="visible"
+            label={{ value: "FIX DIST", fill: "#F59E0B", fontSize: 10, fontWeight: 700, opacity: 0.5, position: "center" }}
           />
           <ReferenceArea
-            x1={impLine} x2={maxImp} y1={erLine} y2={maxER}
-            fill="transparent" ifOverflow="visible"
-            label={{ value: "SCALE", fill: "#10B981", fontSize: 9, fontWeight: 600, opacity: 0.4, position: "center" }}
+            x1={impLine} x2={maxImp * 1.2} y1={erLine} y2={maxER}
+            fill="#10B981" fillOpacity={0.03} ifOverflow="visible"
+            label={{ value: "SCALE", fill: "#10B981", fontSize: 10, fontWeight: 700, opacity: 0.5, position: "center" }}
           />
           <ReferenceArea
-            x1={0} x2={impLine} y1={0} y2={erLine}
-            fill="transparent" ifOverflow="visible"
-            label={{ value: "RETHINK", fill: "#EF4444", fontSize: 9, fontWeight: 600, opacity: 0.4, position: "center" }}
+            x1={useLog ? 1 : 0} x2={impLine} y1={0} y2={erLine}
+            fill="#EF4444" fillOpacity={0.03} ifOverflow="visible"
+            label={{ value: "RETHINK", fill: "#EF4444", fontSize: 10, fontWeight: 700, opacity: 0.5, position: "center" }}
           />
           <ReferenceArea
-            x1={impLine} x2={maxImp} y1={0} y2={erLine}
-            fill="transparent" ifOverflow="visible"
-            label={{ value: "FIX HOOKS", fill: "#F59E0B", fontSize: 9, fontWeight: 600, opacity: 0.4, position: "center" }}
+            x1={impLine} x2={maxImp * 1.2} y1={0} y2={erLine}
+            fill="#F59E0B" fillOpacity={0.03} ifOverflow="visible"
+            label={{ value: "FIX HOOKS", fill: "#F59E0B", fontSize: 10, fontWeight: 700, opacity: 0.5, position: "center" }}
           />
 
           {/* Scatter per content type */}

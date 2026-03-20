@@ -147,7 +147,7 @@ export default function EngagementPage() {
                 <PostPerformanceTable posts={perfData?.posts ?? []} />
 
                 {/* Tab 2: Outbound Activity */}
-                <ActionFeed actions={engData.actions} />
+                <ActionFeed actions={engData?.actions ?? []} />
 
                 {/* Tab 3: Platform Health */}
                 {perfData ? (
