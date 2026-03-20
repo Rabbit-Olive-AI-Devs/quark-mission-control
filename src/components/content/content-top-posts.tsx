@@ -2,21 +2,19 @@
 
 import { useState, useMemo } from "react";
 import { GlassCard } from "@/components/ui/glass-card";
-import { PLATFORM_COLORS } from "@/lib/theme-constants";
-import { ChevronDown, ChevronUp } from "lucide-react";
-import type { ContentPost } from "@/lib/parsers/types";
+import { PLATFORM_COLORS, TYPE_COLORS } from "@/lib/theme-constants";
+import { formatDateTime } from "@/lib/utils";
+import { ExternalLink } from "lucide-react";
+import type { PublishRecord, TrackedPost, PostMetrics, DiagnosticLabel } from "@/lib/parsers/types";
 
 interface ContentTopPostsProps {
-  posts: ContentPost[];
+  records: PublishRecord[];
+  performancePosts?: TrackedPost[];
 }
 
 type TimeFilter = "7d" | "30d" | "all";
 type PlatformFilter = "all" | string;
-
-function totalEngagement(post: ContentPost): number {
-  const m = post.metrics;
-  return m.views + m.likes + m.comments + m.shares;
-}
+type SortKey = "date" | "top";
 
 const PLATFORMS = ["x", "tiktok", "instagram", "youtube", "substack"];
 const TIME_FILTERS: { key: TimeFilter; label: string }[] = [
@@ -25,10 +23,68 @@ const TIME_FILTERS: { key: TimeFilter; label: string }[] = [
   { key: "all", label: "All" },
 ];
 
-export function ContentTopPosts({ posts }: ContentTopPostsProps) {
+const OUTCOME_COLORS: Record<string, string> = {
+  published: "#10B981",
+  killed: "#EF4444",
+  quarantined: "#F59E0B",
+};
+
+const DIAGNOSTIC_COLORS: Record<DiagnosticLabel, string> = {
+  scale: "#10B981",
+  fix_hooks: "#F59E0B",
+  fix_distribution: "#F59E0B",
+  rethink: "#EF4444",
+  unclassified: "#94A3B8",
+};
+
+const DIAGNOSTIC_LABELS: Record<DiagnosticLabel, string> = {
+  scale: "SCALE",
+  fix_hooks: "FIX HOOKS",
+  fix_distribution: "FIX DIST",
+  rethink: "RETHINK",
+  unclassified: "N/A",
+};
+
+function formatNumber(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
+}
+
+/** Extract tweet ID from an X URL like https://x.com/.../status/12345 */
+function extractTweetId(url: string | null): string | null {
+  if (!url) return null;
+  const m = url.match(/\/status\/(\d+)/);
+  return m ? m[1] : null;
+}
+
+/** Build a lookup map: job_id -> TrackedPost and post_id -> TrackedPost */
+function buildPerfMap(posts: TrackedPost[]): {
+  byJobId: Map<string, TrackedPost>;
+  byPostId: Map<string, TrackedPost>;
+} {
+  const byJobId = new Map<string, TrackedPost>();
+  const byPostId = new Map<string, TrackedPost>();
+  for (const p of posts) {
+    byJobId.set(p.job_id, p);
+    if (p.post_id) byPostId.set(p.post_id, p);
+  }
+  return { byJobId, byPostId };
+}
+
+function getMetrics(m: PostMetrics | Record<string, never>): PostMetrics | null {
+  return "impressions" in m ? (m as PostMetrics) : null;
+}
+
+export function ContentTopPosts({
+  records,
+  performancePosts = [],
+}: ContentTopPostsProps) {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("7d");
   const [platformFilter, setPlatformFilter] = useState<PlatformFilter>("all");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>("date");
+
+  const perfMap = useMemo(() => buildPerfMap(performancePosts), [performancePosts]);
 
   const filtered = useMemo(() => {
     const now = Date.now();
@@ -39,18 +95,33 @@ export function ContentTopPosts({ posts }: ContentTopPostsProps) {
     };
     const cutoff = msMap[timeFilter];
 
-    return posts
-      .filter((p) => {
-        if (cutoff !== Infinity) {
-          const age = now - new Date(p.date).getTime();
-          if (age > cutoff) return false;
-        }
-        if (platformFilter !== "all" && p.platform !== platformFilter)
-          return false;
-        return true;
-      })
-      .sort((a, b) => totalEngagement(b) - totalEngagement(a));
-  }, [posts, timeFilter, platformFilter]);
+    const base = records.filter((r) => {
+      if (cutoff !== Infinity && r.timestamp) {
+        const age = now - new Date(r.timestamp).getTime();
+        if (age > cutoff) return false;
+      }
+      if (platformFilter !== "all" && r.platform !== platformFilter) return false;
+      return true;
+    });
+
+    if (sortKey === "top") {
+      return [...base].sort((a, b) => {
+        const tweetIdA = extractTweetId(a.url);
+        const tweetIdB = extractTweetId(b.url);
+        const perfA =
+          perfMap.byJobId.get(a.jobId) ||
+          (tweetIdA ? perfMap.byPostId.get(tweetIdA) : undefined);
+        const perfB =
+          perfMap.byJobId.get(b.jobId) ||
+          (tweetIdB ? perfMap.byPostId.get(tweetIdB) : undefined);
+        const erA = perfA ? getMetrics(perfA.metrics)?.engagement_rate ?? -1 : -1;
+        const erB = perfB ? getMetrics(perfB.metrics)?.engagement_rate ?? -1 : -1;
+        return erB - erA;
+      });
+    }
+
+    return base;
+  }, [records, timeFilter, platformFilter, sortKey, perfMap]);
 
   return (
     <GlassCard delay={0.1}>
@@ -109,6 +180,32 @@ export function ContentTopPosts({ posts }: ContentTopPostsProps) {
             );
           })}
         </div>
+
+        <div className="w-px h-4 bg-white/10" />
+
+        {/* Sort controls */}
+        <div className="flex gap-1">
+          <button
+            onClick={() => setSortKey("date")}
+            className={`px-2.5 py-1 rounded text-[10px] font-medium transition-colors ${
+              sortKey === "date"
+                ? "bg-[#00D4AA]/20 text-[#00D4AA]"
+                : "text-[#94A3B8] hover:text-[#F1F5F9] hover:bg-white/5"
+            }`}
+          >
+            Recent
+          </button>
+          <button
+            onClick={() => setSortKey("top")}
+            className={`px-2.5 py-1 rounded text-[10px] font-medium transition-colors ${
+              sortKey === "top"
+                ? "bg-[#00D4AA]/20 text-[#00D4AA]"
+                : "text-[#94A3B8] hover:text-[#F1F5F9] hover:bg-white/5"
+            }`}
+          >
+            Top Performing
+          </button>
+        </div>
       </div>
 
       {/* Table */}
@@ -120,61 +217,79 @@ export function ContentTopPosts({ posts }: ContentTopPostsProps) {
         </div>
       ) : (
         <div className="overflow-x-auto -mx-5">
-          <table className="w-full text-xs min-w-[600px]">
+          <table className="w-full text-xs min-w-[800px]">
             <thead>
               <tr className="border-b border-white/5">
                 <th className="text-left px-5 py-2 text-[10px] font-semibold text-[#64748B] uppercase tracking-wider">
-                  Post
+                  Date
+                </th>
+                <th className="text-center px-3 py-2 text-[10px] font-semibold text-[#64748B] uppercase tracking-wider">
+                  Type
                 </th>
                 <th className="text-center px-3 py-2 text-[10px] font-semibold text-[#64748B] uppercase tracking-wider">
                   Platform
                 </th>
+                <th className="text-center px-3 py-2 text-[10px] font-semibold text-[#64748B] uppercase tracking-wider">
+                  Outcome
+                </th>
                 <th className="text-right px-3 py-2 text-[10px] font-semibold text-[#64748B] uppercase tracking-wider">
-                  Views
+                  Imp
                 </th>
                 <th className="text-right px-3 py-2 text-[10px] font-semibold text-[#64748B] uppercase tracking-wider">
                   Likes
                 </th>
                 <th className="text-right px-3 py-2 text-[10px] font-semibold text-[#64748B] uppercase tracking-wider">
-                  Comments
+                  ER%
                 </th>
-                <th className="text-right px-3 py-2 text-[10px] font-semibold text-[#64748B] uppercase tracking-wider">
-                  Shares
+                <th className="text-center px-3 py-2 text-[10px] font-semibold text-[#64748B] uppercase tracking-wider">
+                  Diag
                 </th>
                 <th className="text-right px-5 py-2 text-[10px] font-semibold text-[#64748B] uppercase tracking-wider">
-                  Total
+                  Link
                 </th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((post) => {
-                const isExpanded = expandedId === post.id;
-                const total = totalEngagement(post);
-                const platColor =
-                  PLATFORM_COLORS[post.platform] || "#94A3B8";
+              {filtered.map((record, idx) => {
+                const platColor = PLATFORM_COLORS[record.platform] || "#94A3B8";
+                const typeColor = TYPE_COLORS[record.contentType] || "#94A3B8";
+                const outcomeColor = OUTCOME_COLORS[record.outcome] || "#94A3B8";
+
+                const tweetId = extractTweetId(record.url);
+                const perf =
+                  perfMap.byJobId.get(record.jobId) ||
+                  (tweetId ? perfMap.byPostId.get(tweetId) : undefined);
+                const m = perf ? getMetrics(perf.metrics) : null;
+                const diag = perf?.diagnostic ?? null;
+                const diagColor = diag ? DIAGNOSTIC_COLORS[diag] : null;
+                const diagLabel = diag ? DIAGNOSTIC_LABELS[diag] : null;
+
+                const erColor = m
+                  ? m.engagement_rate >= 0.03
+                    ? "#10B981"
+                    : m.engagement_rate >= 0.01
+                    ? "#F59E0B"
+                    : "#EF4444"
+                  : "#94A3B8";
 
                 return (
-                  <tr key={post.id} className="group">
-                    <td className="px-5 py-2.5">
-                      <button
-                        onClick={() =>
-                          setExpandedId(isExpanded ? null : post.id)
-                        }
-                        className="flex items-center gap-1.5 text-left hover:text-[#00D4AA] transition-colors"
+                  <tr
+                    key={`${record.jobId}-${record.format}-${idx}`}
+                    className="group border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors"
+                  >
+                    <td className="px-5 py-2.5 font-mono text-[#94A3B8] tabular-nums whitespace-nowrap">
+                      {record.timestamp ? formatDateTime(record.timestamp) : "--"}
+                    </td>
+                    <td className="px-3 py-2.5 text-center">
+                      <span
+                        className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase"
+                        style={{
+                          backgroundColor: `${typeColor}20`,
+                          color: typeColor,
+                        }}
                       >
-                        {isExpanded ? (
-                          <ChevronUp size={10} className="shrink-0 text-[#94A3B8]" />
-                        ) : (
-                          <ChevronDown size={10} className="shrink-0 text-[#94A3B8]" />
-                        )}
-                        <span className="text-[#F1F5F9] group-hover:text-[#00D4AA] transition-colors">
-                          {isExpanded
-                            ? post.hook
-                            : post.hook.length > 60
-                              ? post.hook.slice(0, 60) + "..."
-                              : post.hook}
-                        </span>
-                      </button>
+                        {record.contentType.replace(/_/g, " ")}
+                      </span>
                     </td>
                     <td className="px-3 py-2.5 text-center">
                       <span
@@ -184,23 +299,71 @@ export function ContentTopPosts({ posts }: ContentTopPostsProps) {
                           color: platColor,
                         }}
                       >
-                        {post.platform}
+                        {record.platform}
                       </span>
                     </td>
-                    <td className="px-3 py-2.5 text-right font-mono text-[#94A3B8] tabular-nums">
-                      {post.metrics.views.toLocaleString()}
+                    <td className="px-3 py-2.5 text-center">
+                      <span className="inline-flex items-center gap-1.5">
+                        <span
+                          className="inline-block w-2 h-2 rounded-full"
+                          style={{ backgroundColor: outcomeColor }}
+                        />
+                        <span
+                          className="text-[10px] font-medium"
+                          style={{ color: outcomeColor }}
+                        >
+                          {record.outcome}
+                        </span>
+                      </span>
                     </td>
-                    <td className="px-3 py-2.5 text-right font-mono text-[#94A3B8] tabular-nums">
-                      {post.metrics.likes.toLocaleString()}
+                    {/* Engagement metrics */}
+                    <td className="px-3 py-2.5 text-right font-mono tabular-nums text-[#F1F5F9]">
+                      {m ? formatNumber(m.impressions) : (
+                        <span className="text-[#64748B]">&mdash;</span>
+                      )}
                     </td>
-                    <td className="px-3 py-2.5 text-right font-mono text-[#94A3B8] tabular-nums">
-                      {post.metrics.comments.toLocaleString()}
+                    <td className="px-3 py-2.5 text-right font-mono tabular-nums text-[#F1F5F9]">
+                      {m ? formatNumber(m.likes) : (
+                        <span className="text-[#64748B]">&mdash;</span>
+                      )}
                     </td>
-                    <td className="px-3 py-2.5 text-right font-mono text-[#94A3B8] tabular-nums">
-                      {post.metrics.shares.toLocaleString()}
+                    <td
+                      className="px-3 py-2.5 text-right font-mono tabular-nums"
+                      style={{ color: erColor }}
+                    >
+                      {m ? `${(m.engagement_rate * 100).toFixed(1)}%` : (
+                        <span className="text-[#64748B]">&mdash;</span>
+                      )}
                     </td>
-                    <td className="px-5 py-2.5 text-right font-mono font-semibold text-[#F1F5F9] tabular-nums">
-                      {total.toLocaleString()}
+                    <td className="px-3 py-2.5 text-center">
+                      {diagLabel && diagColor ? (
+                        <span
+                          className="text-[9px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap"
+                          style={{
+                            backgroundColor: `${diagColor}20`,
+                            color: diagColor,
+                          }}
+                        >
+                          {diagLabel}
+                        </span>
+                      ) : (
+                        <span className="text-[#64748B]">&mdash;</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-2.5 text-right">
+                      {record.url ? (
+                        <a
+                          href={record.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-[#00D4AA] hover:text-[#00D4AA]/80 transition-colors"
+                        >
+                          <ExternalLink size={10} />
+                          <span className="text-[10px] font-mono">view</span>
+                        </a>
+                      ) : (
+                        <span className="text-[#64748B]">&mdash;</span>
+                      )}
                     </td>
                   </tr>
                 );

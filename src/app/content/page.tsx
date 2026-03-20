@@ -10,28 +10,28 @@ import { Clapperboard } from "lucide-react";
 import { formatTimeShort } from "@/lib/utils";
 import type {
   PipelineData,
-  EngagementData,
-  ContentPost,
-  IntelReport,
+  ContentAuditData,
   StatusFullResponse,
+  PostPerformanceData,
 } from "@/lib/parsers/types";
 
 export default function ContentPage() {
   const { data: pipeline } = useApi<PipelineData>("/api/pipeline", {
     refreshOn: ["pipeline"],
   });
-  const { data: engagement } = useApi<EngagementData>("/api/engagement", {
-    refreshOn: ["engagement"],
-  });
-  const { data: content } = useApi<{ posts: ContentPost[] }>("/api/content");
-  const { data: statusFull, lastUpdated } = useApi<StatusFullResponse>(
-    "/api/status-full",
-    { refreshOn: ["heartbeat"] }
+  const { data: content, lastUpdated } = useApi<ContentAuditData>(
+    "/api/content"
   );
-  const { data: intel } = useApi<IntelReport>("/api/intel");
+  const { data: statusFull } = useApi<StatusFullResponse>("/api/status-full", {
+    refreshOn: ["heartbeat"],
+  });
+  const { data: postPerformance } = useApi<PostPerformanceData>(
+    "/api/post-performance",
+    { refreshOn: ["pipeline"] }
+  );
 
-  const posts = content?.posts || [];
   const publishMode = statusFull?.contentToday?.publishMode || null;
+  const avgTimeMs = (pipeline?.scorecard?.avgTimeToPublish ?? 0) * 1000;
 
   return (
     <AppShell>
@@ -62,19 +62,22 @@ export default function ContentPage() {
 
         {/* Hero KPIs */}
         <ContentHeroKpis
-          posts={posts}
-          scorecard={pipeline?.scorecard || null}
-          kpis={engagement?.unifiedKpis || null}
-          trends={engagement?.trends || []}
+          todayCount={content?.todayCount ?? 0}
+          weekCount={content?.weekCount ?? 0}
+          platformCounts={content?.platformCounts ?? {}}
+          avgTimeMs={avgTimeMs}
           publishMode={publishMode}
         />
 
-        {/* Top Posts */}
+        {/* Published Posts */}
         <div>
           <h2 className="text-sm font-semibold text-[#94A3B8] uppercase tracking-wider mb-3">
-            Top Posts
+            Published Posts
           </h2>
-          <ContentTopPosts posts={posts} />
+          <ContentTopPosts
+            records={content?.records ?? []}
+            performancePosts={postPerformance?.posts ?? []}
+          />
         </div>
 
         {/* Bottom split: Platform Breakdown + What's Next */}
@@ -83,16 +86,15 @@ export default function ContentPage() {
             <h2 className="text-sm font-semibold text-[#94A3B8] uppercase tracking-wider mb-3">
               Platform Breakdown
             </h2>
-            <ContentPlatformBreakdown posts={posts} />
+            <ContentPlatformBreakdown
+              platformCounts={content?.platformCounts ?? {}}
+            />
           </div>
           <div>
             <h2 className="text-sm font-semibold text-[#94A3B8] uppercase tracking-wider mb-3">
               What&apos;s Next
             </h2>
-            <ContentWhatsNext
-              jobs={pipeline?.jobs || []}
-              suggestions={intel?.suggestions || []}
-            />
+            <ContentWhatsNext jobs={pipeline?.jobs ?? []} />
           </div>
         </div>
       </div>
