@@ -14,6 +14,7 @@ import {
   Menu,
   X,
   BarChart3,
+  Brain,
 } from "lucide-react";
 import { StatusDot } from "./status-dot";
 import { useDashboardStore } from "@/stores/dashboard";
@@ -24,6 +25,7 @@ const navItems = [
   { href: "/engagement", label: "Engagement", icon: BarChart3 },
   { href: "/inbox", label: "Inbox", icon: Inbox },
   { href: "/schedule", label: "Schedule", icon: Calendar },
+  { href: "/cognitive", label: "Cognitive", icon: Brain },
   { href: "/explore", label: "Explore", icon: Compass },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

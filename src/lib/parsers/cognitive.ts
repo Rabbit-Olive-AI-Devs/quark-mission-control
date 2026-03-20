@@ -78,7 +78,7 @@ function parseCognitiveFile(filePath: string): CognitiveDay | null {
       substackReplies: e.substack_replies ?? 0,
       totalReceived: e.total_received ?? 0,
       totalReplied: e.total_replied ?? 0,
-      replyRate: e.reply_rate ?? 0,
+      replyRate: Math.min(e.reply_rate ?? 0, 1.0),
     };
 
     let identityEvolution: CognitiveIdentityEvolution | undefined;

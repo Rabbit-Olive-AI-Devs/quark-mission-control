@@ -162,7 +162,7 @@ export default function StatusPage() {
             title="Quark"
             icon={Bot}
             level={data.quark.level}
-            href="/explore?tab=knowledge"
+            href="/cognitive"
             dataPriority={2}
           >
             <QuarkPanel data={data} />
@@ -194,7 +194,7 @@ export default function StatusPage() {
             title="Cognitive"
             icon={Brain}
             level={cognitiveLevel}
-            href="/explore?tab=knowledge"
+            href="/cognitive"
             dataPriority={3}
           >
             <CognitivePanel data={data} />
