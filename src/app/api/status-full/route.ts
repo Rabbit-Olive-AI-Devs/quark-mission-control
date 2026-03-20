@@ -13,6 +13,7 @@ import { parseEngagement } from "@/lib/parsers/engagement";
 import { parseCognitive } from "@/lib/parsers/cognitive";
 import { parseIntel } from "@/lib/parsers/intel";
 import { parseDigest } from "@/lib/parsers/digest";
+import { parsePostPerformance } from "@/lib/parsers/post-performance";
 import {
   derivePipelineStatus,
   deriveCronStatus,
@@ -22,7 +23,7 @@ import {
   computeHealthScore,
 } from "@/lib/status-logic";
 import { WORKSPACE_PATH } from "@/lib/config";
-import type { ActivityEntry, ContentTodayData, StatusFullResponse } from "@/lib/parsers/types";
+import type { ActivityEntry, ContentTodayData, StatusFullResponse, PostPerformanceSummary } from "@/lib/parsers/types";
 
 const PUBLISH_AUDIT_PATH = path.join(WORKSPACE_PATH, "content-engine/state/publish-audit.jsonl");
 const PUBLISH_MODE_PATH = path.join(WORKSPACE_PATH, "content-engine/state/publish-mode.json");
@@ -106,6 +107,78 @@ function parseActivity(
 
   // Newest first, max 8 entries
   return entries.reverse().slice(0, 8);
+}
+
+function derivePostPerformanceSummary(): PostPerformanceSummary {
+  const data = parsePostPerformance();
+
+  if (!data || data.posts.length === 0) {
+    return {
+      totalImpressions: 0,
+      avgER: 0,
+      followerDelta: 0,
+      diagnosticSummary: "no data",
+    };
+  }
+
+  const posts = data.posts;
+
+  // Total impressions across all tracked posts
+  const totalImpressions = posts.reduce((sum, p) => {
+    const m = p.metrics as { impressions?: number };
+    return sum + (m.impressions ?? 0);
+  }, 0);
+
+  // Average engagement rate across posts that have it
+  const erPosts = posts.filter((p) => {
+    const m = p.metrics as { engagement_rate?: number };
+    return typeof m.engagement_rate === "number" && m.engagement_rate > 0;
+  });
+  const avgER =
+    erPosts.length > 0
+      ? erPosts.reduce((sum, p) => {
+          const m = p.metrics as { engagement_rate?: number };
+          return sum + (m.engagement_rate ?? 0);
+        }, 0) / erPosts.length
+      : 0;
+
+  // Follower delta: diff between latest and oldest snapshot (X followers)
+  let followerDelta = 0;
+  if (data.followerHistory.length >= 2) {
+    const sorted = [...data.followerHistory].sort((a, b) =>
+      a.date.localeCompare(b.date)
+    );
+    const oldest = sorted[0];
+    const newest = sorted[sorted.length - 1];
+    const oldVal = oldest.x_followers ?? 0;
+    const newVal = newest.x_followers ?? 0;
+    followerDelta = newVal - oldVal;
+  }
+
+  // Diagnostic summary: count by label
+  const counts: Record<string, number> = {};
+  for (const p of posts) {
+    const label = p.diagnostic ?? "unclassified";
+    counts[label] = (counts[label] ?? 0) + 1;
+  }
+
+  // Order: scale, fix_hooks, fix_distribution, rethink, unclassified
+  const LABEL_DISPLAY: Record<string, string> = {
+    scale: "SCALE",
+    fix_hooks: "FIX HOOKS",
+    fix_distribution: "FIX DIST",
+    rethink: "RETHINK",
+    unclassified: "UNCLASSIFIED",
+  };
+  const parts: string[] = [];
+  for (const [key, display] of Object.entries(LABEL_DISPLAY)) {
+    if (counts[key]) {
+      parts.push(`${counts[key]} ${display}`);
+    }
+  }
+  const diagnosticSummary = parts.length > 0 ? parts.join(", ") : "no data";
+
+  return { totalImpressions, avgER, followerDelta, diagnosticSummary };
 }
 
 export async function GET() {
@@ -199,6 +272,7 @@ export async function GET() {
 
     // --- New sections ---
 
+    const postPerformanceSummary = derivePostPerformanceSummary();
     const contentToday = parseContentToday();
     const activity = parseActivity(digest);
 
@@ -240,6 +314,7 @@ export async function GET() {
         },
         guardrailBlocks: engagement?.guardrailBlocks?.length ?? 0,
       },
+      postPerformance: postPerformanceSummary,
       cognitive: cognitiveData,
       intel: {
         highSignal: intel?.highSignal ?? [],

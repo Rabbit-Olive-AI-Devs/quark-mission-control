@@ -675,6 +675,13 @@ export interface ContentTodayData {
   publishMode: "LIVE" | "WARMUP";
 }
 
+export interface PostPerformanceSummary {
+  totalImpressions: number;
+  avgER: number;
+  followerDelta: number;
+  diagnosticSummary: string; // e.g. "2 SCALE, 1 FIX" or "no data"
+}
+
 export interface StatusFullResponse {
   // Existing status cards
   pipeline: StatusCard & { stuckCount: number; scorecard: PipelineScorecard };
@@ -695,6 +702,7 @@ export interface StatusFullResponse {
     inboundGap: { replyRate: number; unansweredCount: number };
     guardrailBlocks: number;
   };
+  postPerformance: PostPerformanceSummary;
   cognitive: {
     memoryHealth: CognitiveMemoryHealth;
     proactivity: CognitiveProactivity;

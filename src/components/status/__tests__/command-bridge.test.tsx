@@ -104,6 +104,12 @@ function mockData(overrides: Partial<StatusFullResponse> = {}): StatusFullRespon
       inboundGap: { replyRate: 85, unansweredCount: 2 },
       guardrailBlocks: 0,
     },
+    postPerformance: {
+      totalImpressions: 4200,
+      avgER: 2.3,
+      followerDelta: 12,
+      diagnosticSummary: "2 SCALE, 1 FIX HOOKS",
+    },
     cognitive: {
       memoryHealth: {
         kbFileCount: 26,
@@ -254,15 +260,29 @@ describe("AlertsStrip", () => {
                 agentId: null,
                 enabled: true,
               },
+              {
+                id: "2",
+                name: "Deep Work",
+                schedule: "",
+                scheduleHuman: "",
+                timezone: "America/Chicago",
+                model: "",
+                status: "error",
+                lastRun: null,
+                nextRun: null,
+                lastRunMs: null,
+                nextRunMs: null,
+                agentId: null,
+                enabled: true,
+              },
             ],
           },
         })}
       />
     );
-    expect(
-      screen.getByText("2/20 failed: Cassian, Deep Work")
-    ).toBeInTheDocument();
+    // Individual cron failure chips (no card-level summary to avoid duplication)
     expect(screen.getByText(/Cron "Cassian" failed/)).toBeInTheDocument();
+    expect(screen.getByText(/Cron "Deep Work" failed/)).toBeInTheDocument();
   });
 
   it("shows engagement gap alerts", () => {
