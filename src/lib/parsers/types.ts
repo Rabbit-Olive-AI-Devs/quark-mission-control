@@ -516,6 +516,119 @@ export interface EngagementData {
   sourceCoverage: EngagementSourceCoverage;
 }
 
+// === Post Performance Types ===
+
+export interface PostMetrics {
+  impressions: number;
+  likes: number;
+  replies: number;
+  retweets: number;
+  quotes: number;
+  bookmarks: number;
+  engagement_rate: number;
+  // optional platform-specific fields
+  views?: number;
+  comments?: number;
+  shares?: number;
+}
+
+export type DiagnosticLabel =
+  | "scale"
+  | "fix_hooks"
+  | "fix_distribution"
+  | "rethink"
+  | "unclassified";
+
+export interface TrackedPost {
+  job_id: string;
+  post_id?: string;
+  platform: string;
+  format?: string;
+  content_type: string;
+  hook: string;
+  cta: string;
+  title?: string;
+  text?: string;
+  created_at?: string;
+  last_updated?: string;
+  metrics: PostMetrics | Record<string, never>;
+  diagnostic: DiagnosticLabel;
+  note?: string;
+}
+
+export interface HookEntry {
+  hook: string;
+  er: number;
+  impressions: number;
+  content_type: string;
+}
+
+export interface ContentTypeStats {
+  posts: number;
+  avg_impressions: number;
+  avg_er: number;
+  quadrant_counts: Record<DiagnosticLabel, number>;
+}
+
+export interface HookStats {
+  by_content_type: Record<string, ContentTypeStats>;
+  rules: Record<string, string>;
+  last_updated?: string;
+}
+
+export interface PlatformThresholds {
+  // x-style thresholds
+  viral_engagement_rate?: number;
+  good_engagement_rate?: number;
+  min_impressions?: number;
+  // tiktok/youtube-style thresholds
+  viral_views?: number;
+  good_views?: number;
+}
+
+export interface FollowerSnapshot {
+  date: string;
+  x_followers?: number;
+  tiktok_followers?: number;
+  instagram_followers?: number;
+}
+
+export interface FeedbackRecommendations {
+  double_down: string[];
+  testing: string[];
+  avoid: string[];
+  best_content_types?: string[];
+  best_hooks?: HookEntry[];
+  worst_hooks?: HookEntry[];
+}
+
+export interface PlatformHealth {
+  status: string;
+  posts_7d: number;
+  baseline_er: number;
+}
+
+export interface ContentFeedback {
+  generated_at: string;
+  window_days: number;
+  posts_analyzed: number;
+  recommendations: FeedbackRecommendations;
+  platform_health?: Record<string, PlatformHealth>;
+  quadrant_summary?: Record<string, number>;
+  baselines?: Record<string, number>;
+  summary: string;
+}
+
+export interface PostPerformanceData {
+  schemaVersion: number;
+  lastCollectedAt: string;
+  posts: TrackedPost[];
+  hooks: HookStats;
+  thresholds: Record<string, PlatformThresholds>;
+  followerHistory: FollowerSnapshot[];
+  feedback: ContentFeedback | null;
+}
+
 // OAuth token status
 export interface OAuthProfile {
   provider: string;
