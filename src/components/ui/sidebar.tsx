@@ -13,6 +13,7 @@ import {
   Settings,
   Menu,
   X,
+  BarChart3,
 } from "lucide-react";
 import { StatusDot } from "./status-dot";
 import { useDashboardStore } from "@/stores/dashboard";
@@ -20,6 +21,7 @@ import { useDashboardStore } from "@/stores/dashboard";
 const navItems = [
   { href: "/status", label: "Status", icon: Activity },
   { href: "/content", label: "Content", icon: FileText },
+  { href: "/engagement", label: "Engagement", icon: BarChart3 },
   { href: "/inbox", label: "Inbox", icon: Inbox },
   { href: "/schedule", label: "Schedule", icon: Calendar },
   { href: "/explore", label: "Explore", icon: Compass },

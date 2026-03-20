@@ -3,7 +3,7 @@
 import { useApi } from "@/hooks/use-api";
 import { AppShell } from "@/components/layout/app-shell";
 import { HeroBanner } from "@/components/status/hero-banner";
-import { AlertsStrip } from "@/components/status/alerts-strip";
+import { AlertsStrip, generateAlerts } from "@/components/status/alerts-strip";
 import { InstrumentPanel } from "@/components/status/instrument-panel";
 import { PipelinePanel } from "@/components/status/pipeline-panel";
 import { CronPanel } from "@/components/status/cron-panel";
@@ -103,12 +103,13 @@ export default function StatusPage() {
   const engagementLevel = deriveEngagementLevel(data);
   const contentLevel = deriveContentLevel(data);
   const cognitiveLevel = deriveCognitiveLevel(data);
+  const alertCount = generateAlerts(data).filter((a) => a.level !== "info").length;
 
   return (
     <AppShell>
       <div className="space-y-3 p-6">
         {/* Hero Banner */}
-        <HeroBanner data={data} />
+        <HeroBanner data={data} alertCount={alertCount} />
 
         {/* Alerts Strip */}
         <AlertsStrip data={data} />
@@ -161,7 +162,7 @@ export default function StatusPage() {
             title="Quark"
             icon={Bot}
             level={data.quark.level}
-            href="/cognitive"
+            href="/explore?tab=knowledge"
             dataPriority={2}
           >
             <QuarkPanel data={data} />
@@ -193,7 +194,7 @@ export default function StatusPage() {
             title="Cognitive"
             icon={Brain}
             level={cognitiveLevel}
-            href="/cognitive"
+            href="/explore?tab=knowledge"
             dataPriority={3}
           >
             <CognitivePanel data={data} />
@@ -213,7 +214,7 @@ export default function StatusPage() {
             title="Activity"
             icon={Activity}
             level="healthy"
-            href="/operations"
+            href="/explore?tab=agents"
             dataPriority={3}
             span={2}
           >
