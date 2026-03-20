@@ -147,7 +147,7 @@ export function ContentTypeChart({ hooks }: Props) {
       {/* Rules badges */}
       {Object.keys(rules).length > 0 && (
         <div className="flex flex-wrap gap-2 mt-3">
-          {Object.entries(rules).map(([ct, rule]) => (
+          {Object.entries(rules).filter(([ct]) => ct !== "unknown" && ct !== "series").map(([ct, rule]) => (
             <span
               key={ct}
               className="px-2 py-1 rounded-full text-[10px] font-medium border"

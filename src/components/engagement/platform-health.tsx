@@ -22,7 +22,7 @@ function formatNumber(n: number): string {
 }
 
 function getFollowerCount(platform: string, history: FollowerSnapshot[]): number {
-  if (history.length === 0) return 0;
+  if (!history || history.length === 0) return 0;
   const latest = history[history.length - 1];
   switch (platform) {
     case "x":
@@ -89,7 +89,7 @@ export function PlatformHealthPanel({ postPerf }: Props) {
 
   // Find the latest metrics_updated_at from posts per platform
   function getLatestUpdate(platform: string): string | null {
-    const platPosts = postPerf.posts.filter((p) => p.platform === platform);
+    const platPosts = (postPerf.posts ?? []).filter((p) => p.platform === platform);
     if (platPosts.length === 0) return null;
     const dates = platPosts
       .map((p) => p.last_updated)
@@ -99,14 +99,17 @@ export function PlatformHealthPanel({ postPerf }: Props) {
     return dates[0] ?? null;
   }
 
+  const safePosts = postPerf.posts ?? [];
+  const safeHistory = postPerf.followerHistory ?? [];
+
   const cards: PlatformCardData[] = platforms
     .map((p) => ({
       platform: p,
       label: PLATFORM_LABELS[p] ?? p,
       color: PLATFORM_COLORS[p] ?? "#94A3B8",
-      followers: getFollowerCount(p, postPerf.followerHistory),
-      postsThisWeek: getPostsThisWeek(p, postPerf.posts),
-      avgER: getAvgER(p, postPerf.posts),
+      followers: getFollowerCount(p, safeHistory),
+      postsThisWeek: getPostsThisWeek(p, safePosts),
+      avgER: getAvgER(p, safePosts),
       health: platformHealth[p] ?? null,
       lastUpdated: getLatestUpdate(p),
     }))
