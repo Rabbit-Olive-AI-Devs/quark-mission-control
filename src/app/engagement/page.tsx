@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { MessageCircle } from "lucide-react";
+import { BarChart3 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -9,30 +9,58 @@ import { CardFooter } from "@/components/ui/card-footer";
 import { useApi } from "@/hooks/use-api";
 import { useDashboardStore } from "@/stores/dashboard";
 import { UnansweredAlert } from "@/components/engagement/unanswered-alert";
-import { EngagementScorecards } from "@/components/engagement/engagement-scorecards";
-import { TrendCharts } from "@/components/engagement/trend-charts";
-import { GuardrailBlocks } from "@/components/engagement/guardrail-blocks";
+import { HeroKpis } from "@/components/engagement/hero-kpis";
+import { DiagnosticQuadrant } from "@/components/engagement/diagnostic-quadrant";
+import { ContentTypeChart } from "@/components/engagement/content-type-chart";
+import { PostPerformanceTable } from "@/components/engagement/post-performance-table";
 import { ActionFeed } from "@/components/engagement/action-feed";
-import type { EngagementData } from "@/lib/parsers/types";
+import { PlatformHealthPanel } from "@/components/engagement/platform-health";
+import { DetailTabs } from "@/components/engagement/detail-tabs";
+import type { EngagementData, PostPerformanceData } from "@/lib/parsers/types";
 
 export default function EngagementPage() {
-  const { data, loading, error, lastUpdated, refetch } = useApi<EngagementData>("/api/engagement", {
+  const {
+    data: engData,
+    loading: engLoading,
+    error: engError,
+    lastUpdated: engUpdated,
+    refetch: engRefetch,
+  } = useApi<EngagementData>("/api/engagement", {
+    refreshOn: ["engagement"],
+  });
+
+  const {
+    data: perfData,
+    loading: perfLoading,
+    error: perfError,
+    lastUpdated: perfUpdated,
+    refetch: perfRefetch,
+  } = useApi<PostPerformanceData>("/api/post-performance", {
     refreshOn: ["engagement"],
   });
 
   const setEngagementUnanswered = useDashboardStore((s) => s.setEngagementUnanswered);
   useEffect(() => {
-    if (data?.inboundGap) setEngagementUnanswered(data.inboundGap.unansweredCount);
-  }, [data?.inboundGap, setEngagementUnanswered]);
+    if (engData?.inboundGap) setEngagementUnanswered(engData.inboundGap.unansweredCount);
+  }, [engData?.inboundGap, setEngagementUnanswered]);
+
+  const loading = engLoading || perfLoading;
+  const lastUpdated = engUpdated && perfUpdated ? Math.max(engUpdated, perfUpdated) : engUpdated ?? perfUpdated;
+  const error = engError || perfError;
+
+  const handleRefresh = async () => {
+    await Promise.all([engRefetch(), perfRefetch()]);
+  };
 
   return (
     <AppShell>
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-3">
-            <MessageCircle size={24} className="text-[#00D4AA]" />
-            <h1 className="text-2xl font-semibold">Social Engagement</h1>
-            {data?.mode === "approval_required" && (
+            <BarChart3 size={24} className="text-[#00D4AA]" />
+            <h1 className="text-2xl font-semibold">Engagement</h1>
+            {engData?.mode === "approval_required" && (
               <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/20">
                 Approval Mode
               </span>
@@ -40,11 +68,17 @@ export default function EngagementPage() {
           </div>
           <div className="flex items-center gap-3 mt-1 flex-wrap">
             <p className="text-sm text-[#94A3B8]">
-              {data ? `${data.actions.length} actions tracked · ${data.mode} mode` : "Loading..."}
+              {perfData
+                ? `${perfData.posts.length} posts tracked`
+                : engData
+                  ? `${engData.actions.length} actions tracked`
+                  : "Loading..."}
+              {engData ? ` · ${engData.mode} mode` : ""}
             </p>
-            {data && (
+            {engData && (
               <span className="text-xs text-[#94A3B8]/70">
-                · Sources: {Object.entries(data.sourceCoverage)
+                · Sources:{" "}
+                {Object.entries(engData.sourceCoverage)
                   .filter(([, ok]) => ok)
                   .map(([name]) => name)
                   .join(", ") || "none"}
@@ -52,7 +86,12 @@ export default function EngagementPage() {
             )}
             {lastUpdated && (
               <span className="text-xs text-[#94A3B8]/50">
-                · Updated {new Date(lastUpdated).toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" })}
+                · Updated{" "}
+                {new Date(lastUpdated).toLocaleTimeString("en-US", {
+                  timeZone: "America/Chicago",
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
               </span>
             )}
           </div>
@@ -66,40 +105,65 @@ export default function EngagementPage() {
               </GlassCard>
             ))}
           </div>
-        ) : !data || data.actions.length === 0 ? (
+        ) : !engData ? (
           <GlassCard>
             <div className="text-center py-12">
-              <MessageCircle size={40} className="text-[#94A3B8]/30 mx-auto mb-4" />
+              <BarChart3 size={40} className="text-[#94A3B8]/30 mx-auto mb-4" />
               <p className="text-sm text-[#94A3B8]">No engagement data yet.</p>
               <p className="text-xs text-[#94A3B8]/60 mt-1">
-                Actions will appear here as Quark engages on social platforms.
+                Data will appear here once posts are published and metrics are collected.
               </p>
             </div>
           </GlassCard>
         ) : (
           <>
+            {/* Unanswered alert */}
             <ErrorBoundary>
-              <UnansweredAlert inboundGap={data.inboundGap} />
+              <UnansweredAlert inboundGap={engData.inboundGap} />
             </ErrorBoundary>
 
+            {/* Layer 1: Hero KPIs */}
             <ErrorBoundary>
-              <EngagementScorecards data={data} />
+              <HeroKpis engagement={engData} postPerf={perfData} />
             </ErrorBoundary>
 
-            <ErrorBoundary>
-              <TrendCharts trends={data.trends} />
-            </ErrorBoundary>
+            {/* Layer 2: Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+              <ErrorBoundary>
+                <DiagnosticQuadrant
+                  posts={perfData?.posts ?? []}
+                  thresholds={perfData?.thresholds ?? {}}
+                />
+              </ErrorBoundary>
+              <ErrorBoundary>
+                <ContentTypeChart hooks={perfData?.hooks ?? { by_content_type: {}, rules: {} }} />
+              </ErrorBoundary>
+            </div>
 
+            {/* Layer 3: Tabbed Detail */}
             <ErrorBoundary>
-              <GuardrailBlocks blocks={data.guardrailBlocks} trends={data.trends} />
-            </ErrorBoundary>
+              <DetailTabs>
+                {/* Tab 1: Post Performance Table */}
+                <PostPerformanceTable posts={perfData?.posts ?? []} />
 
-            <ErrorBoundary>
-              <ActionFeed actions={data.actions} />
+                {/* Tab 2: Outbound Activity */}
+                <ActionFeed actions={engData.actions} />
+
+                {/* Tab 3: Platform Health */}
+                {perfData ? (
+                  <PlatformHealthPanel postPerf={perfData} />
+                ) : (
+                  <GlassCard>
+                    <p className="text-sm text-[#94A3B8] text-center py-8">
+                      No platform data available.
+                    </p>
+                  </GlassCard>
+                )}
+              </DetailTabs>
             </ErrorBoundary>
 
             <div className="mt-4">
-              <CardFooter lastUpdated={lastUpdated} error={error} onRefresh={refetch} />
+              <CardFooter lastUpdated={lastUpdated} error={error} onRefresh={handleRefresh} />
             </div>
           </>
         )}
