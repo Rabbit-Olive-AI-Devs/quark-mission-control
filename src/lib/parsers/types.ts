@@ -629,6 +629,60 @@ export interface PostPerformanceData {
   feedback: ContentFeedback | null;
 }
 
+// Content Lifecycle types
+export interface PipelineFunnelStage {
+  stage: string;
+  label: string;
+  count: number;
+  color: string;
+}
+
+export interface PipelineFunnelData {
+  stages: PipelineFunnelStage[];
+  rejectionReasons: Record<string, number>;
+  quarantineReasons: Record<string, number>;
+  totalSubmitted: number;
+  conversionRate: number;
+}
+
+export interface CadenceDay {
+  date: string;
+  x: number;
+  tiktok: number;
+  instagram: number;
+  youtube: number;
+  substack: number;
+  total: number;
+}
+
+export interface PublishingCadenceData {
+  daily: CadenceDay[];
+  avgPerDay7d: number;
+  avgPerDay30d: number;
+  trend: "up" | "flat" | "down";
+}
+
+export interface TypeMixEntry {
+  contentType: string;
+  actualCount: number;
+  actualPct: number;
+  targetPct: number;
+  delta: number;
+}
+
+export interface ContentTypeMixData {
+  entries: TypeMixEntry[];
+  weightsUpdatedAt: string;
+  weightsStaleDays: number;
+}
+
+export interface ContentLifecycleData {
+  funnel: PipelineFunnelData;
+  cadence: PublishingCadenceData;
+  typeMix: ContentTypeMixData;
+  feedback: ContentFeedback | null;
+}
+
 // OAuth token status
 export interface OAuthProfile {
   provider: string;
