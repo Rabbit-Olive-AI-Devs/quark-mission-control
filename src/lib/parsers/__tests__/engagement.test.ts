@@ -84,6 +84,16 @@ describe("deduplicateActions", () => {
     ];
     expect(deduplicateActions(actions)).toHaveLength(1);
   });
+
+  it("keeps engagement_cron entry when it appears before manual for the same dedup key", () => {
+    const actions = [
+      makeAction({ source: "engagement_cron", timestamp: "2026-03-19T17:31:00Z" }),
+      makeAction({ source: "manual", timestamp: "2026-03-19T17:37:36Z" }),
+    ];
+    const result = deduplicateActions(actions);
+    expect(result).toHaveLength(1);
+    expect(result[0].source).toBe("engagement_cron");
+  });
 });
 
 // ── 2. normalizeAuditLine ─────────────────────────────────────────────────────
@@ -146,6 +156,18 @@ describe("normalizeAuditLine", () => {
 
   it("returns null for empty string", () => {
     expect(normalizeAuditLine("")).toBeNull();
+  });
+
+  it("defaults autonomous to false when field is absent (health-check schema)", () => {
+    const raw = JSON.stringify({
+      timestamp: "2026-03-19T19:30:00Z",
+      platform: "x",
+      result: "pass",
+      detail: "all_mentions_already_replied",
+    });
+    const result = normalizeAuditLine(raw);
+    expect(result).not.toBeNull();
+    expect(result!.autonomous).toBe(false);
   });
 });
 

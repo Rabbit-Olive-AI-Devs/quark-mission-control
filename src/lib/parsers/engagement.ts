@@ -41,6 +41,7 @@ export function normalizeAuditLine(line: string): EngagementAction | null {
   if (!line.trim()) return null;
   try {
     const d = JSON.parse(line);
+    if (!d || typeof d !== "object" || Array.isArray(d)) return null;
 
     // Determine action: fall back to "check" for health-check entries
     const action: string = d.action ?? "check";
@@ -60,7 +61,7 @@ export function normalizeAuditLine(line: string): EngagementAction | null {
       targetId,
       targetAuthor: d.target_author ?? "",
       text: d.text ?? "",
-      autonomous: d.autonomous ?? true,
+      autonomous: d.autonomous ?? false,
       guardrailResult,
       source: d.source ?? "",
     };
@@ -147,7 +148,7 @@ function computeTrends(actions: EngagementAction[]): DailyAggregate[] {
       for (const a of dayActions) {
         byPlatform[a.platform] = (byPlatform[a.platform] ?? 0) + 1;
         byAction[a.action] = (byAction[a.action] ?? 0) + 1;
-        if (isGuardrailFailure(a.guardrailResult)) blocks++;
+        if (isRealEngagement(a) && isGuardrailFailure(a.guardrailResult)) blocks++;
       }
 
       return { date, total: dayActions.length, byPlatform, byAction, blocks };
@@ -157,7 +158,7 @@ function computeTrends(actions: EngagementAction[]): DailyAggregate[] {
 
 function extractBlocks(actions: EngagementAction[]): GuardrailBlock[] {
   return actions
-    .filter((a) => isGuardrailFailure(a.guardrailResult))
+    .filter((a) => isRealEngagement(a) && isGuardrailFailure(a.guardrailResult))
     .map((a) => ({
       timestamp: a.timestamp,
       platform: a.platform,
