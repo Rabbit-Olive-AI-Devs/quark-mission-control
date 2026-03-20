@@ -136,7 +136,8 @@ export function DiagnosticQuadrant({ posts, thresholds }: Props) {
     );
   }
 
-  const maxImp = Math.max(...data.map((d) => d.x)) * 1.15;
+  const rawMaxImp = Math.max(...data.map((d) => d.x)) * 1.15;
+  const maxImp = Math.ceil(rawMaxImp / 10) * 10; // round up to nice number
   const maxER = Math.min(Math.max(...data.map((d) => d.y)) * 1.3, 1);
 
   return (
@@ -153,7 +154,7 @@ export function DiagnosticQuadrant({ posts, thresholds }: Props) {
             name="Impressions"
             domain={[0, maxImp]}
             tick={{ fill: AXIS_COLOR, fontSize: 10 }}
-            tickFormatter={(v: number) => (v >= 1000 ? `${(v / 1000).toFixed(0)}K` : String(v))}
+            tickFormatter={(v: number) => { const r = Math.round(v); return r >= 1000 ? `${(r / 1000).toFixed(0)}K` : String(r); }}
           >
             <Label value="Impressions" position="bottom" offset={0} style={{ fill: AXIS_COLOR, fontSize: 10 }} />
           </XAxis>
@@ -181,56 +182,58 @@ export function DiagnosticQuadrant({ posts, thresholds }: Props) {
             strokeDasharray="6 4"
           />
 
-          {/* Quadrant labels */}
+          {/* Quadrant labels — positioned in quadrant centers to avoid overlap */}
           <ReferenceLine
-            x={impThreshold * 0.35}
-            y={maxER * 0.92}
+            x={impThreshold * 0.5}
             ifOverflow="extendDomain"
             label={{
-              value: "FIX DISTRIBUTION",
-              position: "insideTop",
+              value: "FIX DIST",
+              position: "insideTopLeft",
               fill: "#F59E0B",
-              fontSize: 9,
+              fontSize: 8,
               fontWeight: 600,
+              opacity: 0.5,
             }}
             stroke="transparent"
           />
           <ReferenceLine
-            x={maxImp * 0.75}
-            y={maxER * 0.92}
+            x={(impThreshold + maxImp) / 2}
             ifOverflow="extendDomain"
             label={{
               value: "SCALE",
-              position: "insideTop",
+              position: "insideTopRight",
               fill: "#10B981",
-              fontSize: 9,
+              fontSize: 8,
               fontWeight: 600,
+              opacity: 0.5,
             }}
             stroke="transparent"
           />
           <ReferenceLine
-            x={impThreshold * 0.35}
-            y={erThreshold * 0.25}
+            x={impThreshold * 0.5}
+            y={0}
             ifOverflow="extendDomain"
             label={{
               value: "RETHINK",
-              position: "insideBottom",
+              position: "insideBottomLeft",
               fill: "#EF4444",
-              fontSize: 9,
+              fontSize: 8,
               fontWeight: 600,
+              opacity: 0.5,
             }}
             stroke="transparent"
           />
           <ReferenceLine
-            x={maxImp * 0.75}
-            y={erThreshold * 0.25}
+            x={(impThreshold + maxImp) / 2}
+            y={0}
             ifOverflow="extendDomain"
             label={{
               value: "FIX HOOKS",
-              position: "insideBottom",
+              position: "insideBottomRight",
               fill: "#F59E0B",
-              fontSize: 9,
+              fontSize: 8,
               fontWeight: 600,
+              opacity: 0.5,
             }}
             stroke="transparent"
           />

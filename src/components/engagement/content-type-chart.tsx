@@ -46,7 +46,7 @@ function ContentTypeTooltip({
 }) {
   if (!active || !payload) return null;
   return (
-    <div className="glass-card p-3 text-xs border border-white/10">
+    <div className="p-3 text-xs border border-white/10 rounded-lg" style={{ backgroundColor: '#1a1a2e', color: '#F1F5F9' }}>
       <p className="text-[#F1F5F9] font-medium mb-1">{label?.replace("_", " ")}</p>
       {payload
         .filter((p) => p.value > 0)
@@ -68,7 +68,9 @@ export function ContentTypeChart({ hooks }: Props) {
     const rows: ChartRow[] = [];
     const byCt = hooks.by_content_type;
 
+    const EXCLUDED_TYPES = new Set(["unknown", "series"]);
     for (const [ct, stats] of Object.entries(byCt)) {
+      if (EXCLUDED_TYPES.has(ct)) continue;
       rows.push({
         content_type: ct,
         avg_impressions: Math.round(stats.avg_impressions),

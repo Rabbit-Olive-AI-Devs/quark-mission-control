@@ -101,9 +101,9 @@ function getDailyImpressions(posts: TrackedPost[]): number[] {
   const byDay = new Map<string, number>();
   for (const p of posts) {
     const dateStr = p.created_at?.slice(0, 10) || p.last_updated?.slice(0, 10);
-    if (!dateStr) continue;
-    const m = p.metrics as { impressions?: number };
-    byDay.set(dateStr, (byDay.get(dateStr) ?? 0) + (m.impressions ?? 0));
+    if (!dateStr || !p.metrics) continue;
+    const m = p.metrics as { impressions?: number; views?: number };
+    byDay.set(dateStr, (byDay.get(dateStr) ?? 0) + (m.impressions || m.views || 0));
   }
   const sorted = [...byDay.entries()].sort((a, b) => a[0].localeCompare(b[0]));
   return sorted.map(([, v]) => v);
@@ -122,11 +122,12 @@ export function HeroKpis({ engagement, postPerf }: Props) {
   const posts = postPerf?.posts ?? [];
   const withMetrics = getPostsWithMetrics(posts);
 
-  // Total impressions
-  const totalImpressions = withMetrics.reduce(
-    (sum, p) => sum + ((p.metrics as { impressions: number }).impressions ?? 0),
-    0
-  );
+  // Total impressions — sum impressions (X) + views (TikTok/IG/YouTube/Substack) across all posts
+  const totalImpressions = posts.reduce((sum, p) => {
+    if (!p.metrics) return sum;
+    const m = p.metrics as { impressions?: number; views?: number };
+    return sum + (m.impressions || m.views || 0);
+  }, 0);
   const dailyImpressions = getDailyImpressions(posts);
 
   // Weighted avg ER
@@ -137,8 +138,8 @@ export function HeroKpis({ engagement, postPerf }: Props) {
   const avgER = withMetrics.length > 0 ? totalER / withMetrics.length : 0;
   const erColor = avgER >= 0.05 ? "#10B981" : avgER >= 0.02 ? "#F59E0B" : "#EF4444";
 
-  // Reply rate from engagement
-  const replyRate = engagement.inboundGap.replyRate;
+  // Reply rate from engagement — cap at 1.0 (100%)
+  const replyRate = Math.min(engagement.inboundGap.replyRate, 1.0);
   const replyColor = replyRate >= 0.5 ? "#10B981" : replyRate >= 0.3 ? "#F59E0B" : "#EF4444";
 
   // Follower count — all platforms
@@ -161,17 +162,15 @@ export function HeroKpis({ engagement, postPerf }: Props) {
   const prevTotalFollowers = prevSnap ? sumFollowers(prevSnap) : totalFollowers;
   const followerDelta = getDelta(totalFollowers, prevTotalFollowers);
 
-  const followerBreakdown = latestSnap
+  const followerPlatforms = latestSnap
     ? [
-        latestSnap.x_followers != null ? `X: ${latestSnap.x_followers}` : null,
-        latestSnap.tiktok_followers != null ? `TT: ${latestSnap.tiktok_followers}` : null,
-        latestSnap.instagram_followers != null ? `IG: ${latestSnap.instagram_followers}` : null,
-        latestSnap.youtube_followers != null ? `YT: ${latestSnap.youtube_followers}` : null,
-        latestSnap.substack_subscribers != null ? `SS: ${latestSnap.substack_subscribers}` : null,
-      ]
-        .filter(Boolean)
-        .join(" \u00B7 ")
-    : "";
+        latestSnap.x_followers != null ? { label: "X", value: latestSnap.x_followers, color: "#1DA1F2" } : null,
+        latestSnap.tiktok_followers != null ? { label: "TT", value: latestSnap.tiktok_followers, color: "#FE2C55" } : null,
+        latestSnap.instagram_followers != null ? { label: "IG", value: latestSnap.instagram_followers, color: "#E1306C" } : null,
+        latestSnap.youtube_followers != null ? { label: "YT", value: latestSnap.youtube_followers, color: "#FF0000" } : null,
+        latestSnap.substack_subscribers != null ? { label: "SS", value: latestSnap.substack_subscribers, color: "#FF6719" } : null,
+      ].filter(Boolean) as { label: string; value: number; color: string }[]
+    : [];
 
   // Posts in last 24h
   const recentPosts = getRecentPosts(posts, 24);
@@ -230,11 +229,15 @@ export function HeroKpis({ engagement, postPerf }: Props) {
       render: () => (
         <>
           <div className="text-2xl font-bold text-[#F1F5F9] font-mono">{formatNumber(totalFollowers)}</div>
-          <span className="text-xs font-mono" style={{ color: followerDelta.color }}>
-            {followerDelta.label}
-          </span>
-          {followerBreakdown && (
-            <p className="text-[9px] text-[#94A3B8] mt-1 font-mono">{followerBreakdown}</p>
+          {followerPlatforms.length > 0 && (
+            <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 mt-2 text-left">
+              {followerPlatforms.map((p) => (
+                <div key={p.label} className="flex items-center justify-between text-[10px] font-mono">
+                  <span style={{ color: p.color }}>{p.label}</span>
+                  <span className="text-[#F1F5F9]">{p.value}</span>
+                </div>
+              ))}
+            </div>
           )}
         </>
       ),

@@ -69,9 +69,9 @@ export default function EngagementPage() {
           <div className="flex items-center gap-3 mt-1 flex-wrap">
             <p className="text-sm text-[#94A3B8]">
               {perfData
-                ? `${perfData.posts.length} posts tracked`
+                ? `${perfData.posts?.length ?? 0} posts tracked`
                 : engData
-                  ? `${engData.actions.length} actions tracked`
+                  ? `${engData.actions?.length ?? 0} actions tracked`
                   : "Loading..."}
               {engData ? ` · ${engData.mode} mode` : ""}
             </p>

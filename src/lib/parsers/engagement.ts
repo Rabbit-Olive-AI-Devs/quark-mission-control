@@ -258,7 +258,7 @@ function computeUnifiedKpis(actions: EngagementAction[], inboundGap: InboundGap)
     responsiveness: {
       repliesSent,
       unansweredCount: inboundGap.unansweredCount,
-      replyRate: inboundGap.replyRate,
+      replyRate: Math.min(inboundGap.replyRate, 1.0),
     },
     growth: {
       followerDelta: 0,
