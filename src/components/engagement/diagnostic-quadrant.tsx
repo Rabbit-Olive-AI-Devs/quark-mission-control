@@ -142,6 +142,14 @@ export function DiagnosticQuadrant({ posts, thresholds }: Props) {
       <h3 className="text-sm font-semibold text-[#94A3B8] uppercase tracking-wider mb-4">
         Diagnostic Quadrant
       </h3>
+      <div className="relative">
+        {/* Quadrant labels — CSS positioned, independent of chart scale */}
+        <div className="absolute inset-0 pointer-events-none z-10" style={{ top: 30, right: 30, bottom: 25, left: 25 }}>
+          <span className="absolute text-[10px] font-bold opacity-30" style={{ top: "25%", left: "20%", transform: "translate(-50%, -50%)", color: "#F59E0B" }}>FIX DIST</span>
+          <span className="absolute text-[10px] font-bold opacity-30" style={{ top: "25%", right: "20%", transform: "translate(50%, -50%)", color: "#10B981" }}>SCALE</span>
+          <span className="absolute text-[10px] font-bold opacity-30" style={{ bottom: "25%", left: "20%", transform: "translate(-50%, 50%)", color: "#EF4444" }}>RETHINK</span>
+          <span className="absolute text-[10px] font-bold opacity-30" style={{ bottom: "25%", right: "20%", transform: "translate(50%, 50%)", color: "#F59E0B" }}>FIX HOOKS</span>
+        </div>
       <ResponsiveContainer width="100%" height={320}>
         <ScatterChart margin={{ top: 30, right: 30, bottom: 25, left: 25 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
@@ -177,27 +185,11 @@ export function DiagnosticQuadrant({ posts, thresholds }: Props) {
           <ReferenceLine x={impLine} stroke="rgba(255,255,255,0.12)" strokeDasharray="6 4" />
           <ReferenceLine y={erLine} stroke="rgba(255,255,255,0.12)" strokeDasharray="6 4" />
 
-          {/* Quadrant background tinted areas + centered labels */}
-          <ReferenceArea
-            x1={useLog ? 1 : 0} x2={impLine} y1={erLine} y2={maxER}
-            fill="#F59E0B" fillOpacity={0.03} ifOverflow="visible"
-            label={{ value: "FIX DIST", fill: "#F59E0B", fontSize: 10, fontWeight: 700, opacity: 0.5, position: "center" }}
-          />
-          <ReferenceArea
-            x1={impLine} x2={maxImp * 1.2} y1={erLine} y2={maxER}
-            fill="#10B981" fillOpacity={0.03} ifOverflow="visible"
-            label={{ value: "SCALE", fill: "#10B981", fontSize: 10, fontWeight: 700, opacity: 0.5, position: "center" }}
-          />
-          <ReferenceArea
-            x1={useLog ? 1 : 0} x2={impLine} y1={0} y2={erLine}
-            fill="#EF4444" fillOpacity={0.03} ifOverflow="visible"
-            label={{ value: "RETHINK", fill: "#EF4444", fontSize: 10, fontWeight: 700, opacity: 0.5, position: "center" }}
-          />
-          <ReferenceArea
-            x1={impLine} x2={maxImp * 1.2} y1={0} y2={erLine}
-            fill="#F59E0B" fillOpacity={0.03} ifOverflow="visible"
-            label={{ value: "FIX HOOKS", fill: "#F59E0B", fontSize: 10, fontWeight: 700, opacity: 0.5, position: "center" }}
-          />
+          {/* Quadrant tinted areas — NO labels (CSS overlay handles those) */}
+          <ReferenceArea x1={useLog ? 1 : 0} x2={impLine} y1={erLine} y2={maxER} fill="#F59E0B" fillOpacity={0.03} ifOverflow="visible" />
+          <ReferenceArea x1={impLine} x2={maxImp * 1.2} y1={erLine} y2={maxER} fill="#10B981" fillOpacity={0.03} ifOverflow="visible" />
+          <ReferenceArea x1={useLog ? 1 : 0} x2={impLine} y1={0} y2={erLine} fill="#EF4444" fillOpacity={0.03} ifOverflow="visible" />
+          <ReferenceArea x1={impLine} x2={maxImp * 1.2} y1={0} y2={erLine} fill="#F59E0B" fillOpacity={0.03} ifOverflow="visible" />
 
           {/* Scatter per content type */}
           {[...groups.entries()].map(([ct, pts]) => (
@@ -213,6 +205,7 @@ export function DiagnosticQuadrant({ posts, thresholds }: Props) {
           ))}
         </ScatterChart>
       </ResponsiveContainer>
+      </div>
 
       {/* Legend */}
       <div className="flex flex-wrap gap-3 mt-3 justify-center">

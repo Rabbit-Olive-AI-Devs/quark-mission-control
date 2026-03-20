@@ -156,7 +156,7 @@ function ActionRow({ action: a }: { action: EngagementAction }) {
       ) : null}
       {a.text && !expanded && (
         <span className="text-[#94A3B8]/50 truncate max-w-[200px] hidden md:block">
-          {a.text.length > 60 ? a.text.slice(0, 60) + "..." : a.text}
+          {(a.text ?? "").length > 60 ? a.text!.slice(0, 60) + "..." : a.text ?? ""}
         </span>
       )}
       {a.guardrailResult !== "pass" && (
