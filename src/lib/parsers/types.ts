@@ -501,6 +501,31 @@ export interface EngagementSourceCoverage {
   engagementAudit: boolean;
 }
 
+export interface GuardrailBreakdown {
+  total_failures: number;
+  api_errors: number;
+  rate_limits: number;
+  content_blocks: number;
+  infra_degraded: number;
+  other: number;
+}
+
+export interface EngagementDayData {
+  date: string;
+  updated_at?: string;
+  actions: Record<string, number>;
+  platforms: Record<string, number>;
+  total: number;
+  reply_rate: number;
+  guardrails: GuardrailBreakdown;
+}
+
+export interface EngagementLiveData {
+  today: EngagementDayData;
+  history: EngagementDayData[];
+  follower_snapshots: FollowerSnapshot[];
+}
+
 export interface EngagementData {
   actions: EngagementAction[];
   today: {
@@ -515,6 +540,8 @@ export interface EngagementData {
   unifiedKpis: EngagementUnifiedKpis;
   sourceCoverage: EngagementSourceCoverage;
 }
+
+export type EngagementPageData = EngagementData & { live?: EngagementLiveData | null };
 
 // === Post Performance Types ===
 
