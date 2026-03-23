@@ -56,6 +56,9 @@ const METRICS: { key: Metric; label: string }[] = [
   { key: "guardrail_failures", label: "Guardrail Failures" },
 ];
 
+// Metrics that are aggregate-only (no per-platform breakdown)
+const AGGREGATE_ONLY_METRICS: Set<Metric> = new Set(["reply_rate", "guardrail_failures"]);
+
 const TIME_RANGES: { key: TimeRange; label: string }[] = [
   { key: "7d", label: "7d" },
   { key: "30d", label: "30d" },
@@ -249,7 +252,10 @@ export function HistoricalChart({ history, followerSnapshots }: Props) {
   // Build per-platform data series, reversed so oldest is on the left
   const platformSeries = useMemo(() => {
     const series: Record<string, Array<{ date: string; value: number }>> = {};
-    const activePlatforms = Array.from(selectedPlatforms);
+    // For aggregate-only metrics, always use "all" regardless of platform selection
+    const activePlatforms = AGGREGATE_ONLY_METRICS.has(metric)
+      ? ["all" as Platform]
+      : Array.from(selectedPlatforms);
 
     for (const plat of activePlatforms) {
       if (metric === "follower_count") {
@@ -322,9 +328,12 @@ export function HistoricalChart({ history, followerSnapshots }: Props) {
         </select>
       </div>
 
-      {/* Platform tab bar — multi-select toggle */}
+      {/* Platform tab bar — multi-select toggle (disabled for aggregate-only metrics) */}
       <div className="flex items-center gap-1 mb-4">
-        {PLATFORMS.map((p) => {
+        {AGGREGATE_ONLY_METRICS.has(metric) && (
+          <span className="px-3 py-1.5 text-[11px] text-[#64748B] italic">All platforms (aggregate metric)</span>
+        )}
+        {!AGGREGATE_ONLY_METRICS.has(metric) && PLATFORMS.map((p) => {
           const active =
             p.key === "all" ? allSelected : selectedPlatforms.has(p.key);
           const tabColor =
@@ -354,7 +363,7 @@ export function HistoricalChart({ history, followerSnapshots }: Props) {
           );
         })}
 
-        {/* Time range — pushed right */}
+        {/* Time range — pushed right (always visible) */}
         <div className="ml-auto flex items-center gap-0.5 bg-white/[0.03] rounded border border-white/[0.06] p-0.5">
           {TIME_RANGES.map((tr) => {
             const active = range === tr.key;
