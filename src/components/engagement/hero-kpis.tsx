@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Eye, Activity, MessageCircle, Users, FileText, Stethoscope } from "lucide-react";
+import { Eye, Activity, MessageCircle, Users, FileText, Stethoscope, Shield } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Sparkline } from "@/components/ui/sparkline";
 import type {
@@ -9,11 +9,14 @@ import type {
   PostPerformanceData,
   TrackedPost,
   DiagnosticLabel,
+  GuardrailBreakdown,
 } from "@/lib/parsers/types";
 
 interface Props {
   engagement: EngagementData;
   postPerf: PostPerformanceData | null;
+  guardrails?: GuardrailBreakdown;
+  totalActions?: number;
 }
 
 function formatNumber(n: number): string {
@@ -118,7 +121,7 @@ function getRecentPosts(posts: TrackedPost[], hours: number): TrackedPost[] {
   });
 }
 
-export function HeroKpis({ engagement, postPerf }: Props) {
+export function HeroKpis({ engagement, postPerf, guardrails, totalActions }: Props) {
   const posts = postPerf?.posts ?? [];
   const withMetrics = getPostsWithMetrics(posts);
 
@@ -281,10 +284,51 @@ export function HeroKpis({ engagement, postPerf }: Props) {
         </>
       ),
     },
+    {
+      icon: Shield,
+      label: "Guardrails",
+      color: (() => {
+        if (guardrails == null || totalActions == null) return "#94A3B8";
+        const denom = guardrails.total_failures + totalActions;
+        const rate = denom > 0 ? guardrails.total_failures / denom : 0;
+        if (rate > 0.4) return "#EF4444";
+        if (rate >= 0.2) return "#F59E0B";
+        return "#10B981";
+      })(),
+      render: () => {
+        if (guardrails == null || totalActions == null) {
+          return (
+            <>
+              <div className="text-2xl font-bold text-[#94A3B8] font-mono">&mdash;</div>
+              <p className="text-[10px] text-[#94A3B8] mt-1">No data</p>
+            </>
+          );
+        }
+        const denom = guardrails.total_failures + totalActions;
+        const rate = denom > 0 ? guardrails.total_failures / denom : 0;
+        const rateColor =
+          rate > 0.4 ? "text-red-400" : rate >= 0.2 ? "text-amber-400" : "text-emerald-400";
+        return (
+          <>
+            <div className="text-2xl font-bold text-[#F1F5F9] font-mono">
+              {guardrails.total_failures}
+            </div>
+            <p className={`text-[10px] mt-1 ${rateColor}`}>
+              {(rate * 100).toFixed(1)}% failure rate
+            </p>
+            <div className="text-[9px] text-[#94A3B8] mt-1.5 leading-tight">
+              API: {guardrails.api_errors} | Rate: {guardrails.rate_limits} | Content:{" "}
+              {guardrails.content_blocks} | Infra: {guardrails.infra_degraded} | Other:{" "}
+              {guardrails.other}
+            </div>
+          </>
+        );
+      },
+    },
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+    <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4 mb-6">
       {cards.map((card, i) => (
         <motion.div
           key={card.label}
