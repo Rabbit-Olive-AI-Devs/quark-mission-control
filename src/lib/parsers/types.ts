@@ -515,6 +515,7 @@ export interface EngagementDayData {
   updated_at?: string;
   actions: Record<string, number>;
   platforms: Record<string, number>;
+  platform_actions?: Record<string, Record<string, number>>;
   total: number;
   reply_rate: number;
   guardrails: GuardrailBreakdown;

@@ -181,9 +181,8 @@ function buildHistorySeries(
       if (platform === "all") {
         value = day.actions[metric] ?? 0;
       } else {
-        // platform-specific action data lives under platforms aggregate
-        // fall back to the aggregate action count
-        value = day.actions[metric] ?? 0;
+        // per-platform action breakdown
+        value = day.platform_actions?.[platform]?.[metric] ?? 0;
       }
     }
 
