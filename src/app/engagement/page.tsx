@@ -16,7 +16,9 @@ import { PostPerformanceTable } from "@/components/engagement/post-performance-t
 import { ActionFeed } from "@/components/engagement/action-feed";
 import { PlatformHealthPanel } from "@/components/engagement/platform-health";
 import { DetailTabs } from "@/components/engagement/detail-tabs";
-import type { EngagementData, PostPerformanceData } from "@/lib/parsers/types";
+import { HistoricalChart } from "@/components/engagement/historical-chart";
+import { GuardrailBlocks } from "@/components/engagement/guardrail-blocks";
+import type { EngagementPageData, PostPerformanceData } from "@/lib/parsers/types";
 
 export default function EngagementPage() {
   const {
@@ -25,7 +27,7 @@ export default function EngagementPage() {
     error: engError,
     lastUpdated: engUpdated,
     refetch: engRefetch,
-  } = useApi<EngagementData>("/api/engagement", {
+  } = useApi<EngagementPageData>("/api/engagement", {
     refreshOn: ["engagement"],
   });
 
@@ -38,6 +40,8 @@ export default function EngagementPage() {
   } = useApi<PostPerformanceData>("/api/post-performance", {
     refreshOn: ["engagement"],
   });
+
+  const live = engData?.live ?? null;
 
   const setEngagementUnanswered = useDashboardStore((s) => s.setEngagementUnanswered);
   useEffect(() => {
@@ -124,7 +128,12 @@ export default function EngagementPage() {
 
             {/* Layer 1: Hero KPIs */}
             <ErrorBoundary>
-              <HeroKpis engagement={engData} postPerf={perfData} />
+              <HeroKpis
+                engagement={engData}
+                postPerf={perfData}
+                guardrails={live?.today?.guardrails}
+                totalActions={live?.today?.total}
+              />
             </ErrorBoundary>
 
             {/* Layer 2: Charts */}
@@ -139,6 +148,13 @@ export default function EngagementPage() {
                 <ContentTypeChart hooks={perfData?.hooks ?? { by_content_type: {}, rules: {} }} />
               </ErrorBoundary>
             </div>
+
+            {/* Historical trend chart */}
+            {live && live.history.length > 0 && (
+              <ErrorBoundary>
+                <HistoricalChart history={live.history} followerSnapshots={live.follower_snapshots} />
+              </ErrorBoundary>
+            )}
 
             {/* Layer 3: Tabbed Detail */}
             <ErrorBoundary>
@@ -161,6 +177,17 @@ export default function EngagementPage() {
                 )}
               </DetailTabs>
             </ErrorBoundary>
+
+            {/* Guardrail blocks */}
+            {engData && live && (
+              <ErrorBoundary>
+                <GuardrailBlocks
+                  blocks={engData.guardrailBlocks}
+                  trends={engData.trends}
+                  guardrails={live.today.guardrails}
+                />
+              </ErrorBoundary>
+            )}
 
             <div className="mt-4">
               <CardFooter lastUpdated={lastUpdated} error={error} onRefresh={handleRefresh} />
