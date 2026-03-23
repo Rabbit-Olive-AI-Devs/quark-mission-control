@@ -5,6 +5,7 @@ import { parseContentPerformance } from "./operations";
 import type {
   EngagementAction,
   EngagementData,
+  EngagementLiveData,
   DailyAggregate,
   GuardrailBlock,
   InboundGap,
@@ -15,6 +16,7 @@ import type {
 const AUDIT_PATH = path.join(WORKSPACE_PATH, "content-engine/state/engagement-audit.jsonl");
 const MODE_PATH = path.join(WORKSPACE_PATH, "content-engine/state/engagement-mode.json");
 const COGNITIVE_DIR = path.join(WORKSPACE_PATH, "metrics/cognitive");
+const LIVE_PATH = path.join(WORKSPACE_PATH, "metrics/engagement-live.json");
 const MAX_LINES = 200;
 
 function readLastLines(filePath: string, max: number): string[] {
@@ -100,13 +102,9 @@ export function isRealEngagement(action: EngagementAction): boolean {
   return action.action !== "check" && !action.action.startsWith("check:");
 }
 
-/**
- * Returns true only for genuine guardrail failures: results starting with
- * "error:" or equal to "forbidden". Intentional skips (e.g.
- * "skip:troll_disengage") and pass variants are NOT failures.
- */
-export function isGuardrailFailure(guardrailResult: string): boolean {
-  return guardrailResult.startsWith("error:") || guardrailResult === "forbidden";
+export function isGuardrailFailure(guardrailResult: string | null | undefined): boolean {
+  if (!guardrailResult || guardrailResult === "") return false;
+  return !guardrailResult.startsWith("pass");
 }
 
 function getTodayStr(): string {
@@ -276,6 +274,19 @@ function computeSourceCoverage(): EngagementSourceCoverage {
     genviral: fs.existsSync(path.join(WORKSPACE_PATH, "content-engine/state/publish-jobs")),
     engagementAudit: fs.existsSync(AUDIT_PATH),
   };
+}
+
+export function parseEngagementLive(): EngagementLiveData | null {
+  try {
+    const raw = fs.readFileSync(LIVE_PATH, "utf-8");
+    const data = JSON.parse(raw);
+    if (!data.today && data.date) {
+      return { today: data, history: [], follower_snapshots: [] } as EngagementLiveData;
+    }
+    return data as EngagementLiveData;
+  } catch {
+    return null;
+  }
 }
 
 export function parseEngagement(): EngagementData {

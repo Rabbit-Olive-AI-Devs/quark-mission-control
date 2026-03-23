@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
-import { parseEngagement } from "@/lib/parsers/engagement";
+import { parseEngagement, parseEngagementLive } from "@/lib/parsers/engagement";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  return NextResponse.json(parseEngagement());
+  const legacy = parseEngagement();
+  const live = parseEngagementLive();
+  return NextResponse.json({ ...legacy, live });
 }
