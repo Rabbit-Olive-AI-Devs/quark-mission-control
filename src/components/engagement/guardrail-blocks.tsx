@@ -2,14 +2,29 @@
 
 import { Shield, CheckCircle } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
-import type { GuardrailBlock, DailyAggregate } from "@/lib/parsers/types";
+import type { GuardrailBlock, DailyAggregate, GuardrailBreakdown } from "@/lib/parsers/types";
 import { getPlatformColor, PLATFORM_LABELS, formatTimeAgo } from "@/lib/engagement-constants";
 import { humanizeGuardrail } from "@/lib/guardrail-labels";
 
 interface Props {
   blocks: GuardrailBlock[];
   trends: DailyAggregate[];
+  guardrails?: GuardrailBreakdown;
 }
+
+const GUARDRAIL_CATEGORIES: {
+  key: keyof Omit<GuardrailBreakdown, "total_failures">;
+  label: string;
+  bg: string;
+  text: string;
+  border: string;
+}[] = [
+  { key: "api_errors",     label: "API Errors",    bg: "bg-[#EF4444]/10", text: "text-[#EF4444]", border: "border-[#EF4444]/20" },
+  { key: "rate_limits",    label: "Rate Limits",   bg: "bg-[#F59E0B]/10", text: "text-[#F59E0B]", border: "border-[#F59E0B]/20" },
+  { key: "content_blocks", label: "Content Blocks", bg: "bg-[#3B82F6]/10", text: "text-[#3B82F6]", border: "border-[#3B82F6]/20" },
+  { key: "infra_degraded", label: "Infra Degraded", bg: "bg-[#A855F7]/10", text: "text-[#A855F7]", border: "border-[#A855F7]/20" },
+  { key: "other",          label: "Other",          bg: "bg-[#94A3B8]/10", text: "text-[#94A3B8]", border: "border-[#94A3B8]/20" },
+];
 
 function Sparkline({ data }: { data: number[] }) {
   if (data.length < 2) return null;
@@ -34,7 +49,7 @@ function Sparkline({ data }: { data: number[] }) {
   );
 }
 
-export function GuardrailBlocks({ blocks, trends }: Props) {
+export function GuardrailBlocks({ blocks, trends, guardrails }: Props) {
   const reasonCounts: Record<string, number> = {};
   for (const b of blocks) {
     reasonCounts[b.reason] = (reasonCounts[b.reason] ?? 0) + 1;
@@ -53,6 +68,33 @@ export function GuardrailBlocks({ blocks, trends }: Props) {
         </div>
         {sparkData.length >= 2 && <Sparkline data={sparkData} />}
       </div>
+
+      {guardrails && guardrails.total_failures > 0 && (
+        <div className="mb-4 p-3 rounded-lg bg-white/[0.02] border border-white/5">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider">
+              Failure Breakdown
+            </span>
+            <span className="text-[10px] text-[#94A3B8]/60">
+              {guardrails.total_failures} total
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {GUARDRAIL_CATEGORIES.map(({ key, label, bg, text, border }) => {
+              const count = guardrails[key];
+              if (count === 0) return null;
+              return (
+                <span
+                  key={key}
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${bg} ${text} border ${border}`}
+                >
+                  {label}: {count}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {blocks.length === 0 ? (
         <div className="flex items-center gap-2 text-sm text-[#94A3B8] py-4 justify-center">
