@@ -71,6 +71,8 @@ const FOLLOWER_KEYS: Record<string, keyof FollowerSnapshot> = {
   substack: "substack_subscribers",
 };
 
+const ALL_PLATFORM_KEYS: Platform[] = PLATFORMS.filter((p) => p.key !== "all").map((p) => p.key);
+
 const GRID_COLOR = "rgba(255,255,255,0.05)";
 const AXIS_COLOR = "#64748B";
 const ACCENT_GLOW = "#00D4AA";
@@ -215,29 +217,78 @@ function buildFollowerSeries(
 /* ------------------------------------------------------------------ */
 
 export function HistoricalChart({ history, followerSnapshots }: Props) {
-  const [platform, setPlatform] = useState<Platform>("all");
+  const allPlatformKeys = ALL_PLATFORM_KEYS;
+  const [selectedPlatforms, setSelectedPlatforms] = useState<Set<Platform>>(
+    () => new Set(allPlatformKeys),
+  );
   const [metric, setMetric] = useState<Metric>("total");
   const [range, setRange] = useState<TimeRange>("30d");
 
-  const data = useMemo(() => {
-    if (metric === "follower_count") {
-      const filtered = filterByRange(followerSnapshots, range);
-      return buildFollowerSeries(filtered, platform);
-    }
-    const filtered = filterByRange(history, range);
-    return buildHistorySeries(filtered, platform, metric);
-  }, [history, followerSnapshots, platform, metric, range]);
+  const allSelected = allPlatformKeys.every((k) => selectedPlatforms.has(k));
 
-  const color = lineColor(platform);
-  const gradientId = "historical-fill";
+  function togglePlatform(key: Platform) {
+    if (key === "all") {
+      // Toggle between all-selected and none-selected
+      if (allSelected) {
+        setSelectedPlatforms(new Set());
+      } else {
+        setSelectedPlatforms(new Set(allPlatformKeys));
+      }
+      return;
+    }
+    setSelectedPlatforms((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }
+
+  // Build per-platform data series, reversed so oldest is on the left
+  const platformSeries = useMemo(() => {
+    const series: Record<string, Array<{ date: string; value: number }>> = {};
+    const activePlatforms = Array.from(selectedPlatforms);
+
+    for (const plat of activePlatforms) {
+      if (metric === "follower_count") {
+        const filtered = filterByRange(followerSnapshots, range);
+        series[plat] = buildFollowerSeries(filtered, plat).slice().reverse();
+      } else {
+        const filtered = filterByRange(history, range);
+        series[plat] = buildHistorySeries(filtered, plat, metric).slice().reverse();
+      }
+    }
+    return series;
+  }, [history, followerSnapshots, selectedPlatforms, metric, range]);
+
+  // Merge all platform series into a single array with one key per platform
+  const data = useMemo(() => {
+    const activePlatforms = Array.from(selectedPlatforms);
+    if (activePlatforms.length === 0) return [];
+
+    // Use the first series for dates (all have the same dates)
+    const baseSeries = platformSeries[activePlatforms[0]];
+    if (!baseSeries) return [];
+
+    return baseSeries.map((point, i) => {
+      const row: Record<string, string | number> = { date: point.date };
+      for (const plat of activePlatforms) {
+        row[plat] = platformSeries[plat]?.[i]?.value ?? 0;
+      }
+      return row;
+    });
+  }, [platformSeries, selectedPlatforms]);
+
   const metricLabel =
     METRICS.find((m) => m.key === metric)?.label ?? "Value";
-  const platformLabel =
-    platform === "all"
-      ? "All Platforms"
-      : (PLATFORM_LABELS[platform] ?? platform);
 
-  const isEmpty = data.length === 0 || data.every((d) => d.value === 0);
+  const isEmpty = data.length === 0 || data.every((d) => {
+    const activePlatforms = Array.from(selectedPlatforms);
+    return activePlatforms.every((plat) => (d[plat] as number) === 0);
+  });
 
   return (
     <GlassCard className="mb-6">
@@ -272,16 +323,17 @@ export function HistoricalChart({ history, followerSnapshots }: Props) {
         </select>
       </div>
 
-      {/* Platform tab bar */}
+      {/* Platform tab bar — multi-select toggle */}
       <div className="flex items-center gap-1 mb-4">
         {PLATFORMS.map((p) => {
-          const active = platform === p.key;
+          const active =
+            p.key === "all" ? allSelected : selectedPlatforms.has(p.key);
           const tabColor =
             p.key === "all" ? ACCENT_GLOW : (PLATFORM_COLORS[p.key] ?? "#94A3B8");
           return (
             <button
               key={p.key}
-              onClick={() => setPlatform(p.key)}
+              onClick={() => togglePlatform(p.key)}
               className={cn(
                 "px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider rounded-sm",
                 "transition-all duration-200 border",
@@ -329,7 +381,7 @@ export function HistoricalChart({ history, followerSnapshots }: Props) {
       {isEmpty ? (
         <div className="flex items-center justify-center h-[260px]">
           <p className="text-sm text-[#64748B]">
-            No data for {metricLabel} on {platformLabel} in this range.
+            No data for {metricLabel} in this range.
           </p>
         </div>
       ) : (
@@ -339,10 +391,22 @@ export function HistoricalChart({ history, followerSnapshots }: Props) {
             margin={{ top: 8, right: 12, bottom: 0, left: -8 }}
           >
             <defs>
-              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={color} stopOpacity={0.25} />
-                <stop offset="95%" stopColor={color} stopOpacity={0.0} />
-              </linearGradient>
+              {Array.from(selectedPlatforms).map((plat) => {
+                const c = lineColor(plat);
+                return (
+                  <linearGradient
+                    key={`gradient-${plat}`}
+                    id={`historical-fill-${plat}`}
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop offset="0%" stopColor={c} stopOpacity={0.25} />
+                    <stop offset="95%" stopColor={c} stopOpacity={0.0} />
+                  </linearGradient>
+                );
+              })}
             </defs>
             <CartesianGrid
               strokeDasharray="3 3"
@@ -368,21 +432,28 @@ export function HistoricalChart({ history, followerSnapshots }: Props) {
               content={<ChartTooltip metric={metric} />}
               cursor={{ stroke: "rgba(255,255,255,0.08)", strokeWidth: 1 }}
             />
-            <Area
-              type="monotone"
-              dataKey="value"
-              name={`${platformLabel} — ${metricLabel}`}
-              stroke={color}
-              strokeWidth={2}
-              fill={`url(#${gradientId})`}
-              dot={false}
-              activeDot={{
-                r: 4,
-                fill: color,
-                stroke: "#0A0A0F",
-                strokeWidth: 2,
-              }}
-            />
+            {Array.from(selectedPlatforms).map((plat) => {
+              const c = lineColor(plat);
+              const label = PLATFORM_LABELS[plat] ?? plat;
+              return (
+                <Area
+                  key={plat}
+                  type="monotone"
+                  dataKey={plat}
+                  name={`${label} — ${metricLabel}`}
+                  stroke={c}
+                  strokeWidth={2}
+                  fill={`url(#historical-fill-${plat})`}
+                  dot={false}
+                  activeDot={{
+                    r: 4,
+                    fill: c,
+                    stroke: "#0A0A0F",
+                    strokeWidth: 2,
+                  }}
+                />
+              );
+            })}
           </AreaChart>
         </ResponsiveContainer>
       )}

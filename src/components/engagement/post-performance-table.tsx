@@ -297,6 +297,7 @@ export function PostPerformanceTable({ posts }: Props) {
   const [platformFilter, setPlatformFilter] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
   const [diagFilter, setDiagFilter] = useState<DiagnosticLabel | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
   const platforms = useMemo(() => [...new Set(posts.map((p) => p.platform))], [posts]);
   const types = useMemo(() => [...new Set(posts.map((p) => p.content_type))], [posts]);
@@ -319,6 +320,8 @@ export function PostPerformanceTable({ posts }: Props) {
 
     return filtered;
   }, [posts, platformFilter, typeFilter, diagFilter]);
+
+  const visiblePosts = showAll ? sorted : sorted.slice(0, 15);
 
   return (
     <GlassCard>
@@ -384,14 +387,23 @@ export function PostPerformanceTable({ posts }: Props) {
                 </td>
               </tr>
             ) : (
-              sorted.map((post) => <PostRow key={post.job_id} post={post} />)
+              visiblePosts.map((post) => <PostRow key={post.job_id} post={post} />)
             )}
           </tbody>
         </table>
       </div>
 
+      {!showAll && sorted.length > 15 && (
+        <button
+          onClick={() => setShowAll(true)}
+          className="w-full py-2 mt-2 text-sm text-[#94A3B8] hover:text-white transition-colors border border-white/10 rounded-lg bg-white/[0.02] hover:bg-white/[0.05]"
+        >
+          Show all {sorted.length} posts
+        </button>
+      )}
+
       <p className="text-[10px] text-[#94A3B8]/50 mt-3">
-        {sorted.length} of {posts.length} posts shown
+        {visiblePosts.length} of {posts.length} posts shown
       </p>
     </GlassCard>
   );
