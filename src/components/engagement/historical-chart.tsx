@@ -269,30 +269,34 @@ export function HistoricalChart({ history, followerSnapshots }: Props) {
     return series;
   }, [history, followerSnapshots, selectedPlatforms, metric, range]);
 
+  // Effective platforms for data/rendering (aggregate metrics force "all")
+  const effectivePlatforms = useMemo(() => {
+    if (AGGREGATE_ONLY_METRICS.has(metric)) return ["all" as Platform];
+    return Array.from(selectedPlatforms);
+  }, [selectedPlatforms, metric]);
+
   // Merge all platform series into a single array with one key per platform
   const data = useMemo(() => {
-    const activePlatforms = Array.from(selectedPlatforms);
-    if (activePlatforms.length === 0) return [];
+    if (effectivePlatforms.length === 0) return [];
 
     // Use the first series for dates (all have the same dates)
-    const baseSeries = platformSeries[activePlatforms[0]];
+    const baseSeries = platformSeries[effectivePlatforms[0]];
     if (!baseSeries) return [];
 
     return baseSeries.map((point, i) => {
       const row: Record<string, string | number> = { date: point.date };
-      for (const plat of activePlatforms) {
+      for (const plat of effectivePlatforms) {
         row[plat] = platformSeries[plat]?.[i]?.value ?? 0;
       }
       return row;
     });
-  }, [platformSeries, selectedPlatforms]);
+  }, [platformSeries, effectivePlatforms]);
 
   const metricLabel =
     METRICS.find((m) => m.key === metric)?.label ?? "Value";
 
   const isEmpty = data.length === 0 || data.every((d) => {
-    const activePlatforms = Array.from(selectedPlatforms);
-    return activePlatforms.every((plat) => (d[plat] as number) === 0);
+    return effectivePlatforms.every((plat) => (d[plat] as number) === 0);
   });
 
   return (
@@ -399,7 +403,7 @@ export function HistoricalChart({ history, followerSnapshots }: Props) {
             margin={{ top: 8, right: 12, bottom: 0, left: -8 }}
           >
             <defs>
-              {Array.from(selectedPlatforms).map((plat) => {
+              {effectivePlatforms.map((plat) => {
                 const c = lineColor(plat);
                 return (
                   <linearGradient
@@ -440,7 +444,7 @@ export function HistoricalChart({ history, followerSnapshots }: Props) {
               content={<ChartTooltip metric={metric} />}
               cursor={{ stroke: "rgba(255,255,255,0.08)", strokeWidth: 1 }}
             />
-            {Array.from(selectedPlatforms).map((plat) => {
+            {effectivePlatforms.map((plat) => {
               const c = lineColor(plat);
               const label = PLATFORM_LABELS[plat] ?? plat;
               return (
